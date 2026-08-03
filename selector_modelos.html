@@ -68,12 +68,29 @@
     var abierto = false;
     var valorConfirmado = input.value || "";
 
-    /** Demasiados modelos para listarlos todos (Parte 7 del rediseño anterior) — se limita a 50 resultados, ya filtrados por texto. */
+    /**
+     * Demasiados modelos para listarlos todos de una — se limita la
+     * cantidad renderizada en el dropdown.
+     *
+     * BUG CORREGIDO: cuando el operador abre el dropdown sin escribir nada
+     * (foco vacío), `filtrado` es el array COMPLETO sin filtrar, en el
+     * mismo orden en que están cargados en la hoja. El límite anterior
+     * (50) cortaba ese array completo por posición, no por relevancia — con
+     * "Lista de Precios" ya superando esa cantidad de filas, los modelos
+     * más nuevos (agregados al final de la hoja, ej. "iPhone 17" y
+     * variantes) quedaban directamente invisibles al hacer foco vacío, y
+     * solo aparecían si el operador tipeaba texto que los hiciera matchear
+     * (ahí sí el filtro por texto ya reducía el array antes del slice).
+     * Con el catálogo combinado (celulares + Mac/iPad) el problema se
+     * agrava: son bastante más de 50 modelos en total. El límite ahora es
+     * generoso (300) para que en la práctica nunca se corte el catálogo
+     * completo actual, sea cual sea el orden de la hoja.
+     */
     function filtrar(q){
       q = (q || "").trim().toLowerCase();
       var base = itemsCache || [];
       var filtrado = !q ? base : base.filter(function(p){ return textoDe(p).toLowerCase().indexOf(q) !== -1; });
-      return filtrado.slice(0, 50);
+      return filtrado.slice(0, 300);
     }
 
     function render(){

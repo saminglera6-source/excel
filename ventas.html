@@ -229,11 +229,11 @@
   /**
    * Sin buscador nuevo. La venta ya sabe qué equipo se vende (v_nOp, de
    * Stock) — al elegirlo, busca su modelo (guardado tal cual en Compras) en
-   * Lista de Precios (_preciosCache/preciosCargarDatos, ya existentes en
-   * precios.html) y completa el Precio del Celular con el Precio Contado,
-   * vía _precioAutoVenta (que decide si corresponde pisarlo o no). Si no
-   * encuentra un match exacto (equipos cargados antes de este cambio, con
-   * modelo en formato libre), no toca el precio: sigue 100% editable.
+   * el catálogo combinado Celulares + Mac/iPad (catalogoCompletoCargar,
+   * precios_mac_ipad.html) y completa el Precio del Celular con el Precio
+   * Contado, vía _precioAutoVenta (que decide si corresponde pisarlo o no).
+   * Si no encuentra un match exacto (equipos cargados antes de este cambio,
+   * con modelo en formato libre), no toca el precio: sigue 100% editable.
    */
   function ventasAutocompletarPrecioDesdeStock(){
     var sel = document.getElementById("v_nOp");
@@ -241,17 +241,14 @@
     var modelo = (opt && opt.dataset.modelo) || "";
     if (!modelo) return;
 
-    function continuar(){
-      var match = (_preciosCache || []).find(function(p){
+    catalogoCompletoCargar(function(catalogo){
+      var match = (catalogo || []).find(function(p){
         return (p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "")) === modelo;
       });
       if (!match) return; // sin match exacto: no se inventa un precio, queda editable
       _precioAutoVenta.autocompletar(match.precioARS || 0);
       ventasCalcTotalOperacion();
-    }
-
-    if (_preciosCache && _preciosCache.length > 0) continuar();
-    else preciosCargarDatos(continuar);
+    });
   }
 
   function ventasInit(){

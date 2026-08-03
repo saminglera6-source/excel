@@ -1,0 +1,278 @@
+<div id="view-precios_mac_ipad" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>💻 Lista de Precios — Mac / iPad</h3>
+    <div class="hint">Se lee en vivo desde la hoja "Lista de Precios Mac-iPad" del Google Sheet — cualquier cambio ahí se refleja acá sin tocar código.</div>
+
+    <div class="fila2" style="margin-top:14px">
+      <div>
+        <label style="font-size:11px">🔎 Buscar modelo</label>
+        <input type="text" id="mi_buscar" placeholder="Ej: MacBook Air M2" oninput="miFiltrarYRenderizar()"/>
+      </div>
+      <div>
+        <label style="font-size:11px">&nbsp;</label>
+        <div id="mi_actualizado" style="font-size:11px;color:#778;padding-top:11px"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-top:12px;font-size:12.5px">
+      <span style="font-weight:600;color:#334">Vista:</span>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="mi_vista" id="mi_vista_cards" onchange="miSetVista('cards')"> Cards
+      </label>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="mi_vista" id="mi_vista_tabla" onchange="miSetVista('tabla')"> Tabla
+      </label>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="mi_vista" id="mi_vista_compacta" onchange="miSetVista('compacta')"> Compacta
+      </label>
+    </div>
+
+    <div id="mi_filtros" style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px"></div>
+
+    <div id="mi_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
+      <div style="grid-column:1/-1;text-align:center;color:#889;padding:20px">Cargando...</div>
+    </div>
+
+    <div id="mi_tabla_wrap" style="display:none">
+      <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px">
+          <colgroup>
+            <col style="width:24%"><col style="width:10%"><col style="width:14%">
+            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+          </colgroup>
+          <thead>
+            <tr style="text-align:left">
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('modelo')">Modelo <span id="mi_th_modelo"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('almacenamiento')">RAM/Alm. <span id="mi_th_almacenamiento"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Precio Venta <span id="mi_th_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Precio Preventa <span id="mi_th_preventaARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('descuentoARS')">Descuento <span id="mi_th_descuentoARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioUSD')">Precio USD <span id="mi_th_precioUSD"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="mi_tbody">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="mi_compacta_wrap" style="display:none">
+      <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px">
+          <colgroup>
+            <col style="width:26%"><col style="width:8%"><col style="width:14%">
+            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+          </colgroup>
+          <thead>
+            <tr style="text-align:left">
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('modelo')">Modelo <span id="mi_thc_modelo"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);text-align:center" onclick="miOrdenarPor('almacenamiento')">Alm. <span id="mi_thc_almacenamiento"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Venta <span id="mi_thc_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Prev <span id="mi_thc_preventaARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('descuentoARS')">Desc <span id="mi_thc_descuentoARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioUSD')">USD <span id="mi_thc_precioUSD"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="mi_tbody_compacta">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Lista de Precios — Mac / iPad. Reutiliza los helpers genéricos ya
+  //  definidos en precios.html (preciosCrearTarjetaHTML, preciosFiltrarArray,
+  //  preciosCopiarTexto, preciosTextoPlano/WhatsApp, fmtP, mostrarToast, etc.)
+  //  — este archivo solo agrega su propia fuente de datos
+  //  (obtenerListaPreciosMacIpad, macs_ipads.gs) y su propio estado de
+  //  filtro/orden/vista, con prefijo "mi_"/"mi" para no chocar con
+  //  precios.html. Debe incluirse en index.html DESPUÉS de precios.html
+  //  (mismo scope global de scripts, usa sus funciones).
+  // ============================================================
+
+  var FILTROS_MODELO_MACIPAD = ["Todos","MacBook Air","MacBook Pro","iPad Pro","iPad Air"];
+
+  // ---------- Catálogo combinado (Celulares + Mac/iPad) ----------
+  // Usado por el selector de modelos de Compras y Preventas (opts.obtenerDatos)
+  // para que el operador pueda elegir tanto un celular como una Mac/iPad desde
+  // el mismo buscador, sin duplicar el fetch en cada formulario. Ver
+  // obtenerCatalogoCompletoEquipos() (macs_ipads.gs).
+  var _catalogoCompletoCache = null; // null = todavía no se pidió
+  function catalogoCompletoCargar(cb){
+    if (_catalogoCompletoCache) { cb(_catalogoCompletoCache); return; }
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _catalogoCompletoCache = datos || [];
+        cb(_catalogoCompletoCache);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCatalogoCompletoEquipos();
+  }
+
+  var _miCache = []; // último resultado de obtenerListaPreciosMacIpad()
+  var _miFiltroActivo = "Todos";
+  var _miFiltrada = [];
+
+  var MI_VISTA_KEY = "gp_precios_mi_vista";
+  var _miVistaModo = "cards";
+  try { _miVistaModo = localStorage.getItem(MI_VISTA_KEY) || "cards"; } catch (e) { /* localStorage no disponible */ }
+
+  function miCargarDatos(cb){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _miCache = datos || [];
+        if (cb) cb(_miCache);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerListaPreciosMacIpad();
+  }
+
+  function miAplicarVista(){
+    document.getElementById("mi_grid").style.display = (_miVistaModo === "cards") ? "grid" : "none";
+    document.getElementById("mi_tabla_wrap").style.display = (_miVistaModo === "tabla") ? "block" : "none";
+    document.getElementById("mi_compacta_wrap").style.display = (_miVistaModo === "compacta") ? "block" : "none";
+    var rCards    = document.getElementById("mi_vista_cards");
+    var rTabla    = document.getElementById("mi_vista_tabla");
+    var rCompacta = document.getElementById("mi_vista_compacta");
+    if (rCards)    rCards.checked    = (_miVistaModo === "cards");
+    if (rTabla)    rTabla.checked    = (_miVistaModo === "tabla");
+    if (rCompacta) rCompacta.checked = (_miVistaModo === "compacta");
+  }
+
+  function miSetVista(modo){
+    _miVistaModo = modo;
+    try { localStorage.setItem(MI_VISTA_KEY, modo); } catch (e) { /* localStorage no disponible */ }
+    miAplicarVista();
+    miRenderizar();
+  }
+
+  function miInit(){
+    document.getElementById("mi_filtros").innerHTML = FILTROS_MODELO_MACIPAD.map(function(f){
+      return "<button class='btn' style='margin:0;width:auto;padding:6px 12px;font-size:12px;" + (f === _miFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='miSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";
+    }).join("");
+    miAplicarVista();
+    miCargarDatos(function(){
+      document.getElementById("mi_actualizado").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR");
+      miRenderizar();
+    });
+  }
+
+  function miSetFiltro(f){
+    _miFiltroActivo = f;
+    document.querySelectorAll("#mi_filtros button").forEach(function(b){
+      b.style.background = (b.textContent === f) ? "" : "#B8C4CE";
+    });
+    miRenderizar();
+  }
+
+  function miFiltrarYRenderizar(){ miRenderizar(); }
+
+  function miRenderizar(){
+    var q = document.getElementById("mi_buscar").value;
+    _miFiltrada = preciosFiltrarArray(_miCache, q, _miFiltroActivo);
+    if (_miVistaModo === "tabla") miRenderizarTabla();
+    else if (_miVistaModo === "compacta") miRenderizarCompacta();
+    else miRenderizarGrid();
+  }
+
+  function miRenderizarGrid(){
+    var grid = document.getElementById("mi_grid");
+    if (_miFiltrada.length === 0) {
+      grid.innerHTML = "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados.</div>";
+      return;
+    }
+    grid.innerHTML = _miFiltrada.map(function(p, i){ return preciosCrearTarjetaHTML(p, i, "mi", false, true, "💻"); }).join("");
+  }
+
+  function miAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_miFiltrada[idx])); }
+  function miAccionWhatsapp(idx){ preciosCopiarTexto(preciosTextoWhatsApp(_miFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function miAccionVerCuotas(idx){
+    var p = _miFiltrada[idx];
+    renderCalculadoraCuotas(p.precioARS, {
+      titulo: "💳 Cuotas — " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""),
+      mostrarCopiar: false
+    });
+  }
+
+  var _miOrdenCampo = null;
+  var _miOrdenDir = 1;
+  var _miTablaFiltrada = [];
+  var MI_COLUMNAS_TABLA = ["modelo","almacenamiento","precioARS","preventaARS","descuentoARS","precioUSD"];
+
+  function miOrdenarPor(campo){
+    if (_miOrdenCampo === campo) _miOrdenDir = -_miOrdenDir;
+    else { _miOrdenCampo = campo; _miOrdenDir = 1; }
+    miRenderizar();
+  }
+
+  function miOrdenarArray(arr){
+    if (!_miOrdenCampo) return arr.slice();
+    var campo = _miOrdenCampo, dir = _miOrdenDir;
+    return arr.slice().sort(function(a, b){
+      var va = a[campo], vb = b[campo];
+      if (typeof va === "string") {
+        va = va.toLowerCase(); vb = String(vb || "").toLowerCase();
+        return va < vb ? -dir : (va > vb ? dir : 0);
+      }
+      return ((Number(va) || 0) - (Number(vb) || 0)) * dir;
+    });
+  }
+
+  function miActualizarIndicadoresOrden(){
+    MI_COLUMNAS_TABLA.forEach(function(c){
+      var marca = (c === _miOrdenCampo) ? (_miOrdenDir === 1 ? "▲" : "▼") : "";
+      var elTabla = document.getElementById("mi_th_" + c);
+      if (elTabla) elTabla.textContent = marca;
+      var elCompacta = document.getElementById("mi_thc_" + c);
+      if (elCompacta) elCompacta.textContent = marca;
+    });
+  }
+
+  function miRenderizarTabla(){
+    var tbody = document.getElementById("mi_tbody");
+    _miTablaFiltrada = miOrdenarArray(_miFiltrada);
+    miActualizarIndicadoresOrden();
+
+    if (_miTablaFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    var celda = "padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    tbody.innerHTML = _miTablaFiltrada.map(function(p, i){
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='" + celda + ";font-weight:600;color:var(--azul)' title='" + escHtml(p.modelo) + "'>💻 " + escHtml(p.modelo) + "</td>" +
+        "<td style='" + celda + "'>" + escHtml(p.almacenamiento || "—") + "</td>" +
+        "<td style='" + celda + "'>" + fmtP(p.precioARS) + "</td>" +
+        "<td style='" + celda + ";color:#B7950B'>" + fmtP(p.preventaARS) + "</td>" +
+        "<td style='" + celda + ";color:#1E8449'>" + fmtP(p.descuentoARS) + "</td>" +
+        "<td style='" + celda + ";color:#556'>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</td>" +
+        "<td style='padding:6px 8px;white-space:nowrap;overflow:hidden'>" +
+          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#5D6D7E' title='Copiar precio' onclick='miTablaAccionCopiar(" + i + ")'>📋</button> " +
+          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#1E8449' title='WhatsApp' onclick='miTablaAccionWhatsapp(" + i + ")'>📲</button>" +
+        "</td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function miTablaAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_miTablaFiltrada[idx])); }
+  function miTablaAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_miTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+
+  function miRenderizarCompacta(){
+    var tbody = document.getElementById("mi_tbody_compacta");
+    _miTablaFiltrada = miOrdenarArray(_miFiltrada);
+    miActualizarIndicadoresOrden();
+
+    if (_miTablaFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = _miTablaFiltrada.map(function(p, i){ return preciosCrearFilaCompactaHTML(p, i, "miTabla", false); }).join("");
+  }
+</script>

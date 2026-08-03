@@ -44,12 +44,12 @@
         <div>
           <label>Equipo / Modelo: <span class="req">*</span></label>
           <div class="gp-modelo-wrap">
-            <input type="text" id="c_modelo" placeholder="🔎 Buscar modelo... (Lista de Precios)" autocomplete="off"/>
+            <input type="text" id="c_modelo" placeholder="🔎 Buscar modelo... (Celulares, Mac, iPad)" autocomplete="off"/>
           </div>
         </div>
         <div>
-          <label>IMEI:</label>
-          <input type="text" id="c_imei" placeholder="15 dígitos"/>
+          <label>IMEI / N° de Serie:</label>
+          <input type="text" id="c_imei" placeholder="15 dígitos (o N° de serie si es Mac/iPad)"/>
         </div>
       </div>
 
@@ -179,11 +179,20 @@
   document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
 
   // Parte 1/4/5/6 (rediseño UX): selector reutilizable con búsqueda
-  // (selector_modelos.html), fuente única "Lista de Precios". Modo strict:
-  // el operador SOLO puede elegir un modelo existente, no texto libre. En
-  // Compras solo completa el texto del modelo — no autocompleta precio,
-  // cliente, IMEI, color ni estado (Parte 8 del rediseño anterior).
-  var _selectorModeloCompras = crearSelectorModelos(document.getElementById("c_modelo"), { strict: true });
+  // (selector_modelos.html). Modo strict: el operador SOLO puede elegir un
+  // modelo existente, no texto libre. En Compras solo completa el texto del
+  // modelo — no autocompleta precio, cliente, IMEI, color ni estado (Parte 8
+  // del rediseño anterior). Fuente: catálogo combinado Celulares + Mac/iPad
+  // (catalogoCompletoCargar, precios_mac_ipad.html) — así se puede registrar
+  // la compra de una Mac/iPad con el mismo flujo de "Equipo" que un celular.
+  // Referenciada indirectamente (función anónima) porque compras.html se
+  // incluye en index.html antes que precios_mac_ipad.html: para el momento
+  // en que esta función realmente se ejecuta (usuario abriendo el dropdown)
+  // todos los <script> de la página ya cargaron.
+  var _selectorModeloCompras = crearSelectorModelos(document.getElementById("c_modelo"), {
+    strict: true,
+    obtenerDatos: function(cb){ catalogoCompletoCargar(cb); }
+  });
 
   var CATS_ACCESORIOS = ["Cargadores", "Auriculares", "Fundas", "Vidrios templados", "Cables", "Accesorios varios", "Otros"];
 
