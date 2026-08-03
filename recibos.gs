@@ -33,7 +33,7 @@ const RECIBO_NEGOCIO = {
  * Busca la venta por su N° Venta en "Ventas", completa Color desde
  * "Compras" (vía N° OP Compra) y los accesorios incluidos desde
  * "Venta Accesorios" (vía N° Venta Celular Asociada), y arma el recibo
- * imprimible (2 copias: Cliente + Local) con todos esos datos.
+ * imprimible (una hoja A4) con todos esos datos.
  */
 function generarReciboVenta(numeroVenta) {
   const numero = String(numeroVenta || "").trim();
@@ -152,7 +152,15 @@ function extraerDniDeCuil_(cuil) {
   return digitos.substring(2, 10);
 }
 
-/** Arma el documento HTML completo (2 copias, Cliente + Local) a partir de los datos ya resueltos por generarReciboVenta(). */
+/**
+ * Arma el documento HTML completo a partir de los datos ya resueltos por
+ * generarReciboVenta(). SOLO diseño (HTML/CSS) — ningún dato ni cálculo
+ * cambia acá, es puramente la plantilla visual. Una sola hoja A4 (antes
+ * se imprimían 2 copias apiladas con salto de página; el diseño de
+ * referencia es de una sola hoja, así que se deja en una copia — se puede
+ * volver a imprimir en cualquier momento desde Mis Operaciones).
+ * Paleta: negro, blanco, gris claro y naranja corporativo — sin otros colores.
+ */
 function _armarHtmlReciboVenta_(d) {
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -164,7 +172,7 @@ function _armarHtmlReciboVenta_(d) {
   const linea = (ancho) => `<span class="linea" style="width:${ancho || 140}px"></span>`;
 
   const filaPago = (etiqueta, marcado, valorTexto) =>
-    `<div class="pago-fila"><span class="chk-box">${marcado ? "☑" : "☐"}</span> ${etiqueta}: ${marcado ? `<b>${valorTexto}</b>` : linea(180)}</div>`;
+    `<div class="pago-fila"><span class="chk-box">${marcado ? "☑" : "☐"}</span> <span class="pago-etiqueta">${etiqueta}:</span> ${marcado ? `<b>${valorTexto}</b>` : linea(170)}</div>`;
 
   const filasPago = [
     filaPago("Efectivo", d.cobradoEf > 0, fmtPeso(d.cobradoEf)),
@@ -178,29 +186,34 @@ function _armarHtmlReciboVenta_(d) {
     : ["Cable USB-C / Lightning", "Cabezal de cargador", "Funda protectora", "Vidrio templado"]
         .map(a => `<span class="chk"><span class="chk-box">☐</span> ${a}</span>`).join("");
 
-  const unaCopia = (etiquetaCopia) => `
+  const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
+
+  const html = `
   <div class="hoja">
-    <div class="copia-tag">${etiquetaCopia}</div>
     <div class="encabezado">
-      <div>
+      <div class="encabezado-izq">
         <div class="logo">${esc(neg.nombre)}</div>
-        <div class="direccion">${esc(neg.direccion)} · ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+        <div class="direccion">${esc(neg.direccion)} · ${esc(neg.ciudad)}</div>
+        <div class="direccion">Tel: ${esc(neg.telefono)}</div>
       </div>
       <div class="encabezado-der">
-        <div class="titulo">RECIBO DE VENTA</div>
-        <div>N°: <b>${esc(d.numero)}</b> &nbsp; Fecha: <b>${esc(d.fecha)}</b></div>
-        <div>VENDEDOR: <b>${esc(d.vendedor) || linea(120)}</b></div>
+        <div class="titulo-recibo">RECIBO DE VENTA</div>
+        <div class="dato-header">N°: <b>${esc(d.numero)}</b></div>
+        <div class="dato-header">Fecha: <b>${esc(d.fecha)}</b></div>
+        <div class="dato-header">Vendedor: <b>${esc(d.vendedor) || linea(110)}</b></div>
       </div>
     </div>
 
     <div class="seccion-titulo">DATOS DEL DISPOSITIVO</div>
-    <div class="fila2">
-      <div>Marca/Modelo: <b>${esc(d.modelo) || "—"}</b></div>
-      <div>IMEI: <b>${esc(d.imei) || "—"}</b></div>
-    </div>
-    <div class="fila2">
-      <div>Color: <b>${esc(d.color) || linea(140)}</b></div>
-      <div>Batería: ${linea(200)}</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Marca/Modelo", `<b>${esc(d.modelo) || "—"}</b>`)}
+        ${campo("Color", `<b>${esc(d.color) || linea(140)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("IMEI", `<b>${esc(d.imei) || "—"}</b>`)}
+        ${campo("Batería", linea(160))}
+      </div>
     </div>
 
     <div class="seccion-titulo">ACCESORIOS INCLUIDOS</div>
@@ -214,38 +227,38 @@ function _armarHtmlReciboVenta_(d) {
         <div class="son-pesos">Son pesos: ${linea(150)}</div>
       </div>
       <div class="pago-detalle">
-        <div class="pago-detalle-label">DETALLE DEL PAGO:</div>
+        <div class="pago-detalle-label">DETALLE DEL PAGO</div>
         ${filasPago}
-        <div class="pago-fila" style="margin-top:6px">N° ref. transferencia / comprobante: ${linea(220)}</div>
+        <div class="pago-fila pago-comprobante">N° comprobante: ${linea(200)}</div>
       </div>
     </div>
 
     <div class="seccion-titulo">DATOS DEL COMPRADOR</div>
-    <div class="fila2">
-      <div>Apellido y Nombre: <b>${esc(d.cliente) || linea(160)}</b></div>
-      <div>Tel: <b>${esc(d.tel) || linea(140)}</b></div>
-    </div>
-    <div class="fila2">
-      <div>DNI: <b>${esc(d.dni) || linea(140)}</b></div>
-      <div>Domicilio: <b>${esc(d.domicilio) || linea(140)}</b></div>
-    </div>
-    <div class="fila2">
-      <div>CUIL / CUIT: <b>${esc(d.cuil) || linea(140)}</b></div>
-      <div>Email: <b>${esc(d.email) || linea(140)}</b></div>
+    <div class="dos-columnas comprador">
+      <div class="columna">
+        ${campo("Apellido y Nombre", `<b>${esc(d.cliente) || linea(160)}</b>`)}
+        ${campo("DNI", `<b>${esc(d.dni) || linea(140)}</b>`)}
+        ${campo("CUIL / CUIT", `<b>${esc(d.cuil) || linea(140)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("Teléfono", `<b>${esc(d.tel) || linea(140)}</b>`)}
+        ${campo("Domicilio", `<b>${esc(d.domicilio) || linea(140)}</b>`)}
+        ${campo("Email", `<b>${esc(d.email) || linea(140)}</b>`)}
+      </div>
     </div>
     ${d.obs ? `<div class="obs">Observaciones: ${esc(d.obs)}</div>` : ""}
 
     <div class="seccion-titulo">GARANTÍA</div>
     <div class="garantia">
-      El equipo adquirido cuenta con una garantía de <b>${neg.garantiaMeses} (doce) meses</b> desde la fecha de compra.
+      <p>El equipo adquirido cuenta con una garantía de <b>${neg.garantiaMeses} (doce) meses</b> desde la fecha de compra.
       La garantía cubre únicamente fallas técnicas de origen no provocadas por el cliente, incluyendo problemas de encendido, fallas internas de pantalla,
       batería defectuosa de origen, fallas de software persistentes, problemas de carga, audio, cámara o conectividad.
-      Toda garantía queda sujeta a diagnóstico y verificación técnica por parte del local.
-      La garantía NO cubre: pantallas rotas, fisuradas o con daño físico; golpes, rayones, deformaciones o daños estéticos; daño por líquido o humedad;
+      Toda garantía queda sujeta a diagnóstico y verificación técnica por parte del local.</p>
+      <p>La garantía NO cubre: pantallas rotas, fisuradas o con daño físico; golpes, rayones, deformaciones o daños estéticos; daño por líquido o humedad;
       equipos abiertos, manipulados o reparados por terceros; daños ocasionados por accesorios no originales o uso incorrecto; problemas relacionados con
       cuentas, contraseñas o bloqueos del usuario; daños eléctricos externos; fallas posteriores al vencimiento del plazo de garantía.
-      Si el equipo presenta evidencia física de golpe, humedad o manipulación externa, la garantía quedará automáticamente anulada.
-      <br>En caso de ingreso por garantía:
+      Si el equipo presenta evidencia física de golpe, humedad o manipulación externa, la garantía quedará automáticamente anulada.</p>
+      <p>En caso de ingreso por garantía:</p>
       <ol>
         <li>El equipo será evaluado técnicamente. El local dispondrá de un plazo de <b>48 (cuarenta y ocho) horas hábiles</b> desde el ingreso del equipo
         para emitir el diagnóstico correspondiente e informar al cliente si el caso encuadra dentro de las condiciones de garantía.</li>
@@ -262,7 +275,7 @@ function _armarHtmlReciboVenta_(d) {
           La devolución de dinero será siempre la última instancia luego de intentar reparación o reposición.
         </li>
       </ol>
-      El cliente declara haber recibido el equipo en correcto estado de funcionamiento y haber leído y aceptado las presentes condiciones de garantía.
+      <p>El cliente declara haber recibido el equipo en correcto estado de funcionamiento y haber leído y aceptado las presentes condiciones de garantía.</p>
     </div>
 
     <div class="firmas">
@@ -275,6 +288,8 @@ function _armarHtmlReciboVenta_(d) {
         <div class="firma-label">Comprador — Aclaración y DNI</div>
       </div>
     </div>
+
+    <div class="pie-separador"></div>
     <div class="pie">Al firmar, el comprador declara recibir el equipo en conformidad con lo descripto. ${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
   </div>`;
 
@@ -284,52 +299,86 @@ function _armarHtmlReciboVenta_(d) {
 <meta charset="UTF-8">
 <title>Recibo ${esc(d.numero)}</title>
 <style>
+  :root { --naranja: #E07B1E; --gris: #D9D9D9; --gris-texto: #6B6B6B; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
-  .hoja { width: 190mm; padding: 8mm 10mm; margin: 0 auto; page-break-after: always; position: relative; }
-  .hoja:last-child { page-break-after: auto; }
-  .copia-tag { position: absolute; top: 8mm; right: 10mm; font-size: 10px; font-weight: bold; color: #C0392B; letter-spacing: .5px; }
-  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 6px; margin-bottom: 10px; }
-  .logo { font-size: 20px; font-weight: bold; color: #1a1a1a; }
-  .direccion { font-size: 10px; color: #555; margin-top: 2px; }
-  .encabezado-der { text-align: right; font-size: 11.5px; }
-  .titulo { font-size: 15px; font-weight: bold; margin-bottom: 3px; }
-  .seccion-titulo { font-weight: bold; font-size: 11.5px; margin: 14px 0 6px; color: #1a1a1a; border-bottom: 2px solid #C0392B; padding-bottom: 3px; }
-  .fila2 { display: flex; gap: 16px; margin-bottom: 6px; }
-  .fila2 > div { flex: 1; }
-  .chk-fila { display: flex; flex-wrap: wrap; gap: 18px; font-size: 11.5px; }
+
+  .hoja { width: 190mm; padding: 10mm 12mm; margin: 0 auto; }
+
+  /* ---------- Encabezado ---------- */
+  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; }
+  .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
+  .direccion { font-size: 10.5px; color: var(--gris-texto); margin-top: 3px; }
+  .encabezado-der { text-align: right; }
+  .titulo-recibo { font-size: 22px; font-weight: bold; color: var(--naranja); letter-spacing: .5px; margin-bottom: 6px; }
+  .dato-header { font-size: 11.5px; margin-top: 2px; }
+
+  /* ---------- Separadores naranjas entre secciones ---------- */
+  .seccion-titulo {
+    font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+    margin: 26px 0 12px; padding-bottom: 6px; border-bottom: 3px solid var(--naranja);
+  }
+
+  /* ---------- Filas de 2 columnas (dispositivo / comprador) ---------- */
+  .dos-columnas { display: flex; gap: 40px; }
+  .dos-columnas .columna { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .dos-columnas.comprador { position: relative; }
+  .dos-columnas.comprador::after {
+    content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%;
+    width: 1px; background: var(--gris); margin-left: -20px;
+  }
+  .campo { font-size: 11.5px; }
+  .etiqueta { font-weight: bold; }
+  .valor { font-weight: normal; }
+
+  /* ---------- Líneas en blanco dibujadas ---------- */
+  .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
+
+  /* ---------- Accesorios ---------- */
+  .chk-fila { display: flex; flex-wrap: wrap; gap: 30px; font-size: 11.5px; }
   .chk { white-space: nowrap; }
   .chk-box { font-size: 15px; position: relative; top: 1px; }
-  .linea { display: inline-block; border-bottom: 1px solid #333; height: 12px; vertical-align: bottom; margin: 0 2px; }
-  .pago-box { display: flex; gap: 16px; background: #FDF1EE; border: 1px solid #F0C9BE; border-radius: 6px; padding: 10px 14px; margin-top: 4px; }
-  .pago-total { flex: 0 0 32%; text-align: center; border-right: 1px solid #F0C9BE; padding-right: 14px; }
-  .pago-total-label { font-size: 10.5px; font-weight: bold; }
-  .pago-total-monto { font-size: 20px; font-weight: bold; margin-top: 6px; }
-  .son-pesos { font-size: 10px; font-style: italic; color: #667; margin-top: 8px; text-align: left; }
-  .pago-detalle { flex: 1; font-size: 11px; }
-  .pago-detalle-label { font-weight: bold; margin-bottom: 4px; }
-  .pago-fila { margin: 4px 0; }
-  .obs { font-size: 11px; margin-top: 8px; font-style: italic; }
-  .garantia { font-size: 9px; line-height: 1.45; text-align: justify; color: #333; }
-  .garantia ol { margin: 4px 0; padding-left: 16px; }
-  .garantia li { margin-bottom: 3px; }
-  .garantia-opciones { list-style: none; margin: 3px 0; padding-left: 14px; }
-  .garantia-opciones li { margin-bottom: 1px; }
+
+  /* ---------- Caja Precio y Forma de Pago (protagonista, bordes rectos) ---------- */
+  .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 6px; }
+  .pago-total { flex: 0 0 34%; text-align: center; padding: 18px 14px; border-right: 1px solid var(--gris); }
+  .pago-total-label { font-size: 11px; font-weight: bold; letter-spacing: .3px; }
+  .pago-total-monto { font-size: 26px; font-weight: bold; margin-top: 10px; }
+  .son-pesos { font-size: 10px; color: var(--gris-texto); margin-top: 12px; }
+  .pago-detalle { flex: 1; padding: 18px 20px; }
+  .pago-detalle-label { font-weight: bold; font-size: 11px; letter-spacing: .3px; margin-bottom: 10px; }
+  .pago-fila { margin: 7px 0; font-size: 11.5px; }
+  .pago-etiqueta { font-weight: bold; }
+  .pago-comprobante { margin-top: 12px; }
+
+  .obs { font-size: 11px; margin-top: 10px; color: var(--gris-texto); }
+
+  /* ---------- Garantía ---------- */
+  .garantia { font-size: 9.5px; line-height: 1.65; text-align: justify; color: #2b2b2b; }
+  .garantia p { margin: 0 0 8px; }
+  .garantia ol { margin: 6px 0; padding-left: 18px; }
+  .garantia li { margin-bottom: 5px; }
+  .garantia-opciones { list-style: none; margin: 4px 0; padding-left: 14px; }
+  .garantia-opciones li { margin-bottom: 2px; }
   .garantia-opciones li::before { content: "○ "; }
-  .firmas { display: flex; gap: 30px; margin-top: 22px; }
+
+  /* ---------- Firmas (al pie, líneas largas) ---------- */
+  .firmas { display: flex; gap: 50px; margin-top: 34px; }
   .firma-col { flex: 1; text-align: center; }
-  .firma-linea { border-top: 1px solid #333; margin-bottom: 4px; margin-top: 22px; }
-  .firma-label { font-size: 10px; font-weight: bold; }
-  .pie { text-align: center; font-size: 8.5px; color: #778; margin-top: 10px; font-style: italic; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 30px; }
+  .firma-label { font-size: 10.5px; font-weight: bold; }
+
+  /* ---------- Pie ---------- */
+  .pie-separador { border-top: 1px solid var(--gris); margin-top: 18px; }
+  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 8px; }
 
   @page { size: A4; margin: 8mm; }
   @media print { .hoja { width: 100%; } }
 </style>
 </head>
 <body>
-  ${unaCopia("COPIA CLIENTE")}
-  ${unaCopia("COPIA LOCAL")}
+  ${html}
   <script>
     window.onload = function () {
       window.print();
