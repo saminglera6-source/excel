@@ -522,7 +522,11 @@
   }
 
   // ---------- Toasts ----------
-  // `opciones` (todas opcionales): { persistente: bool, accionTexto: string, accionFn: function }
+  // `opciones` (todas opcionales): { persistente: bool, accionTexto: string,
+  // accionFn: function, botones: [{texto, fn}, ...] }. `botones` es la forma
+  // genérica (varios botones de acción, ej. "Ver operación" + "🖨 Recibo");
+  // accionTexto/accionFn se mantienen para no tocar a quien ya los use con
+  // un solo botón — si se pasan ambas formas, se muestran todos los botones.
   function mostrarToast(mensaje, tipo, opciones){
     tipo = tipo || "info";
     opciones = opciones || {};
@@ -535,16 +539,19 @@
     texto.textContent = mensaje;
     el.appendChild(texto);
 
-    if (opciones.persistente || (opciones.accionTexto && opciones.accionFn)) {
+    var botones = (opciones.botones || []).slice();
+    if (opciones.accionTexto && opciones.accionFn) botones.unshift({ texto: opciones.accionTexto, fn: opciones.accionFn });
+
+    if (opciones.persistente || botones.length > 0) {
       var fila = document.createElement("div");
       fila.className = "toast-acciones";
-      if (opciones.accionTexto && opciones.accionFn) {
+      botones.forEach(function(b){
         var btnAccion = document.createElement("button");
         btnAccion.className = "toast-btn";
-        btnAccion.textContent = opciones.accionTexto;
-        btnAccion.onclick = opciones.accionFn;
+        btnAccion.textContent = b.texto;
+        btnAccion.onclick = b.fn;
         fila.appendChild(btnAccion);
-      }
+      });
       if (opciones.persistente) {
         var btnCerrar = document.createElement("button");
         btnCerrar.className = "toast-cerrar";
@@ -570,15 +577,22 @@
   // Detecta el número de operación (CMP/VTA/PRE/REP/GST/ACC-xxx) en el
   // mensaje de éxito ya devuelto por el backend y ofrece "Ver operación"
   // reutilizando el modal de Mis Operaciones. Si no encuentra un número
-  // reconocible, se degrada a un toast normal con el mismo mensaje.
+  // reconocible, se degrada a un toast normal con el mismo mensaje. Para
+  // ventas (VTA), agrega además el mismo botón "🖨 Recibo" que ya existe en
+  // Mis Operaciones (imprimirReciboVenta, ventas.html) — mismo patrón de
+  // abrir+pedir el HTML en el mismo click, sin el hueco de tiempo que hacía
+  // fallar el auto-abrir apenas se confirmaba la venta.
   function mostrarToastOperacion(mensaje){
     var m = String(mensaje || "").match(/\b(CMP|VTA|PRE|REP|GST|ACC|CAC|CAM|AJC)-\S+/);
     if (!m) { mostrarToast(mensaje, "exito"); return; }
     var numero = m[0].replace(/[.,;:]+$/, "");
+    var botones = [{ texto: "Ver operación", fn: function(){ misOperacionesVer(numero); } }];
+    if (numero.indexOf("VTA-") === 0) {
+      botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboVenta(numero); } });
+    }
     mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
       persistente: true,
-      accionTexto: "Ver operación",
-      accionFn: function(){ misOperacionesVer(numero); }
+      botones: botones
     });
   }
 
