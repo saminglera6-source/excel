@@ -166,6 +166,62 @@ function extraerDniDeCuil_(cuil) {
 }
 
 /**
+ * numeroAPesosEnLetras_(num)
+ *
+ * Convierte un monto en pesos a su escritura en palabras (español,
+ * Argentina) para la línea "Son pesos:" del recibo — ej. 300000 → "Trescientos
+ * mil pesos". Solo entero, sin centavos (los precios de venta del ERP no
+ * usan decimales). Cubre hasta cientos de millones, más que suficiente para
+ * cualquier operación real.
+ */
+function numeroAPesosEnLetras_(num) {
+  num = Math.round(Number(num) || 0);
+  if (num === 0) return "Cero pesos";
+  if (num < 0) return "";
+
+  const UNIDADES = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
+  const ESPECIALES = ["diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"];
+  const DECENAS = ["", "", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"];
+  const CENTENAS = ["", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos"];
+
+  function seccion(n) {
+    let out = "";
+    const c = Math.floor(n / 100);
+    const resto = n % 100;
+    if (c > 0) out += (n === 100) ? "cien" : CENTENAS[c];
+    if (resto > 0) {
+      if (out) out += " ";
+      if (resto < 10) out += UNIDADES[resto];
+      else if (resto < 20) out += ESPECIALES[resto - 10];
+      else {
+        const dec = Math.floor(resto / 10);
+        const uni = resto % 10;
+        out += (dec === 2) ? (uni === 0 ? "veinte" : "veinti" + UNIDADES[uni]) : DECENAS[dec] + (uni > 0 ? " y " + UNIDADES[uni] : "");
+      }
+    }
+    return out;
+  }
+
+  const MILLON = 1000000, MIL = 1000;
+  const millones = Math.floor(num / MILLON);
+  const restoM = num % MILLON;
+  const miles = Math.floor(restoM / MIL);
+  const restoK = restoM % MIL;
+
+  let partes = [];
+  if (millones > 0) partes.push(millones === 1 ? "un millón" : seccion(millones) + " millones");
+  if (miles > 0) partes.push(miles === 1 ? "mil" : seccion(miles) + " mil");
+  if (restoK > 0) partes.push(seccion(restoK));
+
+  let texto = partes.join(" ").trim();
+  texto = texto.charAt(0).toUpperCase() + texto.slice(1);
+  // "un millón DE pesos" / "dos millones DE pesos" (no queda "millón pesos"),
+  // solo cuando no hay miles ni resto después del millón.
+  const soloMillones = millones > 0 && miles === 0 && restoK === 0;
+  return texto + (soloMillones ? " de pesos" : " pesos");
+}
+
+/**
  * Arma el documento HTML completo a partir de los datos ya resueltos por
  * generarReciboVenta(). SOLO diseño (HTML/CSS) — ningún dato ni cálculo
  * cambia acá, es puramente la plantilla visual. Una sola hoja A4 (antes
@@ -223,7 +279,11 @@ function _armarHtmlReciboVenta_(d) {
       const detalle = detalleDe(a);
       return `<span class="chk"><span class="chk-box">☑</span> ${esc(a.producto)}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
     });
-  const accesoriosHtml = baseHtml.concat(extrasHtml).join("");
+  // Las 4 opciones fijas siempre van en una sola línea (chk-fila-base, sin
+  // wrap); si además hay algún accesorio/regalo que no matcheó ninguna de
+  // esas 4, se agrega debajo en una fila aparte que sí puede envolver.
+  const accesoriosHtml = `<div class="chk-fila-base">${baseHtml.join("")}</div>` +
+    (extrasHtml.length > 0 ? `<div class="chk-fila-extra">${extrasHtml.join("")}</div>` : "");
 
   const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
 
@@ -256,14 +316,14 @@ function _armarHtmlReciboVenta_(d) {
     </div>
 
     <div class="seccion-titulo">ACCESORIOS INCLUIDOS</div>
-    <div class="chk-fila">${accesoriosHtml}</div>
+    ${accesoriosHtml}
 
     <div class="seccion-titulo">PRECIO Y FORMA DE PAGO</div>
     <div class="pago-box">
       <div class="pago-total">
         <div class="pago-total-label">PRECIO TOTAL</div>
         <div class="pago-total-monto">${fmtPeso(d.precioVenta)}</div>
-        <div class="son-pesos">Son pesos: ${linea(150)}</div>
+        <div class="son-pesos">Son pesos: <b>${numeroAPesosEnLetras_(d.precioVenta)}</b></div>
       </div>
       <div class="pago-detalle">
         <div class="pago-detalle-label">DETALLE DEL PAGO</div>
@@ -375,10 +435,11 @@ function _armarHtmlReciboVenta_(d) {
   .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
 
   /* ---------- Accesorios ---------- */
-  .chk-fila { display: flex; flex-wrap: wrap; gap: 48px; row-gap: 12px; font-size: 11.5px; }
+  .chk-fila-base { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 8px; font-size: 10px; }
+  .chk-fila-extra { display: flex; flex-wrap: wrap; gap: 10px 24px; font-size: 10px; margin-top: 8px; }
   .chk { white-space: nowrap; }
-  .chk-box { font-size: 15px; position: relative; top: 1px; }
-  .chk-detalle { color: var(--gris-texto); font-size: 10px; }
+  .chk-box { font-size: 13px; position: relative; top: 1px; }
+  .chk-detalle { color: var(--gris-texto); font-size: 9px; }
 
   /* ---------- Caja Precio y Forma de Pago (protagonista, bordes rectos) ---------- */
   .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 4px; }
@@ -404,9 +465,9 @@ function _armarHtmlReciboVenta_(d) {
   .garantia-opciones li::before { content: "○ "; }
 
   /* ---------- Firmas (al pie, líneas largas) ---------- */
-  .firmas { display: flex; gap: 50px; margin-top: 42px; }
+  .firmas { display: flex; gap: 50px; margin-top: 55px; }
   .firma-col { flex: 1; text-align: center; }
-  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 55px; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 70px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
 
   /* ---------- Pie ---------- */
