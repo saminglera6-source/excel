@@ -481,7 +481,7 @@ function _armarHtmlReciboVenta_(d) {
   .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 70px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
   /* Firma de GreatPhones ya estampada — apoyada justo sobre su línea, ocupando el mismo espacio que antes quedaba en blanco para firmar a mano. La columna del comprador no lleva imagen: esa firma la hace la persona presente. */
-  .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 66px; width: auto; }
+  .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
 
   /* ---------- Pie ---------- */
   .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
