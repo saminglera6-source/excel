@@ -194,16 +194,36 @@ function _armarHtmlReciboVenta_(d) {
     filaPago("Cuotas", d.cobradoCu > 0, "$ " + Number(d.cobradoCu).toLocaleString("es-AR"))
   ].join("");
 
-  // Cada accesorio ya viene marcado como comprado o regalo automático
-  // (esRegalo, ver generarReciboVenta()) — acá solo se decide cómo se ve:
-  // el regalo se etiqueta "(Regalo)" y el comprado muestra su precio.
-  const accesoriosHtml = d.accesorios.length > 0
-    ? d.accesorios.map(a => {
-        const detalle = a.esRegalo ? "(Regalo)" : (a.precio > 0 ? `(${fmtPeso(a.precio)})` : "");
-        return `<span class="chk"><span class="chk-box">☑</span> ${esc(a.producto)}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
-      }).join("")
-    : ["Cable USB-C / Lightning", "Cabezal de cargador", "Funda protectora", "Vidrio templado"]
-        .map(a => `<span class="chk"><span class="chk-box">☐</span> ${a}</span>`).join("");
+  // Los 4 accesorios "de siempre" (recibo de referencia) se muestran SIEMPRE,
+  // tildados solo si hay algo cargado en esta venta que coincida (búsqueda
+  // simple por palabra clave en el nombre del producto — Cada accesorio ya
+  // viene marcado como comprado o regalo automático, esRegalo, ver
+  // generarReciboVenta()). Lo que no matchea ninguna de las 4 (ej. un
+  // regalo o compra distinto) se agrega igual, como ítem extra tildado.
+  const ACCESORIOS_BASE = [
+    { etiqueta: "Cable USB-C / Lightning", buscar: /cable/i },
+    { etiqueta: "Cabezal de cargador",     buscar: /cargador|cabezal/i },
+    { etiqueta: "Funda protectora",        buscar: /funda/i },
+    { etiqueta: "Vidrio templado",         buscar: /vidrio/i }
+  ];
+  const detalleDe = (a) => a.esRegalo ? "(Regalo)" : (a.precio > 0 ? `(${fmtPeso(a.precio)})` : "");
+  const usados = new Set();
+  const baseHtml = ACCESORIOS_BASE.map(base => {
+    const match = d.accesorios.find((a, i) => !usados.has(i) && base.buscar.test(a.producto));
+    if (match) {
+      usados.add(d.accesorios.indexOf(match));
+      const detalle = detalleDe(match);
+      return `<span class="chk"><span class="chk-box">☑</span> ${base.etiqueta}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
+    }
+    return `<span class="chk"><span class="chk-box">☐</span> ${base.etiqueta}</span>`;
+  });
+  const extrasHtml = d.accesorios
+    .filter((a, i) => !usados.has(i))
+    .map(a => {
+      const detalle = detalleDe(a);
+      return `<span class="chk"><span class="chk-box">☑</span> ${esc(a.producto)}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
+    });
+  const accesoriosHtml = baseHtml.concat(extrasHtml).join("");
 
   const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
 
@@ -355,7 +375,7 @@ function _armarHtmlReciboVenta_(d) {
   .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
 
   /* ---------- Accesorios ---------- */
-  .chk-fila { display: flex; flex-wrap: wrap; gap: 30px; font-size: 11.5px; }
+  .chk-fila { display: flex; flex-wrap: wrap; gap: 48px; row-gap: 12px; font-size: 11.5px; }
   .chk { white-space: nowrap; }
   .chk-box { font-size: 15px; position: relative; top: 1px; }
   .chk-detalle { color: var(--gris-texto); font-size: 10px; }
