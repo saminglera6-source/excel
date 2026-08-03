@@ -384,9 +384,9 @@ function _armarHtmlReciboVenta_(d) {
   .garantia-opciones li::before { content: "○ "; }
 
   /* ---------- Firmas (al pie, líneas largas) ---------- */
-  .firmas { display: flex; gap: 50px; margin-top: 30px; }
+  .firmas { display: flex; gap: 50px; margin-top: 42px; }
   .firma-col { flex: 1; text-align: center; }
-  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 40px; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 55px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
 
   /* ---------- Pie ---------- */
