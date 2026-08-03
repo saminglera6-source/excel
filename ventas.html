@@ -392,22 +392,26 @@
 
     if (_correccion && _correccion.tipo === "VENTA") { enviarCorreccion("corregirVenta", d); return; }
 
-    // Recibo imprimible: la ventana se abre ACÁ, en el mismo click de
-    // "Confirmar venta" — no cuando el backend responde. Si se abriera
-    // recién en el onExito de llamarBackend (después del viaje de ida y
-    // vuelta al servidor), la mayoría de los navegadores ya no lo considera
-    // un gesto directo del usuario y bloquea el popup EN SILENCIO (sin
-    // ningún error visible: por eso "no pasaba nada"). Se completa con el
-    // HTML real más abajo, o se cierra si se cancela/falla la venta.
-    var _reciboWin = window.open("", "_blank");
-    if (_reciboWin) {
-      _reciboWin.document.write("<p style='font-family:Arial,sans-serif;padding:24px;color:#667'>Generando recibo…</p>");
-    } else {
-      mostrarToast("❌ Habilitá las ventanas emergentes para que se abra el recibo al confirmar la venta.", "error");
-    }
-
     confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(pv) + "?").then(function(ok){
-      if (!ok) { if (_reciboWin) _reciboWin.close(); return; }
+      if (!ok) return;
+
+      // Recibo imprimible: la ventana se abre ACÁ, apenas se confirma el
+      // cartel — no antes (el cartel puede quedar abierto un buen rato
+      // esperando al operador) ni después de procesar la venta. Ese hueco
+      // largo era justo el problema: una ventana en blanco que queda
+      // "colgando" mucho tiempo terminaba sin recibir nunca el HTML final
+      // (se quedaba en "Generando recibo…" para siempre). Achicando el
+      // hueco a un solo viaje al servidor —el mismo patrón que ya funciona
+      // en el botón "🖨 Recibo" de Mis Operaciones (imprimirReciboVenta sin
+      // ventanaExistente: abre y pide el HTML en el mismo tick)— se evita
+      // tanto eso como el bloqueo silencioso de antes.
+      var _reciboWin = window.open("", "_blank");
+      if (_reciboWin) {
+        _reciboWin.document.write("<p style='font-family:Arial,sans-serif;padding:24px;color:#667'>Generando recibo…</p>");
+      } else {
+        mostrarToast("❌ Habilitá las ventanas emergentes para que se abra el recibo al confirmar la venta.", "error");
+      }
+
       llamarBackend("procesarVentaConOperador", d, function(msg){
         mostrarToastOperacion(msg);
         cargarDashboard();
