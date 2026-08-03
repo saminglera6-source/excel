@@ -392,37 +392,51 @@
 
     if (_correccion && _correccion.tipo === "VENTA") { enviarCorreccion("corregirVenta", d); return; }
 
+    // Recibo imprimible: la ventana se abre ACÁ, en el mismo click de
+    // "Confirmar venta" — no cuando el backend responde. Si se abriera
+    // recién en el onExito de llamarBackend (después del viaje de ida y
+    // vuelta al servidor), la mayoría de los navegadores ya no lo considera
+    // un gesto directo del usuario y bloquea el popup EN SILENCIO (sin
+    // ningún error visible: por eso "no pasaba nada"). Se completa con el
+    // HTML real más abajo, o se cierra si se cancela/falla la venta.
+    var _reciboWin = window.open("", "_blank");
+    if (_reciboWin) {
+      _reciboWin.document.write("<p style='font-family:Arial,sans-serif;padding:24px;color:#667'>Generando recibo…</p>");
+    } else {
+      mostrarToast("❌ Habilitá las ventanas emergentes para que se abra el recibo al confirmar la venta.", "error");
+    }
+
     confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(pv) + "?").then(function(ok){
-      if (!ok) return;
+      if (!ok) { if (_reciboWin) _reciboWin.close(); return; }
       llamarBackend("procesarVentaConOperador", d, function(msg){
         mostrarToastOperacion(msg);
         cargarDashboard();
         ventasLimpiarForm();
-        // Recibo imprimible (garantía + comprobante): apenas se registra la
-        // venta, se abre solo con todos los datos ya cargados — sin esto,
-        // el operador tenía que escribirlo a mano. Mismo patrón que
-        // imprimirEtiquetaReparacion() (reparaciones.html): el backend arma
-        // el HTML completo (recibos.gs) y acá solo se abre en una ventana
-        // nueva; si no hay N° de venta reconocible en el mensaje (no
-        // debería pasar en una venta exitosa), no se intenta abrir nada.
         var m = String(msg || "").match(/\bVTA-\S+/);
-        if (m) imprimirReciboVenta(m[0].replace(/[.,;:]+$/, ""));
-      });
+        if (m) imprimirReciboVenta(m[0].replace(/[.,;:]+$/, ""), _reciboWin);
+        else if (_reciboWin) _reciboWin.close();
+      }, function(){ if (_reciboWin) _reciboWin.close(); });
     });
   }
 
-  /** Reutilizable desde Ventas (recién registrada) y desde Mis Operaciones (reimpresión para garantía). */
-  function imprimirReciboVenta(numeroVenta){
+  /**
+   * Reutilizable desde Ventas (recién registrada, pasando la ventana ya
+   * abierta en el click de "Confirmar venta" — ver ventasEnviar()) y desde
+   * Mis Operaciones (reimpresión para garantía, sin ventanaExistente: ahí
+   * el click en "🖨 Recibo" ES el gesto del usuario, así que se abre acá
+   * mismo, síncronamente, antes de pedirle el HTML al backend).
+   */
+  function imprimirReciboVenta(numeroVenta, ventanaExistente){
     if (!numeroVenta) return;
+    var w = ventanaExistente || window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
     google.script.run
       .withSuccessHandler(function(html){
-        var w = window.open("", "_blank");
-        if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
         w.document.open();
         w.document.write(html);
         w.document.close();
       })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
       .generarReciboVenta(numeroVenta);
   }
 
