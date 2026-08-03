@@ -36,10 +36,21 @@
         <div>
           <label>CUIL cliente (opcional):</label>
           <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9"/>
+          <div class="hint">El DNI del recibo se calcula solo a partir de este dato — no hace falta cargarlo aparte.</div>
         </div>
         <div>
           <label>Teléfono cliente:</label>
           <input type="text" id="v_tel" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>Domicilio cliente (opcional):</label>
+          <input type="text" id="v_domicilio" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="v_email" placeholder="Para el recibo — no es obligatorio"/>
         </div>
       </div>
     </div>
@@ -294,6 +305,8 @@
     document.getElementById("v_cliente").value      = datos["Cliente"] || "";
     document.getElementById("v_cuil").value          = datos["CUIL Cliente"] || "";
     document.getElementById("v_tel").value          = datos["Teléfono Cliente"] || "";
+    document.getElementById("v_domicilio").value    = datos["Domicilio Cliente"] || "";
+    document.getElementById("v_email").value        = datos["Email Cliente"] || "";
     document.getElementById("v_efec").value         = datos["Cobrado Efectivo"] || 0;
     document.getElementById("v_transf").value       = datos["Cobrado Transferencia"] || 0;
     document.getElementById("v_cuotas").value       = datos["Cobrado Cuotas"] || 0;
@@ -364,6 +377,8 @@
       cliente: document.getElementById("v_cliente").value.trim(),
       cuil: document.getElementById("v_cuil").value.trim(),
       tel: document.getElementById("v_tel").value.trim(),
+      domicilio: document.getElementById("v_domicilio").value.trim(),
+      email: document.getElementById("v_email").value.trim(),
       efec: ef, transf: tr, cuotas: cu, usd: us,
       obs: document.getElementById("v_obs").value.trim(),
       accesorios: [

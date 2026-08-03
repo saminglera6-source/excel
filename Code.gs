@@ -891,10 +891,14 @@ function procesarVenta(d) {
   const consigEquip = parseFloat(rowC[cCO]) || 0;
 
   const vFE = 2;
-  // CUIL del cliente: columna nueva, autocreada si la hoja todavía no la
-  // tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
-  // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // CUIL/Domicilio/Email del cliente: columnas nuevas, autocreadas si la
+  // hoja todavía no las tiene (mismo mecanismo que asegurarColumnaGenerica_()
+  // usa para OPERADOR en operadores.gs) para no exigir que alguien edite la
+  // planilla a mano. Domicilio y Email son 100% opcionales — solo alimentan
+  // el recibo imprimible (recibos.gs), no se validan acá.
   asegurarColumnaGenerica_(ventasSheet, vFE, "CUIL Cliente");
+  asegurarColumnaGenerica_(ventasSheet, vFE, "Domicilio Cliente");
+  asegurarColumnaGenerica_(ventasSheet, vFE, "Email Cliente");
   // Una sola lectura de encabezados de Ventas
   const headersVentas = ventasSheet.getRange(vFE, 1, 1, ventasSheet.getLastColumn()).getValues()[0];
   const idxVta = (nombre) => {
@@ -910,6 +914,8 @@ function procesarVenta(d) {
   const vIM  = idxVta("IMEI");
   const vCL  = idxVta("Cliente");
   const vCUIL = idxVta("CUIL Cliente");
+  const vDOM = idxVta("Domicilio Cliente");
+  const vEML = idxVta("Email Cliente");
   const vTL  = idxVta("Teléfono Cliente");
   const vPV  = idxVta("Precio Venta");
   const vEF  = idxVta("Cobrado Efectivo");
@@ -989,6 +995,8 @@ function procesarVenta(d) {
   filaVta2D[vIM]  = imeiEquip;
   filaVta2D[vCL]  = d.cliente;
   filaVta2D[vCUIL] = d.cuil || "";
+  filaVta2D[vDOM] = d.domicilio || "";
+  filaVta2D[vEML] = d.email || "";
   filaVta2D[vTL]  = d.tel;
   filaVta2D[vPV]  = d.precioVenta;
   filaVta2D[vEF]  = ef;

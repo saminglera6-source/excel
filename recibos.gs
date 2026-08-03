@@ -8,10 +8,13 @@
 //
 //  Reproduce el recibo en papel que ya usaba el local (mismos datos,
 //  mismo texto de garantía), para no tener que completarlo a mano.
-//  Campos que el ERP no registra hoy (DNI del comprador, Domicilio,
-//  Email, N° de referencia de transferencia, detalle de cuotas
-//  cantidad/valor) quedan como líneas en blanco para completar a mano
-//  al momento de la firma — igual que en el recibo de papel original.
+//  Domicilio y Email son opcionales en el formulario de Venta (ventas.html)
+//  — se completan acá si el operador los cargó, si no quedan en blanco. El
+//  DNI del comprador NO se carga aparte: se calcula solo a partir del CUIL
+//  ya cargado (extraerDniDeCuil_()). Lo que el ERP no registra (N° de
+//  referencia de transferencia, detalle de cuotas cantidad/valor) queda
+//  como línea en blanco para completar a mano al momento de la firma —
+//  igual que en el recibo de papel original.
 // ============================================================
 
 const RECIBO_NEGOCIO = {
@@ -54,9 +57,11 @@ function generarReciboVenta(numeroVenta) {
   const cCU  = getCol(ventasSheet, "Cobrado Cuotas",         fE);
   const cUS  = getCol(ventasSheet, "Cobrado USD",            fE);
   const cOB  = getCol(ventasSheet, "Observaciones",          fE);
-  let cCUIL = -1, cOP = -1;
-  try { cCUIL = getCol(ventasSheet, "CUIL Cliente", fE); } catch (e) { /* columna opcional */ }
-  try { cOP   = getCol(ventasSheet, "OPERADOR",     fE); } catch (e) { /* columna opcional */ }
+  let cCUIL = -1, cOP = -1, cDOM = -1, cEML = -1;
+  try { cCUIL = getCol(ventasSheet, "CUIL Cliente",       fE); } catch (e) { /* columna opcional */ }
+  try { cOP   = getCol(ventasSheet, "OPERADOR",           fE); } catch (e) { /* columna opcional */ }
+  try { cDOM  = getCol(ventasSheet, "Domicilio Cliente",  fE); } catch (e) { /* columna opcional — puede no existir aún si nunca se cargó ninguna */ }
+  try { cEML  = getCol(ventasSheet, "Email Cliente",      fE); } catch (e) { /* columna opcional */ }
 
   const lastRow = ventasSheet.getLastRow();
   if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Ventas".`);
@@ -77,6 +82,9 @@ function generarReciboVenta(numeroVenta) {
     vendedor:    cOP > 0 ? String(fila[cOP - 1] || "") : "",
     cliente:     String(fila[cCL - 1] || ""),
     cuil:        cCUIL > 0 ? String(fila[cCUIL - 1] || "") : "",
+    dni:         "", // se completa abajo a partir del CUIL — ver extraerDniDeCuil_()
+    domicilio:   cDOM > 0 ? String(fila[cDOM - 1] || "") : "",
+    email:       cEML > 0 ? String(fila[cEML - 1] || "") : "",
     tel:         String(fila[cTL - 1] || ""),
     modelo:      String(fila[cMO - 1] || ""),
     imei:        String(fila[cIM - 1] || ""),
@@ -123,7 +131,25 @@ function generarReciboVenta(numeroVenta) {
     }
   }
 
+  datos.dni = extraerDniDeCuil_(datos.cuil);
+
   return _armarHtmlReciboVenta_(datos);
+}
+
+/**
+ * extraerDniDeCuil_(cuil)
+ *
+ * El DNI del comprador no se carga aparte — se calcula solo a partir del
+ * CUIL/CUIT ya cargado (formato AR: 2 dígitos de prefijo + 8 dígitos de DNI
+ * + 1 dígito verificador, ej. "20-12345678-9"). Tolera guiones, puntos y
+ * espacios. Si el CUIL no vino cargado o no tiene el largo esperado (11
+ * dígitos), devuelve "" y el recibo deja la línea de DNI en blanco para
+ * completar a mano, igual que antes.
+ */
+function extraerDniDeCuil_(cuil) {
+  const digitos = String(cuil || "").replace(/\D/g, "");
+  if (digitos.length !== 11) return "";
+  return digitos.substring(2, 10);
 }
 
 /** Arma el documento HTML completo (2 copias, Cliente + Local) a partir de los datos ya resueltos por generarReciboVenta(). */
@@ -194,12 +220,12 @@ function _armarHtmlReciboVenta_(d) {
       <div>Tel: <b>${esc(d.tel) || "________________"}</b></div>
     </div>
     <div class="fila2">
-      <div>DNI: ________________</div>
-      <div>Domicilio: ________________</div>
+      <div>DNI: <b>${esc(d.dni) || "________________"}</b></div>
+      <div>Domicilio: <b>${esc(d.domicilio) || "________________"}</b></div>
     </div>
     <div class="fila2">
       <div>CUIL / CUIT: <b>${esc(d.cuil) || "________________"}</b></div>
-      <div>Email: ________________</div>
+      <div>Email: <b>${esc(d.email) || "________________"}</b></div>
     </div>
     ${d.obs ? `<div class="obs">Observaciones: ${esc(d.obs)}</div>` : ""}
 
