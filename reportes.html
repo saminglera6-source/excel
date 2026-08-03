@@ -1,17 +1,44 @@
 <div id="view-reportes" class="view">
-  <div class="panel" style="max-width:640px">
-    <h3>📈 Reportes</h3>
-    <div class="hint">GreatPhones ERP — v1.0 Producción</div>
-    <div class="hint">Recalcula la hoja REPORTES (caja, ventas, ganancias, preventas, accesorios y vendedores) y muestra acá un resumen rápido de caja.</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+    <div>
+      <div style="font-family:'Manrope',sans-serif;font-weight:800;font-size:20px;letter-spacing:-.4px">💰 Caja</div>
+      <div class="hint" style="margin-top:2px">Saldos y movimientos en vivo — se actualiza solo, no hace falta apretar nada.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#0F9D58;background:#E7F8EF;padding:6px 12px;border-radius:100px">
+      <span id="rep_puntoVivo" style="width:8px;height:8px;border-radius:50%;background:#0F9D58;display:inline-block;animation:cajaPulso 1.6s infinite"></span>
+      En vivo — actualizado <span id="rep_ultimaActualizacion">…</span>
+    </div>
+  </div>
+  <style>@keyframes cajaPulso{0%,100%{opacity:1}50%{opacity:.35}}</style>
 
-    <button class="btn" onclick="reportesActualizar()">🔄 Actualizar Reportes</button>
-
-    <div class="box box-info" id="rep_resumenDiv" style="margin-top:18px">Cargando saldos…</div>
+  <div class="cards" id="rep_cardsSaldos">
+    <div class="card c-caja">
+      <div class="ico">💵</div>
+      <div class="valor" id="rep_saldo_efectivo">…</div>
+      <div class="label">Efectivo</div>
+    </div>
+    <div class="card c-ventas">
+      <div class="ico">🏦</div>
+      <div class="valor" id="rep_saldo_transferencia">…</div>
+      <div class="label">Transferencia</div>
+    </div>
+    <div class="card c-pre">
+      <div class="ico">💲</div>
+      <div class="valor" id="rep_saldo_usd">…</div>
+      <div class="label" id="rep_saldo_usd_label">USD</div>
+    </div>
+    <div class="card c-stock">
+      <div class="ico">📄</div>
+      <div class="valor" id="rep_saldo_cuotas">…</div>
+      <div class="label">Cuotas</div>
+    </div>
   </div>
 
-  <div class="panel" style="max-width:100%;margin-top:18px">
-    <h3>📒 Libro Diario (Últimas 96 horas)</h3>
-    <div class="hint">Movimientos de los últimos 4 días (96 horas), más reciente primero. Se lee directamente de la hoja "Libro Diario" — no duplica información ni crea ninguna hoja nueva.</div>
+  <div class="panel" style="max-width:100%;margin-top:8px">
+    <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>📒 Libro Diario (Últimos 14 días)</span>
+    </h3>
+    <div class="hint" style="margin-top:-8px;margin-bottom:14px">Se lee directamente de la hoja "Libro Diario" — no duplica información ni crea ninguna hoja nueva.</div>
 
     <div class="fila4">
       <div>
@@ -48,29 +75,29 @@
     </div>
 
     <div class="fila4" style="margin-top:14px">
-      <div class="box box-info" style="margin:0"><b>💵 Total ingresos</b><br><span id="rep_ld_totalIngresos">$0</span></div>
-      <div class="box box-info" style="margin:0"><b>💸 Total egresos</b><br><span id="rep_ld_totalEgresos">$0</span></div>
-      <div class="box box-info" style="margin:0"><b>💰 Saldo neto</b><br><span id="rep_ld_saldoNeto">$0</span></div>
-      <div class="box box-info" style="margin:0"><b>📄 Movimientos</b><br><span id="rep_ld_cantidad">0</span></div>
+      <div class="box box-info" style="margin:0;border-left:4px solid #0F9D58"><b>💵 Total ingresos</b><br><span id="rep_ld_totalIngresos" style="font-size:16px;font-weight:800;color:#0F9D58">$0</span></div>
+      <div class="box box-info" style="margin:0;border-left:4px solid var(--rojo)"><b>💸 Total egresos</b><br><span id="rep_ld_totalEgresos" style="font-size:16px;font-weight:800;color:var(--rojo)">$0</span></div>
+      <div class="box box-info" style="margin:0;border-left:4px solid var(--azul)"><b>💰 Saldo neto</b><br><span id="rep_ld_saldoNeto" style="font-size:16px;font-weight:800;color:var(--azul)">$0</span></div>
+      <div class="box box-info" style="margin:0;border-left:4px solid #8996A3"><b>📄 Movimientos</b><br><span id="rep_ld_cantidad" style="font-size:16px;font-weight:800">0</span></div>
     </div>
 
-    <div style="overflow-x:auto;margin-top:14px">
+    <div style="overflow:auto;max-height:calc(100vh - 420px);margin-top:16px;border:1px solid var(--borde);border-radius:var(--radio-sm)">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead>
-          <tr style="background:#F4F6F9;text-align:left">
-            <th style="padding:8px">Fecha y hora</th>
-            <th style="padding:8px">Origen</th>
-            <th style="padding:8px">N° Operación</th>
-            <th style="padding:8px">Tipo</th>
-            <th style="padding:8px">Medio</th>
-            <th style="padding:8px;text-align:right">Monto</th>
-            <th style="padding:8px">Descripción</th>
-            <th style="padding:8px">Operador</th>
-            <th style="padding:8px">Observaciones</th>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde);white-space:nowrap">Fecha y hora</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Origen</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">N° Operación</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Tipo</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Medio</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde);text-align:right">Monto</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Descripción</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Operador</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Observaciones</th>
           </tr>
         </thead>
         <tbody id="rep_ld_tbody">
-          <tr><td colspan="9" style="padding:14px;text-align:center;color:#889">Cargando…</td></tr>
+          <tr><td colspan="9" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -78,9 +105,34 @@
 </div>
 
 <script>
+  // ============================================================
+  //  Caja (ex "Reportes"): saldos y Libro Diario, 100% en vivo. Ya no hay
+  //  botón "Actualizar" — reportesInit() dispara la primera carga y arma un
+  //  setInterval que se refresca solo cada REP_AUTOREFRESH_MS mientras la
+  //  vista siga activa. El propio timer se autocancela apenas detecta que
+  //  el usuario navegó a otra vista (no hay hook de "salir de vista" en el
+  //  router de index.html, así que el chequeo se hace acá adentro en vez de
+  //  tocar cargarVista()).
+  // ============================================================
+
+  var REP_AUTOREFRESH_MS = 15000;
+  var _repAutoTimer = null;
+
   function reportesInit(){
     reportesCargarSaldos();
     reportesCargarLibroDiario();
+
+    if (_repAutoTimer) clearInterval(_repAutoTimer);
+    _repAutoTimer = setInterval(function(){
+      var vista = document.getElementById("view-reportes");
+      if (!vista || !vista.classList.contains("activa")) {
+        clearInterval(_repAutoTimer);
+        _repAutoTimer = null;
+        return;
+      }
+      reportesCargarSaldos();
+      reportesCargarLibroDiario();
+    }, REP_AUTOREFRESH_MS);
   }
 
   var _repLibroDiarioData = [];
@@ -91,9 +143,14 @@
         _repLibroDiarioData = datos || [];
         reportesPoblarOrigenesLibroDiario();
         reportesLibroDiarioFiltrar();
+        reportesMarcarActualizado();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerLibroDiarioReciente();
+  }
+
+  function reportesMarcarActualizado(){
+    document.getElementById("rep_ultimaActualizacion").textContent = new Date().toLocaleTimeString("es-AR");
   }
 
   function reportesPoblarOrigenesLibroDiario(){
@@ -103,6 +160,21 @@
     sel.innerHTML = "<option value=''>Todos</option>" + origenes.map(function(o){
       return "<option" + (o === actual ? " selected" : "") + ">" + o + "</option>";
     }).join("");
+  }
+
+  var REP_BADGE_TIPO = {
+    INGRESO: "background:#E7F8EF;color:#0F9D58",
+    EGRESO:  "background:#FDEAEA;color:#DC2626"
+  };
+  var REP_BADGE_MEDIO = {
+    Efectivo:       "background:#E7F8EF;color:#0F9D58",
+    Transferencia:  "background:#E3F6FB;color:#0891B2",
+    Cuotas:         "background:#F1E9FE;color:#7C3AED",
+    USD:            "background:#FEF3E2;color:#D97706"
+  };
+  function reportesBadge(texto, estilo){
+    if (!texto) return "—";
+    return "<span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + (estilo || "background:#F0F1F6;color:#556") + "'>" + texto + "</span>";
   }
 
   function reportesLibroDiarioFiltrar(){
@@ -119,9 +191,6 @@
       return true;
     });
 
-    // Cabecera de resumen: se calcula sobre "filtrados" (mismo array que arma
-    // la tabla, mismos filtros activos) — no vuelve a leer la hoja ni pide
-    // datos nuevos al backend.
     var totalIngresos = 0, totalEgresos = 0;
     filtrados.forEach(function(m){
       if (m.tipo === "INGRESO") totalIngresos += m.monto;
@@ -134,20 +203,20 @@
 
     var tbody = document.getElementById("rep_ld_tbody");
     if (filtrados.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='9' style='padding:14px;text-align:center;color:#889'>Sin movimientos para este filtro.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='9' style='padding:16px;text-align:center;color:#889'>Sin movimientos para este filtro.</td></tr>";
       return;
     }
     tbody.innerHTML = filtrados.map(function(m){
-      return "<tr style='border-top:1px solid #E1E5EA'>" +
-        "<td style='padding:8px;white-space:nowrap'>" + m.fecha + "</td>" +
-        "<td style='padding:8px'>" + (m.origen || "—") + "</td>" +
-        "<td style='padding:8px'>" + (m.numero || "—") + "</td>" +
-        "<td style='padding:8px'>" + (m.tipo || "—") + "</td>" +
-        "<td style='padding:8px'>" + (m.medio || "—") + "</td>" +
-        "<td style='padding:8px;text-align:right'>" + fmtP(m.monto) + "</td>" +
-        "<td style='padding:8px'>" + (m.descripcion || "—") + "</td>" +
-        "<td style='padding:8px'>" + (m.operador || "—") + "</td>" +
-        "<td style='padding:8px'>" + (m.observaciones || "—") + "</td>" +
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='padding:8px 10px;white-space:nowrap;color:#667'>" + m.fecha + "</td>" +
+        "<td style='padding:8px 10px'>" + (m.origen || "—") + "</td>" +
+        "<td style='padding:8px 10px;font-weight:600;color:var(--azul)'>" + (m.numero || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + reportesBadge(m.tipo, REP_BADGE_TIPO[m.tipo]) + "</td>" +
+        "<td style='padding:8px 10px'>" + reportesBadge(m.medio, REP_BADGE_MEDIO[m.medio]) + "</td>" +
+        "<td style='padding:8px 10px;text-align:right;font-weight:700;" + (m.tipo === "EGRESO" ? "color:var(--rojo)" : "color:#0F9D58") + "'>" + (m.tipo === "EGRESO" ? "−" : "+") + fmtP(m.monto) + "</td>" +
+        "<td style='padding:8px 10px'>" + (m.descripcion || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (m.operador || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (m.observaciones || "—") + "</td>" +
       "</tr>";
     }).join("");
   }
@@ -157,25 +226,17 @@
       .withSuccessHandler(function(cot){
         google.script.run
           .withSuccessHandler(function(saldos){
-            var usdPesos = saldos.USD * cot.venta;
-            document.getElementById("rep_resumenDiv").innerHTML =
-              "<b>Efectivo:</b> " + fmtP(saldos.Efectivo) + "<br>" +
-              "<b>Transferencia:</b> " + fmtP(saldos.Transferencia) + "<br>" +
-              "<b>USD:</b> " + fmtUSDweb(saldos.USD) + " (≈ " + fmtP(usdPesos) + " a " + fmtP(cot.venta) + ")<br>" +
-              "<b>Cuotas:</b> " + fmtP(saldos.Cuotas);
+            document.getElementById("rep_saldo_efectivo").textContent      = fmtP(saldos.Efectivo);
+            document.getElementById("rep_saldo_transferencia").textContent = fmtP(saldos.Transferencia);
+            document.getElementById("rep_saldo_usd").textContent           = fmtUSDweb(saldos.USD);
+            document.getElementById("rep_saldo_usd_label").textContent     = "USD (≈ " + fmtP(saldos.USD * cot.venta) + ")";
+            document.getElementById("rep_saldo_cuotas").textContent        = fmtP(saldos.Cuotas);
+            reportesMarcarActualizado();
           })
           .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
           .obtenerSaldosCaja();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerCotizacionUSD();
-  }
-
-  function reportesActualizar(){
-    llamarBackend("actualizarReportes", undefined, function(){
-      mostrarToast("✅ Reportes actualizados en la hoja REPORTES.", "exito");
-      reportesCargarSaldos();
-      cargarDashboard();
-    });
   }
 </script>

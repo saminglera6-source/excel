@@ -2552,11 +2552,11 @@ function obtenerSaldosCaja() {
 
 /**
  * Lee "Libro Diario" (sin modificarla, solo consumirla) y devuelve los
- * movimientos de las últimas 96 horas (4 días), más reciente primero.
- * Alimenta el bloque "📒 Libro Diario (Últimas 96 horas)" en Reportes.
- * Mismo criterio que obtenerSaldosCaja() (excluye ANULADO si la columna
- * ESTADO_REGISTRO existe) y que obtenerOperacionesRecientes() (ordena por
- * un campo numérico de fecha y lo descarta antes de devolver).
+ * movimientos de los últimos 14 días, más reciente primero. Alimenta el
+ * bloque "📒 Libro Diario (Últimos 14 días)" en Caja. Mismo criterio que
+ * obtenerSaldosCaja() (excluye ANULADO si la columna ESTADO_REGISTRO
+ * existe) y que obtenerOperacionesRecientes() (ordena por un campo
+ * numérico de fecha y lo descarta antes de devolver).
  */
 function obtenerLibroDiarioReciente() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -2580,7 +2580,7 @@ function obtenerLibroDiarioReciente() {
   if (lastRow <= filaEnc) return [];
 
   const datos = libro.getRange(filaEnc + 1, 1, lastRow - filaEnc, libro.getLastColumn()).getValues();
-  const limite = Date.now() - 96 * 60 * 60 * 1000;
+  const limite = Date.now() - 14 * 24 * 60 * 60 * 1000;
   const tz = Session.getScriptTimeZone();
 
   const salida = [];

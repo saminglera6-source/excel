@@ -182,10 +182,28 @@
     else miRenderizarGrid();
   }
 
+  /**
+   * Mensaje de "sin datos" — distingue dos casos que antes se veían igual
+   * ("Sin resultados."): que el buscador/filtro no matcheó nada (_miCache SÍ
+   * tiene datos) vs. que la hoja "Lista de Precios Mac-iPad" todavía está
+   * vacía (_miCache llegó vacío del backend) — en ese segundo caso el mensaje
+   * anterior confundía, como si fuera un error, cuando en realidad solo falta
+   * ejecutar la carga inicial una vez desde el Google Sheet.
+   */
+  function miMensajeVacio(){
+    if (_miCache.length === 0) {
+      return "<div style='grid-column:1/-1;text-align:center;color:#889;padding:24px'>" +
+        "Todavía no se cargó el catálogo de Mac/iPad.<br>" +
+        "<span style='font-size:12px'>Desde el Google Sheet: menú <b>🏪 GreatPhones → 💻 Mac / iPad → Cargar lista de precios inicial</b>.</span>" +
+      "</div>";
+    }
+    return "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados para este filtro.</div>";
+  }
+
   function miRenderizarGrid(){
     var grid = document.getElementById("mi_grid");
     if (_miFiltrada.length === 0) {
-      grid.innerHTML = "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados.</div>";
+      grid.innerHTML = miMensajeVacio();
       return;
     }
     grid.innerHTML = _miFiltrada.map(function(p, i){ return preciosCrearTarjetaHTML(p, i, "mi", false, true, "💻"); }).join("");
@@ -241,7 +259,7 @@
     miActualizarIndicadoresOrden();
 
     if (_miTablaFiltrada.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='7' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
       return;
     }
     var celda = "padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
@@ -270,7 +288,7 @@
     miActualizarIndicadoresOrden();
 
     if (_miTablaFiltrada.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='7' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
       return;
     }
     tbody.innerHTML = _miTablaFiltrada.map(function(p, i){ return preciosCrearFilaCompactaHTML(p, i, "miTabla", false); }).join("");
