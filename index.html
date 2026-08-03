@@ -321,6 +321,7 @@
 
     <div class="nav-group-title">Precios</div>
     <div class="nav-btn" data-vista="precios" onclick="cargarVista('precios')">💰 Lista de Precios</div>
+    <div class="nav-btn" data-vista="precios_mac_ipad" onclick="cargarVista('precios_mac_ipad')">💻 Precios Mac / iPad</div>
     <div class="nav-btn" data-vista="toma_precios" onclick="cargarVista('toma_precios')">🔄 Precios de Toma</div>
     <div class="nav-btn" data-vista="calculadora_toma" onclick="cargarVista('calculadora_toma')">🧮 Calculadora de Toma</div>
     <div class="nav-btn" data-vista="calculadora_cuotas" onclick="cargarVista('calculadora_cuotas')">💳 Calculadora Cuotas</div>
@@ -372,6 +373,7 @@
       <?!= include('datepicker_habil'); ?>
       <?!= include('compras'); ?>
       <?!= include('precios'); ?>
+      <?!= include('precios_mac_ipad'); ?>
       <?!= include('toma_precios'); ?>
       <?!= include('calculadora_toma'); ?>
       <?!= include('calculadora_cuotas'); ?>
@@ -473,7 +475,7 @@
     var titulos = {
       dashboard:"🏠 Dashboard", compras:"🛒 Registrar Compra", ventas:"💰 Registrar Venta",
       preventas:"🟡 Registrar Preventa", entregar_preventa:"📦 Entregar Preventa",
-      precios:"💰 Lista de Precios", toma_precios:"🔄 Precios de Toma", calculadora_toma:"🧮 Calculadora de Toma",
+      precios:"💰 Lista de Precios", precios_mac_ipad:"💻 Precios Mac / iPad", toma_precios:"🔄 Precios de Toma", calculadora_toma:"🧮 Calculadora de Toma",
       calculadora_cuotas:"💳 Calculadora de Cuotas",
       reparaciones:"🔧 Registrar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
       gastos:"💸 Registrar Gasto", reportes:"📈 Reportes",
@@ -494,6 +496,7 @@
     // Inicialización perezosa (una vez por vista) + refresco de datos vivos
     if (nombre === "dashboard") cargarDashboard();
     if (nombre === "precios") preciosInit();
+    if (nombre === "precios_mac_ipad") miInit();
     if (nombre === "toma_precios") tomaPreciosInit();
     if (nombre === "calculadora_toma") calculadoraTomaInit();
     if (nombre === "calculadora_cuotas") calculadoraCuotasInit();

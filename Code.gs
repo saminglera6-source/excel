@@ -2443,6 +2443,8 @@ function onOpen() {
       .addItem("Registrar venta de accesorio","registrarVentaAccesorio")
       .addSeparator()
       .addItem("Actualizar Stock Accesorios",  "actualizarStockAccesoriosManual"))
+    .addSubMenu(ui.createMenu("💻 Mac / iPad")
+      .addItem("Cargar lista de precios inicial", "poblarListaPreciosMacIpad"))
     .addSubMenu(ui.createMenu("🔧 Reparaciones")
       .addItem("Ingresar reparación",         "registrarReparacion")
       .addItem("Actualizar estado",           "actualizarEstadoReparacion")

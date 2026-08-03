@@ -133,28 +133,32 @@
   // posterior lo vuelve a pisar. Nunca bloquea la edición.
   var _precioAutoPreventas = crearPrecioAutomatico(document.getElementById("p_precioVenta"));
 
-  // Selector reutilizable con búsqueda (selector_modelos.html), fuente única
-  // "Lista de Precios". Modo strict: el operador SOLO puede elegir un modelo
-  // existente, no texto libre. Autocompleta SIEMPRE el Precio Preventa
-  // (nunca el Contado) — vía _precioAutoPreventas, que decide si corresponde.
+  // Selector reutilizable con búsqueda (selector_modelos.html), fuente:
+  // catálogo combinado Celulares + Mac/iPad (catalogoCompletoCargar,
+  // precios_mac_ipad.html) — igual que en Compras, para poder tomar una
+  // preventa de Mac/iPad con el mismo formulario. Modo strict: el operador
+  // SOLO puede elegir un modelo existente, no texto libre. Autocompleta
+  // SIEMPRE el Precio Preventa (nunca el Contado) — vía _precioAutoPreventas,
+  // que decide si corresponde.
   var _selectorModeloPreventas = crearSelectorModelos(document.getElementById("p_modelo"), {
     strict: true,
+    obtenerDatos: function(cb){ catalogoCompletoCargar(cb); },
     onSeleccion: function(fila){
       _precioAutoPreventas.autocompletar(fila.preventaARS || 0);
     }
   });
 
-  /** Busca el "Modelo solicitado" en _preciosCache (precios.html) y abre la calculadora de cuotas sobre Precio Preventa — una preventa siempre usa Precio Preventa, nunca Precio Venta (Parte 5). No guarda nada, se recalcula siempre en el momento. */
+  /** Busca el "Modelo solicitado" en el catálogo combinado (Celulares + Mac/iPad, catalogoCompletoCargar) y abre la calculadora de cuotas sobre Precio Preventa — una preventa siempre usa Precio Preventa, nunca Precio Venta (Parte 5). No guarda nada, se recalcula siempre en el momento. */
   function preventasAbrirCalculadoraCuotas(){
     var modelo = document.getElementById("p_modelo").value.trim();
     if (!modelo) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
 
-    function continuar(){
+    catalogoCompletoCargar(function(catalogo){
       var modeloLower = modelo.toLowerCase();
       var match = null;
-      for (var i = 0; i < _preciosCache.length; i++) {
-        var m = (_preciosCache[i].modelo || "").toLowerCase();
-        if (m === modeloLower || m.indexOf(modeloLower) === 0 || modeloLower.indexOf(m) === 0) { match = _preciosCache[i]; break; }
+      for (var i = 0; i < catalogo.length; i++) {
+        var m = (catalogo[i].modelo || "").toLowerCase();
+        if (m === modeloLower || m.indexOf(modeloLower) === 0 || modeloLower.indexOf(m) === 0) { match = catalogo[i]; break; }
       }
       if (!match) { mostrarToast("No encontré \"" + modelo + "\" en Lista de Precios.", "error"); return; }
 
@@ -166,10 +170,7 @@
         mostrarCopiar: true,
         encabezadoWhatsapp: "💳 Financiación disponible"
       });
-    }
-
-    if (_preciosCache && _preciosCache.length > 0) continuar();
-    else preciosCargarDatos(continuar);
+    });
   }
 
   function preventasCalcTotal(){
