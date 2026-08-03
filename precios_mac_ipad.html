@@ -37,22 +37,21 @@
       <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
         <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px">
           <colgroup>
-            <col style="width:24%"><col style="width:10%"><col style="width:14%">
-            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+            <col style="width:28%"><col style="width:14%"><col style="width:16%">
+            <col style="width:16%"><col style="width:12%"><col style="width:14%">
           </colgroup>
           <thead>
             <tr style="text-align:left">
               <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('modelo')">Modelo <span id="mi_th_modelo"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('almacenamiento')">RAM/Alm. <span id="mi_th_almacenamiento"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Precio Venta <span id="mi_th_precioARS"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Precio Preventa <span id="mi_th_preventaARS"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('descuentoARS')">Descuento <span id="mi_th_descuentoARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('almacenamiento')">Almacenamiento <span id="mi_th_almacenamiento"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Precio ARS <span id="mi_th_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Preventa ARS <span id="mi_th_preventaARS"></span></th>
               <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioUSD')">Precio USD <span id="mi_th_precioUSD"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaUSD')">Preventa USD <span id="mi_th_preventaUSD"></span></th>
             </tr>
           </thead>
           <tbody id="mi_tbody">
-            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -62,22 +61,21 @@
       <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
         <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px">
           <colgroup>
-            <col style="width:26%"><col style="width:8%"><col style="width:14%">
-            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+            <col style="width:30%"><col style="width:14%"><col style="width:16%">
+            <col style="width:16%"><col style="width:12%"><col style="width:12%">
           </colgroup>
           <thead>
             <tr style="text-align:left">
               <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('modelo')">Modelo <span id="mi_thc_modelo"></span></th>
               <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);text-align:center" onclick="miOrdenarPor('almacenamiento')">Alm. <span id="mi_thc_almacenamiento"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Venta <span id="mi_thc_precioARS"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Prev <span id="mi_thc_preventaARS"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('descuentoARS')">Desc <span id="mi_thc_descuentoARS"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioUSD')">USD <span id="mi_thc_precioUSD"></span></th>
-              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioARS')">Precio ARS <span id="mi_thc_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaARS')">Preventa ARS <span id="mi_thc_preventaARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('precioUSD')">Precio USD <span id="mi_thc_precioUSD"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="miOrdenarPor('preventaUSD')">Preventa USD <span id="mi_thc_preventaUSD"></span></th>
             </tr>
           </thead>
           <tbody id="mi_tbody_compacta">
-            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
           </tbody>
         </table>
       </div>
@@ -87,14 +85,16 @@
 
 <script>
   // ============================================================
-  //  Lista de Precios — Mac / iPad. Reutiliza los helpers genéricos ya
-  //  definidos en precios.html (preciosCrearTarjetaHTML, preciosFiltrarArray,
-  //  preciosCopiarTexto, preciosTextoPlano/WhatsApp, fmtP, mostrarToast, etc.)
-  //  — este archivo solo agrega su propia fuente de datos
-  //  (obtenerListaPreciosMacIpad, macs_ipads.gs) y su propio estado de
-  //  filtro/orden/vista, con prefijo "mi_"/"mi" para no chocar con
-  //  precios.html. Debe incluirse en index.html DESPUÉS de precios.html
-  //  (mismo scope global de scripts, usa sus funciones).
+  //  Lista de Precios — Mac / iPad. Reutiliza los helpers GENÉRICOS de
+  //  precios.html (preciosFiltrarArray, preciosCopiarTexto, escHtml, fmtP,
+  //  mostrarToast) pero NO sus armadores de tarjeta/fila/texto
+  //  (preciosCrearTarjetaHTML, preciosCrearFilaCompactaHTML,
+  //  preciosTextoPlano/WhatsApp) porque esos incluyen "Descuento", columna
+  //  que acá NO se muestra: esta vista solo expone Almacenamiento, Precio
+  //  USD, Precio ARS, Preventa ARS y Preventa USD (a pedido explícito) —
+  //  ver miCrearTarjetaHTML/miTextoPlano/miTextoWhatsApp más abajo, con
+  //  prefijo "mi_"/"mi" para no chocar con precios.html. Debe incluirse en
+  //  index.html DESPUÉS de precios.html (mismo scope global de scripts).
   // ============================================================
 
   var FILTROS_MODELO_MACIPAD = ["Todos","MacBook Air","MacBook Pro","iPad Pro","iPad Air"];
@@ -200,17 +200,55 @@
     return "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados para este filtro.</div>";
   }
 
+  /**
+   * Tarjeta propia (no reutiliza preciosCrearTarjetaHTML de precios.html)
+   * porque acá NO se muestra Descuento — la Lista de Precios de Mac/iPad
+   * solo expone Almacenamiento, Precio USD, Precio ARS, Preventa ARS y
+   * Preventa USD (a diferencia de la de Celulares, que sí muestra Descuento).
+   */
+  function miCrearTarjetaHTML(p, idx){
+    return "" +
+    "<div style='background:#fff;border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:14px;display:flex;flex-direction:column;gap:5px'>" +
+      "<div style='font-weight:700;font-size:14px;color:var(--azul)'>💻 " + escHtml(p.modelo) + "</div>" +
+      "<div style='font-size:12px;color:#778;margin-bottom:2px'>" + escHtml(p.almacenamiento || "—") + "</div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px'><span>Precio ARS:</span><b>" + fmtP(p.precioARS) + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#B7950B'><span>Preventa ARS:</span><b>" + fmtP(p.preventaARS) + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#556'><span>Precio USD:</span><b>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#556'><span>Preventa USD:</span><b>US$" + Number(p.preventaUSD || 0).toLocaleString("en-US") + "</b></div>" +
+      "<div style='display:flex;gap:6px;margin-top:6px'>" +
+        "<button class='btn' style='margin:0;padding:7px 6px;font-size:10.5px;width:50%;background:#5D6D7E' onclick='miAccionCopiar(" + idx + ")'>📋 Copiar precio</button>" +
+        "<button class='btn' style='margin:0;padding:7px 6px;font-size:10.5px;width:50%;background:#1E8449' onclick='miAccionWhatsapp(" + idx + ")'>📲 WhatsApp</button>" +
+      "</div>" +
+      "<button class='btn' style='margin:6px 0 0;padding:7px 8px;font-size:11.5px;width:100%;background:#8E44AD' onclick='miAccionVerCuotas(" + idx + ")'>💳 Ver cuotas</button>" +
+    "</div>";
+  }
+
+  /** Igual que preciosTextoPlano/WhatsApp (precios.html) pero sin la línea de Descuento. */
+  function miTextoPlano(p){
+    return "💻 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n" +
+      "Precio ARS: " + fmtP(p.precioARS) + "\n" +
+      "Preventa ARS: " + fmtP(p.preventaARS) + "\n" +
+      "Precio USD: US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "\n" +
+      "Preventa USD: US$" + Number(p.preventaUSD || 0).toLocaleString("en-US");
+  }
+  function miTextoWhatsApp(p){
+    return "💻 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
+      "💰 Precio contado:\n" + fmtP(p.precioARS) + "\n\n" +
+      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n\n" +
+      "✅ Garantía de 12 meses";
+  }
+
   function miRenderizarGrid(){
     var grid = document.getElementById("mi_grid");
     if (_miFiltrada.length === 0) {
       grid.innerHTML = miMensajeVacio();
       return;
     }
-    grid.innerHTML = _miFiltrada.map(function(p, i){ return preciosCrearTarjetaHTML(p, i, "mi", false, true, "💻"); }).join("");
+    grid.innerHTML = _miFiltrada.map(function(p, i){ return miCrearTarjetaHTML(p, i); }).join("");
   }
 
-  function miAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_miFiltrada[idx])); }
-  function miAccionWhatsapp(idx){ preciosCopiarTexto(preciosTextoWhatsApp(_miFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function miAccionCopiar(idx){ preciosCopiarTexto(miTextoPlano(_miFiltrada[idx])); }
+  function miAccionWhatsapp(idx){ preciosCopiarTexto(miTextoWhatsApp(_miFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
   function miAccionVerCuotas(idx){
     var p = _miFiltrada[idx];
     renderCalculadoraCuotas(p.precioARS, {
@@ -222,7 +260,7 @@
   var _miOrdenCampo = null;
   var _miOrdenDir = 1;
   var _miTablaFiltrada = [];
-  var MI_COLUMNAS_TABLA = ["modelo","almacenamiento","precioARS","preventaARS","descuentoARS","precioUSD"];
+  var MI_COLUMNAS_TABLA = ["modelo","almacenamiento","precioARS","preventaARS","precioUSD","preventaUSD"];
 
   function miOrdenarPor(campo){
     if (_miOrdenCampo === campo) _miOrdenDir = -_miOrdenDir;
@@ -259,7 +297,7 @@
     miActualizarIndicadoresOrden();
 
     if (_miTablaFiltrada.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='7' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='6' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
       return;
     }
     var celda = "padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
@@ -269,18 +307,14 @@
         "<td style='" + celda + "'>" + escHtml(p.almacenamiento || "—") + "</td>" +
         "<td style='" + celda + "'>" + fmtP(p.precioARS) + "</td>" +
         "<td style='" + celda + ";color:#B7950B'>" + fmtP(p.preventaARS) + "</td>" +
-        "<td style='" + celda + ";color:#1E8449'>" + fmtP(p.descuentoARS) + "</td>" +
         "<td style='" + celda + ";color:#556'>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</td>" +
-        "<td style='padding:6px 8px;white-space:nowrap;overflow:hidden'>" +
-          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#5D6D7E' title='Copiar precio' onclick='miTablaAccionCopiar(" + i + ")'>📋</button> " +
-          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#1E8449' title='WhatsApp' onclick='miTablaAccionWhatsapp(" + i + ")'>📲</button>" +
-        "</td>" +
+        "<td style='" + celda + ";color:#B7950B'>US$" + Number(p.preventaUSD || 0).toLocaleString("en-US") + "</td>" +
       "</tr>";
     }).join("");
   }
 
-  function miTablaAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_miTablaFiltrada[idx])); }
-  function miTablaAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_miTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function miTablaAccionCopiar(idx){ preciosCopiarTexto(miTextoPlano(_miTablaFiltrada[idx])); }
+  function miTablaAccionWhatsapp(idx){ preciosCopiarTexto(miTextoWhatsApp(_miTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
 
   function miRenderizarCompacta(){
     var tbody = document.getElementById("mi_tbody_compacta");
@@ -288,9 +322,19 @@
     miActualizarIndicadoresOrden();
 
     if (_miTablaFiltrada.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='7' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='6' style='padding:0'>" + miMensajeVacio() + "</td></tr>";
       return;
     }
-    tbody.innerHTML = _miTablaFiltrada.map(function(p, i){ return preciosCrearFilaCompactaHTML(p, i, "miTabla", false); }).join("");
+    var celda = "padding:4px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    tbody.innerHTML = _miTablaFiltrada.map(function(p){
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='" + celda + ";font-weight:600;color:var(--azul)' title='" + escHtml(p.modelo) + "'>" + escHtml(p.modelo) + "</td>" +
+        "<td style='" + celda + ";text-align:center;color:#778'>" + escHtml(p.almacenamiento || "—") + "</td>" +
+        "<td style='" + celda + "'>" + fmtP(p.precioARS) + "</td>" +
+        "<td style='" + celda + ";color:#B7950B'>" + fmtP(p.preventaARS) + "</td>" +
+        "<td style='" + celda + ";color:#556'>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</td>" +
+        "<td style='" + celda + ";color:#B7950B'>US$" + Number(p.preventaUSD || 0).toLocaleString("en-US") + "</td>" +
+      "</tr>";
+    }).join("");
   }
 </script>
