@@ -1,0 +1,39 @@
+<script>
+  // ============================================================
+  //  crearPrecioAutomatico(input) — helper único y reutilizable (Ventas /
+  //  Preventas) para la lógica de "Precio Inteligente": mientras el
+  //  operador no haya tocado el precio a mano, cada nueva selección de
+  //  modelo/equipo lo actualiza. En el momento en que el operador escribe
+  //  manualmente, el precio queda "personalizado" y ninguna selección
+  //  posterior lo vuelve a pisar — hasta llamar reset() (nueva operación).
+  //
+  //  Detección 100% automática (sin botones/checkboxes/confirmaciones):
+  //  se basa en el evento nativo "input" del campo, que SOLO se dispara
+  //  por tecleo real del usuario — nunca por una asignación .value hecha
+  //  desde código. Por eso autocompletar()/setValorConfirmado() no
+  //  necesitan ninguna bandera para no contarse a sí mismos como edición
+  //  manual.
+  // ============================================================
+
+  function crearPrecioAutomatico(input){
+    var automatico = true;
+
+    input.addEventListener("input", function(){ automatico = false; });
+
+    return {
+      /** Solo pisa el valor si el operador todavía no lo personalizó. */
+      autocompletar: function(valor){
+        if (!automatico) return;
+        input.value = valor;
+      },
+      /** Precarga (ej. corrección): fija el valor y lo marca "personalizado" — no se debe volver a pisar solo. */
+      setValorConfirmado: function(valor){
+        input.value = valor;
+        automatico = false;
+      },
+      /** Nueva operación / formulario limpio: vuelve a proponer precio automáticamente. */
+      reset: function(){ automatico = true; },
+      esAutomatico: function(){ return automatico; }
+    };
+  }
+</script>

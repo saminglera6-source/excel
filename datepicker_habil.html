@@ -1,0 +1,169 @@
+<script>
+  // ============================================================
+  //  crearDatePickerHabil(opts) — mini calendario propio, sin librerías
+  //  externas (mismo criterio que crearSelectorModelos()): reemplaza el
+  //  <input type="date"> nativo para los casos donde hace falta bloquear
+  //  DE VERDAD ciertos días (no una validación reactiva que revierte
+  //  después de elegir). Los días fuera de rango / fin de semana / feriado
+  //  se renderizan con `disabled` real — nunca son clickeables.
+  //
+  //  opts = {
+  //    inputVisible: <input type="text" readonly> — el que ve el usuario,
+  //      muestra dd/mm/yyyy. Se abre el panel al hacer foco/click.
+  //    inputHidden: <input type="hidden"> — guarda el valor real en
+  //      "YYYY-MM-DD" (mismo formato que ya usa el resto del ERP para
+  //      fechas), para no cambiar el payload que arma el formulario.
+  //    onSeleccion: function(iso) {} — se llama al elegir un día válido.
+  //  }
+  //
+  //  Devuelve {
+  //    actualizar({minima, maxima, feriados}) — fija/actualiza el rango
+  //      permitido y el mapa de feriados (mismo objeto que ya devuelve
+  //      calcularRangoEntregaPreventa() — no se duplica ningún fetch).
+  //    setValor(iso) — precarga un valor ya válido sin pasar por el panel.
+  //  }
+  // ============================================================
+
+  var GP_DATEPICKER_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+  var GP_DATEPICKER_DIAS  = ["Do","Lu","Ma","Mi","Ju","Vi","Sa"];
+
+  function crearDatePickerHabil(opts){
+    opts = opts || {};
+    var inputVisible = opts.inputVisible;
+    var inputHidden  = opts.inputHidden;
+    var onSeleccion  = opts.onSeleccion || function(){};
+    var wrap = inputVisible.parentElement;
+
+    var panel = document.createElement("div");
+    panel.className = "gp-datepicker-panel";
+    wrap.appendChild(panel);
+
+    var restricciones = null; // { minima, maxima, feriados }
+    var mesActual = null;     // Date, día 1 del mes mostrado
+    var abierto = false;
+
+    function parseISO(iso){
+      var p = iso.split("-");
+      return new Date(+p[0], +p[1] - 1, +p[2]);
+    }
+    function toISO(d){
+      return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    }
+    function toDDMMYYYY(iso){
+      var p = iso.split("-");
+      return p[2] + "/" + p[1] + "/" + p[0];
+    }
+    function esFinDeSemana(d){
+      var w = d.getDay();
+      return w === 0 || w === 6;
+    }
+    function diaHabilita(d){
+      var iso = toISO(d);
+      if (iso < restricciones.minima || iso > restricciones.maxima) return false;
+      if (esFinDeSemana(d)) return false;
+      if (restricciones.feriados[iso]) return false;
+      return true;
+    }
+
+    function render(){
+      if (!restricciones) { panel.innerHTML = "<div class='gp-datepicker-vacio'>Cargando...</div>"; return; }
+
+      var minMes = parseISO(restricciones.minima); minMes = new Date(minMes.getFullYear(), minMes.getMonth(), 1);
+      var maxMes = parseISO(restricciones.maxima); maxMes = new Date(maxMes.getFullYear(), maxMes.getMonth(), 1);
+
+      var primerDia = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
+      var inicioGrilla = new Date(primerDia);
+      inicioGrilla.setDate(inicioGrilla.getDate() - primerDia.getDay());
+
+      var puedeAnterior = mesActual.getTime() > minMes.getTime();
+      var puedeSiguiente = mesActual.getTime() < maxMes.getTime();
+
+      var html = "<div class='gp-datepicker-header'>" +
+        "<button type='button' class='gp-datepicker-nav' data-dir='-1'" + (puedeAnterior ? "" : " disabled") + ">‹</button>" +
+        "<span>" + GP_DATEPICKER_MESES[mesActual.getMonth()] + " " + mesActual.getFullYear() + "</span>" +
+        "<button type='button' class='gp-datepicker-nav' data-dir='1'" + (puedeSiguiente ? "" : " disabled") + ">›</button>" +
+      "</div>";
+
+      html += "<div class='gp-datepicker-grid gp-datepicker-dow'>" + GP_DATEPICKER_DIAS.map(function(d){ return "<span>" + d + "</span>"; }).join("") + "</div>";
+
+      html += "<div class='gp-datepicker-grid'>";
+      var cursor = new Date(inicioGrilla);
+      for (var i = 0; i < 42; i++) {
+        var fueraDeMes = cursor.getMonth() !== mesActual.getMonth();
+        var habilitado = !fueraDeMes && diaHabilita(cursor);
+        var iso = toISO(cursor);
+        var seleccionado = inputHidden.value === iso;
+        var clases = "gp-datepicker-dia" +
+          (fueraDeMes ? " gp-datepicker-otromes" : "") +
+          (!fueraDeMes && !habilitado ? " gp-datepicker-deshabilitado" : "") +
+          (seleccionado ? " gp-datepicker-seleccionado" : "");
+        html += "<button type='button' class='" + clases + "' data-iso='" + iso + "'" + (habilitado ? "" : " disabled") + ">" + cursor.getDate() + "</button>";
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      html += "</div>";
+
+      panel.innerHTML = html;
+    }
+
+    function abrir(){
+      if (!restricciones) return;
+      if (!mesActual) mesActual = parseISO(inputHidden.value || restricciones.minima);
+      render();
+      panel.style.display = "block";
+      abierto = true;
+    }
+    function cerrar(){
+      panel.style.display = "none";
+      abierto = false;
+    }
+
+    inputVisible.addEventListener("focus", abrir);
+    inputVisible.addEventListener("click", function(){ if (!abierto) abrir(); });
+
+    panel.addEventListener("mousedown", function(e){
+      var navBtn = e.target.closest(".gp-datepicker-nav");
+      if (navBtn) {
+        e.preventDefault();
+        if (navBtn.disabled) return;
+        var dir = Number(navBtn.dataset.dir);
+        mesActual = new Date(mesActual.getFullYear(), mesActual.getMonth() + dir, 1);
+        render();
+        return;
+      }
+      var diaBtn = e.target.closest(".gp-datepicker-dia");
+      if (diaBtn) {
+        e.preventDefault(); // evita que el input pierda foco antes del click
+        if (diaBtn.disabled) return;
+        var iso = diaBtn.dataset.iso;
+        inputHidden.value = iso;
+        inputVisible.value = toDDMMYYYY(iso);
+        cerrar();
+        onSeleccion(iso);
+      }
+    });
+
+    document.addEventListener("click", function(e){
+      if (abierto && !wrap.contains(e.target)) cerrar();
+    });
+
+    return {
+      /** Fija/actualiza el rango permitido y los feriados (mismo objeto que calcularRangoEntregaPreventa()). Si el valor actual quedó fuera del nuevo rango, lo limpia (el módulo que lo usa decide si propone un default). */
+      actualizar: function(r){
+        restricciones = r;
+        mesActual = parseISO(r.minima);
+        var actual = inputHidden.value;
+        if (actual && (actual < r.minima || actual > r.maxima || esFinDeSemana(parseISO(actual)) || r.feriados[actual])) {
+          inputHidden.value = "";
+          inputVisible.value = "";
+        }
+        if (abierto) render();
+      },
+      /** Precarga un valor ya válido (ej. al corregir una operación) sin pasar por el panel. */
+      setValor: function(iso){
+        inputHidden.value = iso || "";
+        inputVisible.value = iso ? toDDMMYYYY(iso) : "";
+        if (abierto) render();
+      }
+    };
+  }
+</script>

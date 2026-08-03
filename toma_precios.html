@@ -1,0 +1,104 @@
+<div id="view-toma_precios" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>🔄 Precios de Toma</h3>
+    <div class="hint">Se lee en vivo desde la hoja "Toma de Equipos" del Google Sheet — cualquier cambio ahí se refleja acá sin tocar código.</div>
+
+    <div class="fila2" style="margin-top:14px">
+      <div>
+        <label style="font-size:11px">🔎 Buscar</label>
+        <input type="text" id="tp_buscar" placeholder="Ej: iPhone 13" oninput="tomaPreciosRenderizar()"/>
+      </div>
+      <div>
+        <label style="font-size:11px">&nbsp;</label>
+        <div id="tp_actualizado" style="font-size:11px;color:#778;padding-top:11px"></div>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Modelo</th>
+            <th style="padding:8px">Impecable</th>
+            <th style="padding:8px">Bat</th>
+            <th style="padding:8px">Pant</th>
+            <th style="padding:8px">Cam</th>
+            <th style="padding:8px">Mic</th>
+            <th style="padding:8px">Parl</th>
+            <th style="padding:8px">Tapa</th>
+            <th style="padding:8px">Marco</th>
+            <th style="padding:8px">Pin</th>
+            <th style="padding:8px"></th>
+          </tr>
+        </thead>
+        <tbody id="tp_tbody">
+          <tr><td colspan="11" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Módulo "Precios de Toma" — solo lectura sobre obtenerPreciosToma().
+  //  Reutiliza escHtml/fmtP/preciosCopiarTexto (definidas en precios.html,
+  //  incluido antes que esta vista en index.html); no duplica esas funciones.
+  // ============================================================
+
+  var _tomaPreciosCache    = []; // último resultado de obtenerPreciosToma()
+  var _tomaPreciosFiltrada = [];
+
+  function tomaPreciosInit(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _tomaPreciosCache = datos || [];
+        document.getElementById("tp_actualizado").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR");
+        tomaPreciosRenderizar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreciosToma();
+  }
+
+  function tomaPreciosRenderizar(){
+    var q = document.getElementById("tp_buscar").value.trim().toLowerCase();
+    _tomaPreciosFiltrada = _tomaPreciosCache.filter(function(r){
+      return !q || r.modelo.toLowerCase().indexOf(q) !== -1;
+    });
+    var tbody = document.getElementById("tp_tbody");
+    if (_tomaPreciosFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='11' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = _tomaPreciosFiltrada.map(function(r, i){
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='padding:8px;font-weight:600;color:var(--azul)'>📱 " + escHtml(r.modelo) + "</td>" +
+        "<td style='padding:8px;font-weight:600'>" + fmtP(r.impecable) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.bateria) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.pantalla) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.camara) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.microfono) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.parlante) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.tapa) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.marco) + "</td>" +
+        "<td style='padding:8px;color:var(--rojo)'>-" + fmtP(r.pin) + "</td>" +
+        "<td style='padding:8px'><button class='btn' style='margin:0;padding:6px 8px;font-size:10.5px;width:auto;background:#5D6D7E' onclick='tomaPreciosCopiar(" + i + ")'>📋 Copiar</button></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function tomaPreciosCopiar(idx){
+    var r = _tomaPreciosFiltrada[idx];
+    var texto = "📱 " + r.modelo + "\n" +
+      "Impecable: " + fmtP(r.impecable) + "\n" +
+      "Falta batería: -" + fmtP(r.bateria) + "\n" +
+      "Falta pantalla: -" + fmtP(r.pantalla) + "\n" +
+      "Falta cámara: -" + fmtP(r.camara) + "\n" +
+      "Falta micrófono: -" + fmtP(r.microfono) + "\n" +
+      "Falta parlante: -" + fmtP(r.parlante) + "\n" +
+      "Falta tapa trasera: -" + fmtP(r.tapa) + "\n" +
+      "Falta marco: -" + fmtP(r.marco) + "\n" +
+      "Falta pin de carga: -" + fmtP(r.pin);
+    preciosCopiarTexto(texto);
+  }
+</script>

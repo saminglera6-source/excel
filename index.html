@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GreatPhones ERP</title>
+  <style>
+    :root{
+      --azul:#1A5276; --azul-osc:#154360; --verde:#0B5345; --verde-cl:#EAFAF1;
+      --morado:#6C3483; --naranja:#B7950B; --rojo:#922B21; --gris-bg:#F4F6F9;
+      --texto:#1A252F; --borde:#E1E5EA; --sombra:0 2px 10px rgba(0,0,0,.06);
+      --radio:10px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--gris-bg);color:var(--texto)}
+
+    /* ---------- Layout ---------- */
+    #app{display:flex;min-height:100vh}
+    #sidebar{
+      width:230px;background:linear-gradient(180deg,var(--azul-osc),var(--azul));
+      color:#fff;flex-shrink:0;display:flex;flex-direction:column;padding:18px 0;
+      position:sticky;top:0;height:100vh;overflow-y:auto;
+    }
+    #sidebar h1{font-size:16px;text-align:center;margin:0 0 22px;letter-spacing:.5px}
+    #sidebar h1 span{display:block;font-size:11px;font-weight:normal;opacity:.75}
+    .nav-btn{
+      display:flex;align-items:center;gap:10px;padding:11px 20px;color:#dce8f2;
+      cursor:pointer;font-size:13.5px;border-left:3px solid transparent;transition:.15s;
+      user-select:none;
+    }
+    .nav-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+    .nav-btn.activo{background:rgba(255,255,255,.14);border-left-color:#fff;color:#fff;font-weight:600}
+    .nav-sep{height:1px;background:rgba(255,255,255,.15);margin:10px 18px}
+
+    #main{flex:1;min-width:0;display:flex;flex-direction:column}
+    #topbar{
+      background:#fff;border-bottom:1px solid var(--borde);padding:14px 26px;
+      display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5;
+    }
+    #topbar h2{margin:0;font-size:18px;color:var(--azul)}
+    #cotizDiv{font-size:12px;color:#667}
+    #contenido{padding:24px;flex:1}
+
+    /* ---------- Vistas (SPA) ---------- */
+    .view{display:none;animation:fadeIn .25s ease}
+    .view.activa{display:block}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ---------- Tarjetas dashboard ---------- */
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:26px}
+    .card{
+      background:#fff;border-radius:var(--radio);padding:18px;box-shadow:var(--sombra);
+      border-top:4px solid var(--azul);transition:transform .15s;cursor:pointer;
+    }
+    .card:hover{transform:translateY(-3px)}
+    .card .ico{font-size:22px}
+    .card .valor{font-size:24px;font-weight:700;margin:6px 0 2px;color:var(--texto)}
+    .card .label{font-size:12px;color:#778}
+    .card.c-stock{border-top-color:var(--azul)}
+    .card.c-caja{border-top-color:#1E8449}
+    .card.c-pre{border-top-color:var(--morado)}
+    .card.c-rep{border-top-color:#B9770E}
+    .card.c-ventas{border-top-color:#2E86C1}
+
+    .accion-btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+    .accion-btn{
+      background:#fff;border:1px solid var(--borde);border-radius:var(--radio);padding:16px;
+      text-align:center;cursor:pointer;font-weight:600;font-size:13px;color:var(--texto);
+      box-shadow:var(--sombra);transition:.15s;
+    }
+    .accion-btn:hover{background:var(--azul);color:#fff;transform:translateY(-2px)}
+    .accion-btn .ico{display:block;font-size:20px;margin-bottom:6px}
+
+    /* ---------- Formularios (compartido por todas las vistas) ---------- */
+    .panel{background:#fff;border-radius:var(--radio);padding:22px;box-shadow:var(--sombra);max-width:720px}
+    .panel h3{margin:0 0 16px;color:var(--azul)}
+    label{display:block;margin-top:12px;font-weight:600;font-size:12.5px;color:#334}
+    input,select,textarea{
+      width:100%;padding:8px 10px;margin-top:4px;border:1px solid var(--borde);border-radius:7px;
+      box-sizing:border-box;font-size:13.5px;font-family:inherit;background:#fff;
+    }
+    textarea{resize:vertical;min-height:60px}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--azul)}
+    .fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .fila3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .fila4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+    .btn{
+      background:var(--azul);color:#fff;padding:11px 20px;border:none;border-radius:8px;
+      cursor:pointer;margin-top:18px;width:100%;font-size:14px;font-weight:600;transition:.15s;
+    }
+    .btn:hover{background:var(--azul-osc)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .box{background:#F8F9FA;border:1px solid var(--borde);border-radius:8px;padding:14px;margin-top:14px}
+    .box-info{background:#EBF5FB;border-left:4px solid #2980B9}
+    .box-warn{background:#FEF9E7;border-left:4px solid var(--naranja)}
+    .total{background:var(--verde-cl);padding:10px;border-radius:7px;margin-top:10px;font-weight:700}
+    .hint{font-size:11px;color:#778;margin-top:3px}
+
+    /* ---------- Pasos numerados (formularios largos divididos en bloques) ---------- */
+    .paso{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:16px 18px;margin-top:16px}
+    .paso-titulo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:13.5px;color:var(--azul);margin:0}
+    .paso-num{background:var(--azul);color:#fff;width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+    .paso label:first-of-type{margin-top:0}
+    .paso-opcional .paso-num{background:#8996A3}
+    /* Marcador de campo obligatorio: más visible que un "*" suelto */
+    .req{color:var(--rojo);font-weight:700}
+    /* Bloque plegable (secciones opcionales, ej. "Agregar accesorios") */
+    .plegable-cabecera{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+    .plegable-flecha{transition:transform .15s}
+    .plegable-flecha.abierto{transform:rotate(180deg)}
+
+    /* ---------- Spinner ---------- */
+    #spinner-overlay{
+      position:fixed;inset:0;background:rgba(255,255,255,.65);display:none;
+      align-items:center;justify-content:center;z-index:9998;
+    }
+    #spinner-overlay.activo{display:flex}
+    .spinner{width:46px;height:46px;border:5px solid #d7dee5;border-top-color:var(--azul);
+      border-radius:50%;animation:girar .7s linear infinite}
+    @keyframes girar{to{transform:rotate(360deg)}}
+
+    /* ---------- Toasts ---------- */
+    #toast-container{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+    .toast{
+      min-width:260px;max-width:380px;padding:13px 16px;border-radius:9px;color:#fff;font-size:13.5px;
+      box-shadow:0 6px 18px rgba(0,0,0,.18);animation:entrarToast .25s ease;white-space:pre-line;
+    }
+    .toast.exito{background:#1E8449}
+    .toast.error{background:var(--rojo)}
+    .toast.info{background:#2E86C1}
+    @keyframes entrarToast{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+
+    /* ---------- Modal de confirmación ---------- */
+    #confirm-overlay{
+      position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;
+      align-items:center;justify-content:center;z-index:9999;
+    }
+    #confirm-overlay.activo{display:flex}
+    #confirm-box{
+      background:#fff;border-radius:12px;padding:22px;max-width:380px;width:90%;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);animation:fadeIn .2s ease;
+    }
+    #confirm-box p{font-size:14px;white-space:pre-line;margin:0 0 18px}
+    #confirm-box .fila2{gap:10px}
+    #confirm-cancelar{background:#eee;color:#333}
+
+    /* ---------- Modal de texto libre (motivo de anulación/corrección) ---------- */
+    #prompt-overlay{
+      position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;
+      align-items:center;justify-content:center;z-index:9999;
+    }
+    #prompt-overlay.activo{display:flex}
+    #prompt-box{
+      background:#fff;border-radius:12px;padding:22px;max-width:380px;width:90%;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);animation:fadeIn .2s ease;
+    }
+    #prompt-box p{font-size:14px;white-space:pre-line;margin:0 0 10px}
+    #prompt-box textarea{width:100%;min-height:60px}
+    #prompt-box .fila2{gap:10px;margin-top:14px}
+    #prompt-cancelar{background:#eee;color:#333}
+
+    /* ---------- Modal de selección de operador (obligatorio por-acción: Anular, etc.) ---------- */
+    #operador-prompt-overlay{
+      position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;
+      align-items:center;justify-content:center;z-index:9999;
+    }
+    #operador-prompt-overlay.activo{display:flex}
+    #operador-prompt-box{
+      background:#fff;border-radius:12px;padding:22px;max-width:340px;width:90%;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);animation:fadeIn .2s ease;
+    }
+    #operador-prompt-box p{font-size:14px;white-space:pre-line;margin:0 0 10px}
+    #operador-prompt-box .fila2{gap:10px;margin-top:14px}
+    #operador-prompt-cancelar{background:#eee;color:#333}
+
+    /* ---------- Banner de modo corrección ---------- */
+    #correccion-banner{
+      display:none;background:#FEF9E7;border:1px solid #B7950B;border-radius:8px;
+      padding:12px 16px;margin-bottom:16px;max-width:720px;
+    }
+    #correccion-banner label{margin-top:8px}
+
+    /* ---------- Banner de entorno (PASO 5) ---------- */
+    #entorno-banner{
+      background:#0B5345;color:#fff;text-align:center;font-size:11.5px;
+      font-weight:700;letter-spacing:.5px;padding:5px 0;
+    }
+
+    /* ---------- Toast: botón de acción y de cierre (persistente) ---------- */
+    .toast{display:flex;flex-direction:column;gap:8px}
+    .toast-acciones{display:flex;gap:8px;justify-content:flex-end}
+    .toast-btn{
+      background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.5);
+      border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;
+    }
+    .toast-btn:hover{background:rgba(255,255,255,.35)}
+    .toast-cerrar{background:transparent;color:#fff;border:none;font-size:14px;cursor:pointer;opacity:.8}
+    .toast-cerrar:hover{opacity:1}
+
+    /* ---------- Selector de modelos con búsqueda (crearSelectorModelos, selector_modelos.html) ---------- */
+    .gp-modelo-wrap{position:relative}
+    .gp-modelo-dropdown{
+      display:none;position:absolute;top:100%;left:0;right:0;z-index:500;
+      background:#fff;border:1px solid var(--borde);border-radius:8px;
+      box-shadow:0 8px 24px rgba(0,0,0,.18);max-height:260px;overflow-y:auto;margin-top:4px;
+    }
+    .gp-modelo-opcion{padding:8px 12px;font-size:13px;cursor:pointer}
+    .gp-modelo-opcion.activo,.gp-modelo-opcion:hover{background:#EAF2FB}
+    .gp-modelo-vacio{padding:10px 12px;font-size:12.5px;color:#889;text-align:center}
+
+    /* ---------- Datepicker de días hábiles (crearDatePickerHabil, datepicker_habil.html) ---------- */
+    .gp-datepicker-panel{
+      display:none;position:absolute;top:100%;left:0;z-index:500;width:250px;
+      background:#fff;border:1px solid var(--borde);border-radius:8px;
+      box-shadow:0 8px 24px rgba(0,0,0,.18);margin-top:4px;padding:10px;
+    }
+    .gp-datepicker-header{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;color:var(--azul);margin-bottom:8px}
+    .gp-datepicker-nav{background:none;border:none;font-size:16px;cursor:pointer;color:var(--azul);padding:2px 8px;border-radius:4px}
+    .gp-datepicker-nav:hover:not(:disabled){background:#EAF2FB}
+    .gp-datepicker-nav:disabled{opacity:.25;cursor:default}
+    .gp-datepicker-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+    .gp-datepicker-dow{margin-bottom:4px}
+    .gp-datepicker-dow span{font-size:10.5px;color:#889;text-align:center;font-weight:600}
+    .gp-datepicker-dia{background:none;border:none;padding:6px 0;font-size:12.5px;border-radius:6px;cursor:pointer;color:#334}
+    .gp-datepicker-dia:hover:not(:disabled){background:#EAF2FB}
+    .gp-datepicker-otromes{color:#ccc}
+    .gp-datepicker-deshabilitado{color:#ddd;cursor:not-allowed;text-decoration:line-through}
+    .gp-datepicker-seleccionado{background:var(--azul);color:#fff;font-weight:700}
+    .gp-datepicker-vacio{font-size:12px;color:#889;text-align:center;padding:14px}
+  </style>
+</head>
+<body>
+
+<div id="entorno-banner">ENTORNO: PRODUCCIÓN</div>
+
+<div id="app">
+
+  <nav id="sidebar">
+    <h1>📱 GreatPhones<span>ERP Web</span></h1>
+    <div style="text-align:center;font-size:10px;color:#9fc3d9;margin:-14px 0 18px">GreatPhones ERP — v1.0 Producción</div>
+    <div class="nav-btn activo" data-vista="dashboard" onclick="cargarVista('dashboard')">🏠 Dashboard</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="compras" onclick="cargarVista('compras')">🛒 Registrar Compra</div>
+    <div class="nav-btn" data-vista="ventas" onclick="cargarVista('ventas')">💰 Registrar Venta</div>
+    <div class="nav-btn" data-vista="preventas" onclick="cargarVista('preventas')">🟡 Registrar Preventa</div>
+    <div class="nav-btn" data-vista="entregar_preventa" onclick="cargarVista('entregar_preventa')">📦 Entregar Preventa</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="precios" onclick="cargarVista('precios')">💰 Lista de Precios</div>
+    <div class="nav-btn" data-vista="toma_precios" onclick="cargarVista('toma_precios')">🔄 Precios de Toma</div>
+    <div class="nav-btn" data-vista="calculadora_toma" onclick="cargarVista('calculadora_toma')">🧮 Calculadora de Toma</div>
+    <div class="nav-btn" data-vista="calculadora_cuotas" onclick="cargarVista('calculadora_cuotas')">💳 Calculadora Cuotas</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="reparaciones" onclick="cargarVista('reparaciones')">🔧 Registrar Reparación</div>
+    <div class="nav-btn" data-vista="tarifario_reparaciones" onclick="cargarVista('tarifario_reparaciones')">🔧 Tarifario Reparaciones</div>
+    <div class="nav-btn" data-vista="gastos" onclick="cargarVista('gastos')">💸 Registrar Gasto</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="reportes" onclick="cargarVista('reportes')">📈 Reportes</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="stock_accesorios" onclick="cargarVista('stock_accesorios')">📦 Stock Accesorios</div>
+    <div class="nav-btn" data-vista="stock_general" onclick="cargarVista('stock_general')">📋 Stock General</div>
+    <div class="nav-sep"></div>
+    <div class="nav-btn" data-vista="mis_operaciones" onclick="cargarVista('mis_operaciones')">🗂️ Mis Operaciones</div>
+    <div class="nav-btn" data-vista="comisiones" onclick="cargarVista('comisiones')">💼 Comisiones</div>
+  </nav>
+
+  <div id="main">
+    <div id="topbar">
+      <h2 id="tituloVista">🏠 Dashboard</h2>
+      <div style="display:flex;align-items:center;gap:18px">
+        <div id="cotizDiv">Cotización USD: …</div>
+      </div>
+    </div>
+    <div id="contenido">
+      <div id="correccion-banner">
+        <b>🔁 Modo corrección:</b> estás creando una nueva operación para reemplazar <span id="correccion-numeroOriginal"></span>.
+        <label>Operador que corrige: *</label>
+        <select id="correccion-operador" required>
+          <option value="" disabled selected>Seleccionar...</option>
+          <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+        </select>
+        <label>Motivo de la corrección:</label>
+        <input type="text" id="correccion-motivo" placeholder="Ej: Precio incorrecto"/>
+        <button class="btn" style="background:#888;margin-top:10px" onclick="cancelarCorreccion()">Cancelar corrección</button>
+      </div>
+      <?!= include('dashboard'); ?>
+      <?!= include('selector_modelos'); ?>
+      <?!= include('precio_automatico'); ?>
+      <?!= include('datepicker_habil'); ?>
+      <?!= include('compras'); ?>
+      <?!= include('precios'); ?>
+      <?!= include('toma_precios'); ?>
+      <?!= include('calculadora_toma'); ?>
+      <?!= include('calculadora_cuotas'); ?>
+      <?!= include('ventas'); ?>
+      <?!= include('preventas'); ?>
+      <?!= include('entregar_preventa'); ?>
+      <?!= include('reparaciones'); ?>
+      <?!= include('tarifario_reparaciones'); ?>
+      <?!= include('gastos'); ?>
+      <?!= include('reportes'); ?>
+      <?!= include('stock_accesorios'); ?>
+      <?!= include('stock_general'); ?>
+      <?!= include('mis_operaciones'); ?>
+      <?!= include('comisiones'); ?>
+    </div>
+  </div>
+
+</div>
+
+<div id="spinner-overlay"><div class="spinner"></div></div>
+<div id="toast-container"></div>
+
+<div id="operador-prompt-overlay">
+  <div id="operador-prompt-box">
+    <p id="operador-prompt-mensaje"></p>
+    <select id="operador-prompt-select">
+      <option value="" disabled selected>Seleccionar...</option>
+      <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+    </select>
+    <div class="fila2">
+      <button class="btn" id="operador-prompt-cancelar" onclick="_operadorPromptResolver(null)">Cancelar</button>
+      <button class="btn" onclick="_operadorPromptAceptar()">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-overlay">
+  <div id="confirm-box">
+    <p id="confirm-mensaje"></p>
+    <div class="fila2">
+      <button class="btn" id="confirm-cancelar" onclick="_confirmResolver(false)">Cancelar</button>
+      <button class="btn" onclick="_confirmResolver(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="prompt-overlay">
+  <div id="prompt-box">
+    <p id="prompt-mensaje"></p>
+    <textarea id="prompt-input"></textarea>
+    <div class="fila2">
+      <button class="btn" id="prompt-cancelar" onclick="_promptResolver(null)">Cancelar</button>
+      <button class="btn" onclick="_promptResolver(document.getElementById('prompt-input').value)">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  NÚCLEO SPA — compartido por todas las vistas incluidas arriba.
+  //  Nombres con prefijo para no chocar con las funciones propias
+  //  de cada vista (comprasEnviar, ventasEnviar, etc.)
+  // ============================================================
+
+  var cotizacionActual = { compra: 0, venta: 0 };
+  var vistaInicActual = {}; // evita re-inicializar dropdowns en cada click
+
+  function fmtP(n){ return "$" + Number(n || 0).toLocaleString("es-AR"); }
+  function fmtUSDweb(n){ return "USD " + Number(n || 0).toLocaleString("en-US"); }
+
+  // Convierte una fecha "dd/MM/yyyy" o "dd/MM/yyyy HH:mm:ss" (formato en el
+  // que el backend manda las fechas de una operación al precargar una
+  // corrección — ver obtenerOperacionCompleta_() en operadores.gs) al
+  // formato "yyyy-MM-dd" que exige el value de un <input type="date">.
+  // Usada por todos los *PrecargarCorreccion() de cada vista.
+  function fechaParaInput(valorDDMMYYYY){
+    var m = String(valorDDMMYYYY || "").match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? (m[3] + "-" + m[2] + "-" + m[1]) : "";
+  }
+
+  // ---------- Navegación SPA (sin recargar la app) ----------
+  function cargarVista(nombre){
+    document.querySelectorAll(".view").forEach(function(v){ v.classList.remove("activa"); });
+    var vista = document.getElementById("view-" + nombre);
+    if (vista) vista.classList.add("activa");
+
+    document.querySelectorAll(".nav-btn").forEach(function(b){ b.classList.remove("activo"); });
+    var btn = document.querySelector('.nav-btn[data-vista="' + nombre + '"]');
+    if (btn) btn.classList.add("activo");
+
+    var titulos = {
+      dashboard:"🏠 Dashboard", compras:"🛒 Registrar Compra", ventas:"💰 Registrar Venta",
+      preventas:"🟡 Registrar Preventa", entregar_preventa:"📦 Entregar Preventa",
+      precios:"💰 Lista de Precios", toma_precios:"🔄 Precios de Toma", calculadora_toma:"🧮 Calculadora de Toma",
+      calculadora_cuotas:"💳 Calculadora de Cuotas",
+      reparaciones:"🔧 Registrar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
+      gastos:"💸 Registrar Gasto", reportes:"📈 Reportes",
+      stock_accesorios:"📦 Stock Accesorios", stock_general:"📋 Stock General",
+      mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones"
+    };
+    document.getElementById("tituloVista").textContent = titulos[nombre] || nombre;
+
+    // Banner de modo corrección: solo visible en la vista destino de la corrección activa
+    var banner = document.getElementById("correccion-banner");
+    if (_correccion && _correccion.vista === nombre) {
+      banner.style.display = "block";
+      document.getElementById("correccion-numeroOriginal").textContent = _correccion.numeroOriginal;
+    } else {
+      banner.style.display = "none";
+    }
+
+    // Inicialización perezosa (una vez por vista) + refresco de datos vivos
+    if (nombre === "dashboard") cargarDashboard();
+    if (nombre === "precios") preciosInit();
+    if (nombre === "toma_precios") tomaPreciosInit();
+    if (nombre === "calculadora_toma") calculadoraTomaInit();
+    if (nombre === "calculadora_cuotas") calculadoraCuotasInit();
+    if (nombre === "ventas") ventasInit();
+    if (nombre === "reparaciones") reparacionesInit();
+    if (nombre === "tarifario_reparaciones") tarifarioReparacionesInit();
+    if (nombre === "entregar_preventa") entregaInit();
+    if (nombre === "reportes") reportesInit();
+    if (nombre === "stock_accesorios") stockAccesoriosInit();
+    if (nombre === "stock_general") stockGeneralInit();
+    if (nombre === "mis_operaciones") misOperacionesInit();
+    if (nombre === "comisiones") comisionesInit();
+  }
+
+  // ---------- Spinner (PASO 3: también deshabilita todos los botones mientras procesa) ----------
+  function mostrarSpinner(){
+    document.getElementById("spinner-overlay").classList.add("activo");
+    document.querySelectorAll(".btn").forEach(function(b){ b.disabled = true; });
+  }
+  function ocultarSpinner(){
+    document.getElementById("spinner-overlay").classList.remove("activo");
+    document.querySelectorAll(".btn").forEach(function(b){ b.disabled = false; });
+  }
+
+  // ---------- Toasts ----------
+  // `opciones` (todas opcionales): { persistente: bool, accionTexto: string, accionFn: function }
+  function mostrarToast(mensaje, tipo, opciones){
+    tipo = tipo || "info";
+    opciones = opciones || {};
+    var cont = document.getElementById("toast-container");
+    var el = document.createElement("div");
+    el.className = "toast " + tipo;
+
+    var texto = document.createElement("div");
+    texto.style.whiteSpace = "pre-line";
+    texto.textContent = mensaje;
+    el.appendChild(texto);
+
+    if (opciones.persistente || (opciones.accionTexto && opciones.accionFn)) {
+      var fila = document.createElement("div");
+      fila.className = "toast-acciones";
+      if (opciones.accionTexto && opciones.accionFn) {
+        var btnAccion = document.createElement("button");
+        btnAccion.className = "toast-btn";
+        btnAccion.textContent = opciones.accionTexto;
+        btnAccion.onclick = opciones.accionFn;
+        fila.appendChild(btnAccion);
+      }
+      if (opciones.persistente) {
+        var btnCerrar = document.createElement("button");
+        btnCerrar.className = "toast-cerrar";
+        btnCerrar.textContent = "✕ Cerrar";
+        btnCerrar.onclick = function(){ el.remove(); };
+        fila.appendChild(btnCerrar);
+      }
+      el.appendChild(fila);
+    }
+
+    cont.appendChild(el);
+
+    if (!opciones.persistente) {
+      setTimeout(function(){
+        el.style.transition = "opacity .3s";
+        el.style.opacity = "0";
+        setTimeout(function(){ el.remove(); }, 300);
+      }, 4200);
+    }
+  }
+
+  // ---------- Toast persistente de operación creada (PASO 4) ----------
+  // Detecta el número de operación (CMP/VTA/PRE/REP/GST/ACC-xxx) en el
+  // mensaje de éxito ya devuelto por el backend y ofrece "Ver operación"
+  // reutilizando el modal de Mis Operaciones. Si no encuentra un número
+  // reconocible, se degrada a un toast normal con el mismo mensaje.
+  function mostrarToastOperacion(mensaje){
+    var m = String(mensaje || "").match(/\b(CMP|VTA|PRE|REP|GST|ACC|CAC|CAM|AJC)-\S+/);
+    if (!m) { mostrarToast(mensaje, "exito"); return; }
+    var numero = m[0].replace(/[.,;:]+$/, "");
+    mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
+      persistente: true,
+      accionTexto: "Ver operación",
+      accionFn: function(){ misOperacionesVer(numero); }
+    });
+  }
+
+  // ---------- Confirmación (modal propio, sin confirm() nativo) ----------
+  var _confirmCallback = null;
+  function confirmarAccion(mensaje){
+    return new Promise(function(resolve){
+      document.getElementById("confirm-mensaje").textContent = mensaje;
+      document.getElementById("confirm-overlay").classList.add("activo");
+      _confirmCallback = resolve;
+    });
+  }
+  function _confirmResolver(valor){
+    document.getElementById("confirm-overlay").classList.remove("activo");
+    if (_confirmCallback) _confirmCallback(valor);
+    _confirmCallback = null;
+  }
+
+  // ---------- Texto libre (motivo de anulación/corrección), sin prompt() nativo ----------
+  var _promptCallback = null;
+  function pedirTexto(mensaje){
+    return new Promise(function(resolve){
+      document.getElementById("prompt-mensaje").textContent = mensaje;
+      document.getElementById("prompt-input").value = "";
+      document.getElementById("prompt-overlay").classList.add("activo");
+      _promptCallback = resolve;
+    });
+  }
+  function _promptResolver(valor){
+    document.getElementById("prompt-overlay").classList.remove("activo");
+    if (_promptCallback) _promptCallback(valor);
+    _promptCallback = null;
+  }
+
+  // ---------- Modo corrección (Mis Operaciones → Corregir) ----------
+  var _correccion = null; // { numeroOriginal, tipo, vista } | null
+
+  var VISTA_POR_TIPO_CORRECCION = {
+    COMPRA: "compras", VENTA: "ventas", PREVENTA: "preventas",
+    REPARACION: "reparaciones", GASTO: "gastos"
+  };
+
+  // El equipo de una Venta que se está corrigiendo ya no figura en
+  // obtenerEquiposEnStock() (sigue "Vendido" hasta que se ejecute la
+  // corrección). ventasInit() revisa esta variable para agregarlo igual
+  // al selector, una vez que termina de cargar la lista real de stock.
+  var _correccionEquipoParaVenta = null;
+
+  /** Llamada desde Mis Operaciones al presionar "Corregir". `op` es el objeto devuelto por obtenerOperacionCompleta_. */
+  function iniciarCorreccion(op){
+    var vista = VISTA_POR_TIPO_CORRECCION[op.tipo];
+    if (!vista) { mostrarToast("Este tipo de operación no se puede corregir desde la Web App.", "error"); return; }
+    if (op.operacionOrigen) { mostrarToast("La operación ya pertenece a una cadena de correcciones.", "error"); return; }
+    _correccion = { numeroOriginal: op.numero, tipo: op.tipo, vista: vista };
+    _correccionEquipoParaVenta = (op.tipo === "VENTA")
+      ? { nOp: op.datos["N° OP Compra"], modelo: op.datos["Modelo"] }
+      : null;
+    if (op.tipo === "VENTA" && op.accesorios) op.datos._accesoriosAsociados = op.accesorios;
+    cargarVista(vista);
+    var fn = window[vista + "PrecargarCorreccion"];
+    if (fn) fn(op.datos);
+  }
+
+  // Nombre de la función "xLimpiarForm()" que cada vista corregible expone
+  // para dejar su cuestionario en blanco y listo para la próxima carga —
+  // la misma que usa esa vista tras registrar una operación normal.
+  var FORM_LIMPIAR_POR_VISTA = {
+    compras: "comprasLimpiarForm", ventas: "ventasLimpiarForm", preventas: "preventasLimpiarForm",
+    reparaciones: "reparacionesLimpiarForm", gastos: "gastosLimpiarForm"
+  };
+
+  function _limpiarEstadoCorreccion_(){
+    _correccion = null;
+    _correccionEquipoParaVenta = null;
+    document.getElementById("correccion-banner").style.display = "none";
+  }
+
+  function cancelarCorreccion(){
+    _limpiarEstadoCorreccion_();
+    mostrarToast("Corrección cancelada.", "info");
+  }
+
+  /** Llamada por cada vista (compras/ventas/preventas/reparaciones/gastos) en vez de enviar la operación normal, cuando hay una corrección activa para ese tipo. */
+  function enviarCorreccion(funcionCorregir, d){
+    var operador = document.getElementById("correccion-operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador que corrige.", "error"); return; }
+    var motivo = document.getElementById("correccion-motivo").value.trim();
+    if (!motivo) { mostrarToast("Ingresá el motivo de la corrección.", "error"); return; }
+    confirmarAccion("¿Confirmás reemplazar " + _correccion.numeroOriginal + " por esta operación corregida?").then(function(ok){
+      if (!ok) return;
+      llamarBackend(funcionCorregir, { numeroOriginal: _correccion.numeroOriginal, datosNuevos: d, motivo: motivo, operador: operador }, function(msg){
+        mostrarToastOperacion(msg);
+        var nombreLimpiar = FORM_LIMPIAR_POR_VISTA[_correccion.vista];
+        _limpiarEstadoCorreccion_();
+        var fnLimpiar = nombreLimpiar && window[nombreLimpiar];
+        if (fnLimpiar) fnLimpiar();
+        cargarDashboard();
+        if (document.getElementById("view-mis_operaciones").classList.contains("activa")) misOperacionesInit();
+      });
+    });
+  }
+
+  // ---------- Wrapper genérico para llamar al backend (Apps Script) ----------
+  // PASO 3: mientras hay una llamada en curso (_backendOcupado), se ignora
+  // cualquier click nuevo — refuerzo detrás del spinner/deshabilitado de
+  // botones, por si algún disparo no pasa por un <button class="btn">.
+  var _backendOcupado = false;
+  function llamarBackend(nombreFuncion, args, onExito, onError){
+    if (_backendOcupado) return;
+    _backendOcupado = true;
+    mostrarSpinner();
+    var runner = google.script.run
+      .withSuccessHandler(function(resultado){
+        _backendOcupado = false;
+        ocultarSpinner();
+        if (onExito) onExito(resultado);
+        else mostrarToast(resultado || "✅ Operación realizada con éxito", "exito");
+      })
+      .withFailureHandler(function(error){
+        _backendOcupado = false;
+        ocultarSpinner();
+        var msg = (error && error.message) ? error.message : String(error);
+        mostrarToast(msg, "error");
+        if (onError) onError(error);
+      });
+    if (args === undefined) runner[nombreFuncion]();
+    else runner[nombreFuncion](args);
+  }
+
+  // ---------- Limpieza de formularios tras registrar con éxito ----------
+  // Reutilizable por Registrar Compra/Venta/Preventa/Reparación/Gasto: cada
+  // vista solo debe llamarla desde el onExito de llamarBackend (nunca si
+  // hubo error), pasándole su <form> y qué preservar. Usa el reset() nativo
+  // del <form> (respeta correctamente inputs/selects/checkboxes/radios con
+  // su valor original de HTML) en vez de reimplementar esa lógica por tipo
+  // de campo en cada vista.
+  //   opciones.preservarIds: ids a NO tocar (ej. el operador seleccionado)
+  //   opciones.fechasHoy:    ids de <input type="date"> a reponer en hoy
+  //   opciones.despues:      callback para recalcular totales/toggles propios
+  function limpiarFormulario(form, opciones){
+    if (!form) return;
+    opciones = opciones || {};
+    var preservarIds = opciones.preservarIds || [];
+    var fechasHoy = opciones.fechasHoy || [];
+
+    var valoresPreservados = {};
+    preservarIds.forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) valoresPreservados[id] = el.value;
+    });
+
+    form.reset();
+
+    Object.keys(valoresPreservados).forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.value = valoresPreservados[id];
+    });
+
+    var hoy = new Date().toISOString().split("T")[0];
+    fechasHoy.forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.value = hoy;
+    });
+
+    if (typeof opciones.despues === "function") opciones.despues();
+  }
+
+  // ---------- Cotización USD (una vez al cargar, reutilizada por todas las vistas) ----------
+  function cargarCotizacion(cb){
+    google.script.run.withSuccessHandler(function(cot){
+      cotizacionActual = cot;
+      document.getElementById("cotizDiv").textContent =
+        "Cotización USD oficial: " + fmtP(cot.venta);
+      if (cb) cb(cot);
+    }).obtenerCotizacionUSD();
+  }
+
+  // ---------- Selección de operador por-acción (sin operador global, sin localStorage) ----------
+  // Varias personas trabajan en simultáneo en el mismo local: cada operación
+  // (formulario, corrección, anulación) pide explícitamente "quién sos" en
+  // el momento, en vez de recordar un operador fijo en el navegador.
+  var _operadorPromptCallback = null;
+  function pedirOperador(mensaje){
+    return new Promise(function(resolve){
+      document.getElementById("operador-prompt-mensaje").textContent = mensaje;
+      document.getElementById("operador-prompt-select").value = "";
+      document.getElementById("operador-prompt-overlay").classList.add("activo");
+      _operadorPromptCallback = resolve;
+    });
+  }
+  function _operadorPromptAceptar(){
+    var val = document.getElementById("operador-prompt-select").value;
+    if (!val) { mostrarToast("Seleccioná un operador.", "error"); return; }
+    document.getElementById("operador-prompt-overlay").classList.remove("activo");
+    if (_operadorPromptCallback) _operadorPromptCallback(val);
+    _operadorPromptCallback = null;
+  }
+  function _operadorPromptResolver(valor){
+    document.getElementById("operador-prompt-overlay").classList.remove("activo");
+    if (_operadorPromptCallback) _operadorPromptCallback(valor);
+    _operadorPromptCallback = null;
+  }
+
+  // ---------- Arranque ----------
+  window.addEventListener("DOMContentLoaded", function(){
+    cargarCotizacion();
+    cargarVista("dashboard");
+  });
+</script>
+
+</body>
+</html>

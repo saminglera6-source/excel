@@ -1,0 +1,151 @@
+<div id="view-dashboard" class="view activa">
+
+  <div class="hint" style="margin-bottom:14px">GreatPhones ERP — v1.0 Producción</div>
+
+  <div class="cards">
+    <div class="card c-stock" onclick="cargarVista('compras')">
+      <div class="ico">📦</div>
+      <div class="valor" id="dash-stock">…</div>
+      <div class="label">Equipos en Stock</div>
+    </div>
+    <div class="card c-caja">
+      <div class="ico">💰</div>
+      <div class="valor" id="dash-caja-pesos">…</div>
+      <div class="label">Caja en pesos</div>
+    </div>
+    <div class="card c-caja">
+      <div class="ico">💵</div>
+      <div class="valor" id="dash-caja-usd">…</div>
+      <div class="label">Caja en dólares</div>
+    </div>
+    <div class="card c-pre" onclick="cargarVista('preventas')">
+      <div class="ico">🟡</div>
+      <div class="valor" id="dash-pre-pend">…</div>
+      <div class="label">Preventas pendientes</div>
+    </div>
+    <div class="card c-pre" onclick="cargarVista('entregar_preventa')">
+      <div class="ico">🟠</div>
+      <div class="valor" id="dash-pre-comp">…</div>
+      <div class="label">Preventas compradas</div>
+    </div>
+    <div class="card c-rep">
+      <div class="ico">🔧</div>
+      <div class="valor" id="dash-rep">…</div>
+      <div class="label">Reparaciones abiertas</div>
+    </div>
+    <div class="card c-ventas" onclick="cargarVista('ventas')">
+      <div class="ico">📈</div>
+      <div class="valor" id="dash-ventas-mes">…</div>
+      <div class="label">Ventas del mes</div>
+    </div>
+    <div class="card c-ventas">
+      <div class="ico">📊</div>
+      <div class="valor" id="dash-ganancia-mes">…</div>
+      <div class="label">Ganancia del mes</div>
+    </div>
+  </div>
+
+  <h3 style="color:#334;margin:20px 0 12px">Accesorios</h3>
+  <div class="cards">
+    <div class="card c-stock" onclick="cargarVista('stock_accesorios')">
+      <div class="ico">📦</div>
+      <div class="valor" id="dash-acc-stock">…</div>
+      <div class="label">Accesorios en stock</div>
+    </div>
+    <div class="card c-caja">
+      <div class="ico">💰</div>
+      <div class="valor" id="dash-valor-stock-equipos">…</div>
+      <div class="label">Valor stock equipos</div>
+    </div>
+    <div class="card c-caja">
+      <div class="ico">💰</div>
+      <div class="valor" id="dash-valor-stock-acc">…</div>
+      <div class="label">Valor stock accesorios</div>
+    </div>
+    <div class="card c-rep" onclick="cargarVista('stock_accesorios')">
+      <div class="ico">⚠️</div>
+      <div class="valor" id="dash-acc-bajo-stock">…</div>
+      <div class="label">Accesorios con bajo stock</div>
+    </div>
+  </div>
+
+  <h3 style="color:#334;margin:20px 0 12px">Hoy — todos los operadores</h3>
+  <div class="cards">
+    <div class="card c-pre">
+      <div class="ico">🗂️</div>
+      <div class="valor" id="dash-op-dia">…</div>
+      <div class="label">Operaciones del día</div>
+    </div>
+    <div class="card c-ventas">
+      <div class="ico">💰</div>
+      <div class="valor" id="dash-ventas-dia">…</div>
+      <div class="label">Ventas del día</div>
+    </div>
+    <div class="card c-ventas">
+      <div class="ico">📊</div>
+      <div class="valor" id="dash-ganancia-dia">…</div>
+      <div class="label">Ganancia del día</div>
+    </div>
+    <div class="card c-pre">
+      <div class="ico">🟡</div>
+      <div class="valor" id="dash-preventas-dia">…</div>
+      <div class="label">Preventas del día</div>
+    </div>
+    <div class="card c-rep">
+      <div class="ico">🔧</div>
+      <div class="valor" id="dash-reparaciones-dia">…</div>
+      <div class="label">Reparaciones del día</div>
+    </div>
+  </div>
+
+  <h3 style="color:#334;margin:20px 0 12px">Accesos rápidos</h3>
+  <div class="accion-btns">
+    <div class="accion-btn" onclick="cargarVista('compras')"><span class="ico">🛒</span>Registrar Compra</div>
+    <div class="accion-btn" onclick="cargarVista('ventas')"><span class="ico">💰</span>Registrar Venta</div>
+    <div class="accion-btn" onclick="cargarVista('preventas')"><span class="ico">🟡</span>Registrar Preventa</div>
+    <div class="accion-btn" onclick="cargarVista('entregar_preventa')"><span class="ico">📦</span>Entregar Preventa</div>
+    <div class="accion-btn" onclick="cargarVista('reparaciones')"><span class="ico">🔧</span>Registrar Reparación</div>
+    <div class="accion-btn" onclick="cargarVista('gastos')"><span class="ico">💸</span>Registrar Gasto</div>
+    <div class="accion-btn" onclick="cargarVista('reportes')"><span class="ico">📈</span>Ver Reportes</div>
+    <div class="accion-btn" onclick="cargarVista('precios')"><span class="ico">💰</span>Lista de Precios</div>
+    <div class="accion-btn" onclick="cargarVista('toma_precios')"><span class="ico">🔄</span>Precios de Toma</div>
+    <div class="accion-btn" onclick="cargarVista('calculadora_toma')"><span class="ico">🧮</span>Calculadora de Toma</div>
+    <div class="accion-btn" onclick="cargarVista('compras')"><span class="ico">📦</span>Compra Accesorios</div>
+    <div class="accion-btn" onclick="cargarVista('ventas')"><span class="ico">🛍️</span>Venta Accesorios</div>
+    <div class="accion-btn" onclick="cargarVista('stock_accesorios')"><span class="ico">📦</span>Stock Accesorios</div>
+    <div class="accion-btn" onclick="cargarVista('stock_general')"><span class="ico">📋</span>Stock General</div>
+  </div>
+</div>
+
+<script>
+  function cargarDashboard(){
+    google.script.run
+      .withSuccessHandler(function(d){
+        document.getElementById("dash-stock").textContent      = d.stockCantidad;
+        document.getElementById("dash-caja-pesos").textContent  = fmtP(d.cajaPesos);
+        document.getElementById("dash-caja-usd").textContent    = fmtUSDweb(d.cajaUSD);
+        document.getElementById("dash-pre-pend").textContent    = d.preventasPendientes;
+        document.getElementById("dash-pre-comp").textContent    = d.preventasCompradas;
+        document.getElementById("dash-rep").textContent         = d.reparacionesAbiertas;
+        document.getElementById("dash-ventas-mes").textContent  = fmtP(d.ventasMes);
+        document.getElementById("dash-ganancia-mes").textContent= fmtP(d.gananciaMes);
+        document.getElementById("dash-acc-stock").textContent        = d.accesoriosStockCantidad;
+        document.getElementById("dash-valor-stock-equipos").textContent = fmtP(d.valorStockEquipos);
+        document.getElementById("dash-valor-stock-acc").textContent      = fmtP(d.valorStockAccesorios);
+        document.getElementById("dash-acc-bajo-stock").textContent       = d.accesoriosBajoStock;
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerDashboardData();
+
+    google.script.run
+      .withSuccessHandler(function(d){
+        document.getElementById("dash-op-dia").textContent          = d.operacionesDia;
+        document.getElementById("dash-ventas-dia").textContent      = d.ventasDia;
+        document.getElementById("dash-ganancia-dia").textContent    = fmtP(d.gananciaDia);
+        document.getElementById("dash-preventas-dia").textContent   = d.preventasDia;
+        document.getElementById("dash-reparaciones-dia").textContent= d.reparacionesDia;
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerIndicadoresOperadorDelDia("");
+  }
+</script>

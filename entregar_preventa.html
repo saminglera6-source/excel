@@ -1,0 +1,254 @@
+<div id="view-entregar_preventa" class="view">
+  <div class="panel" style="max-width:760px">
+    <h3>📦 Entregar Preventa</h3>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién entrega y qué preventa?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="e_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <label>Preventa a entregar: <span class="req">*</span></label>
+      <select id="e_nPre" onchange="entregaActualizarInfo()"><option value="">Cargando preventas...</option></select>
+
+      <div class="box box-info" id="e_infoDiv" style="margin-top:10px"></div>
+    </div>
+
+    <div class="box box-info" id="e_compraBox" style="display:none">
+      <label style="margin-top:0">🛒 Esta preventa todavía no tiene compra registrada — completá los datos del equipo para crearla automáticamente:</label>
+      <div class="fila2">
+        <div><label style="font-size:11px">IMEI</label><input type="text" id="e_imeiCompra" placeholder="15 dígitos"/></div>
+        <div><label style="font-size:11px">Costo del equipo ($) *</label><input type="number" id="e_costoCompra" value="0" min="0"/></div>
+      </div>
+      <div class="fila2">
+        <div><label style="font-size:11px">Proveedor *</label><input type="text" id="e_proveedorCompra" placeholder="Ej: Juan Pérez, Particular"/></div>
+        <div><label style="font-size:11px">Fecha de compra</label><input type="date" id="e_fechaCompra"/></div>
+      </div>
+      <div class="hint">"Costo del equipo" es lo que se pagó (o se va a pagar) para conseguirlo. Si no tenés ese dato a mano, consultá antes de confirmar la entrega — sin esto no se puede completar.</div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Cobro del saldo</p>
+      <div class="box box-warn" id="e_saldoBox" style="margin-top:0">
+        <label style="margin-top:0;color:#7D6608">⚠️ Cobrar ahora (saldo pendiente del celular + accesorios de la entrega):</label>
+        <div class="fila4">
+          <div><label style="font-size:11px">Efectivo</label><input type="number" id="e_efec" value="0" min="0" oninput="entregaCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="number" id="e_transf" value="0" min="0" oninput="entregaCalcTotal()"/></div>
+          <div><label style="font-size:11px">Cuotas</label><input type="number" id="e_cuotas" value="0" min="0" oninput="entregaCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (cantidad de dólares)</label><input type="number" id="e_usd" value="0" min="0" oninput="entregaCalcTotal()"/></div>
+        </div>
+        <div class="total" id="e_totalNecesarioDiv" style="background:#FEF9E7;color:#7D6608">Total a cobrar ahora: $0</div>
+        <div class="total" id="e_totalDiv">Total ingresado: $0</div>
+      </div>
+    </div>
+
+    <div class="paso paso-opcional">
+      <div class="plegable-cabecera" onclick="entregaToggleAccesoriosBox()">
+        <p class="paso-titulo" style="margin:0"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con la entrega? (opcional)</p>
+        <span class="plegable-flecha" id="e_accFlecha">▾</span>
+      </div>
+      <div id="e_accesoriosBody" style="display:none;margin-top:10px">
+        <div class="hint">Solo completá si vendiste algo junto con el equipo. El pago se prorratea entre el saldo del celular y los accesorios.</div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="e_acc1" placeholder="Ej: Cargador 20W"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="e_acc1p" value="0" min="0" oninput="entregaCalcTotalNecesario()"/></div>
+        </div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="e_acc2" placeholder="Ej: Auriculares"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="e_acc2p" value="0" min="0" oninput="entregaCalcTotalNecesario()"/></div>
+        </div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="e_acc3" placeholder="Ej: Vidrio templado"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="e_acc3p" value="0" min="0" oninput="entregaCalcTotalNecesario()"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Fecha y observaciones</p>
+      <label>Fecha de entrega:</label>
+      <input type="date" id="e_fecha"/>
+
+      <label>Observaciones (opcional):</label>
+      <input type="text" id="e_obs" placeholder="Ej: entregado en local"/>
+    </div>
+
+    <button class="btn" onclick="entregaEnviar()">✅ Confirmar entrega</button>
+  </div>
+</div>
+
+<script>
+  document.getElementById("e_fecha").value = new Date().toISOString().split("T")[0];
+  document.getElementById("e_fechaCompra").value = new Date().toISOString().split("T")[0];
+
+  /** Sección "Accesorios vendidos en la entrega": colapsada por defecto (opcional, no siempre aplica) — se abre con un clic en el título. */
+  var _entregaAccesoriosAbierto = false;
+  function entregaToggleAccesoriosBox(){
+    _entregaAccesoriosAbierto = !_entregaAccesoriosAbierto;
+    document.getElementById("e_accesoriosBody").style.display = _entregaAccesoriosAbierto ? "block" : "none";
+    document.getElementById("e_accFlecha").classList.toggle("abierto", _entregaAccesoriosAbierto);
+  }
+
+  var _entregaPreventas = [];
+
+  function entregaInit(){
+    google.script.run
+      .withSuccessHandler(function(opts){
+        _entregaPreventas = opts || [];
+        var sel = document.getElementById("e_nPre");
+        sel.innerHTML = "";
+        if (_entregaPreventas.length === 0) {
+          sel.innerHTML = "<option value=''>— No hay preventas pendientes de entrega —</option>";
+          document.getElementById("e_infoDiv").innerHTML = "";
+          document.getElementById("e_compraBox").style.display = "none";
+        } else {
+          _entregaPreventas.forEach(function(o){
+            var op = document.createElement("option");
+            op.value = o.nPre;
+            op.text = o.nPre + " — " + o.modelo + " → " + o.cliente + " [" + o.estado + "] (saldo: " + fmtP(o.saldo) + ")";
+            sel.appendChild(op);
+          });
+          entregaActualizarInfo();
+        }
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregables();
+  }
+
+  function entregaPreventaSeleccionada(){
+    var nPre = document.getElementById("e_nPre").value;
+    for (var i = 0; i < _entregaPreventas.length; i++) {
+      if (_entregaPreventas[i].nPre === nPre) return _entregaPreventas[i];
+    }
+    return null;
+  }
+
+  function entregaSumaAccesorios(){
+    var a1 = parseFloat(document.getElementById("e_acc1p").value) || 0;
+    var a2 = parseFloat(document.getElementById("e_acc2p").value) || 0;
+    var a3 = parseFloat(document.getElementById("e_acc3p").value) || 0;
+    return a1 + a2 + a3;
+  }
+  function entregaTotalNecesario(){
+    var p = entregaPreventaSeleccionada();
+    var saldo = p ? p.saldo : 0;
+    return saldo + entregaSumaAccesorios();
+  }
+  function entregaCalcTotalNecesario(){
+    document.getElementById("e_totalNecesarioDiv").textContent =
+      "Total a cobrar ahora: " + fmtP(entregaTotalNecesario());
+  }
+
+  function entregaActualizarInfo(){
+    var p = entregaPreventaSeleccionada();
+    if (!p) { document.getElementById("e_infoDiv").innerHTML = ""; return; }
+
+    document.getElementById("e_infoDiv").innerHTML =
+      "<b>Cliente:</b> " + p.cliente + "<br>" +
+      "<b>Modelo:</b> " + p.modelo + "<br>" +
+      "<b>Precio pactado:</b> " + fmtP(p.precio) + "<br>" +
+      "<b>Ya cobrado:</b> " + fmtP(p.cobrado) + "<br>" +
+      "<b>Saldo pendiente:</b> " + fmtP(p.saldo) + "<br>" +
+      "<b>N° Compra asociada:</b> " + (p.nComp || "— sin compra registrada —");
+
+    document.getElementById("e_compraBox").style.display = p.nComp ? "none" : "block";
+
+    if (p.saldo <= 0) {
+      document.getElementById("e_efec").value = 0;
+      document.getElementById("e_transf").value = 0;
+      document.getElementById("e_cuotas").value = 0;
+      document.getElementById("e_usd").value = 0;
+    }
+    entregaCalcTotalNecesario();
+    entregaCalcTotal();
+  }
+
+  function entregaCalcTotal(){
+    var ef = parseFloat(document.getElementById("e_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("e_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("e_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("e_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var t = ef + tr + cu + usPesos;
+    var txt = "Total ingresado: " + fmtP(t);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("e_totalDiv").textContent = txt;
+  }
+
+  function entregaEnviar(){
+    if (!document.getElementById("e_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var nPre = document.getElementById("e_nPre").value;
+    if (!nPre) { mostrarToast("Seleccioná una preventa.", "error"); return; }
+
+    var p = entregaPreventaSeleccionada();
+    var nComp = p ? p.nComp : "";
+    var imeiCompra = "", costoCompra = 0, proveedorCompra = "", fechaCompra = "";
+    if (!nComp) {
+      imeiCompra = document.getElementById("e_imeiCompra").value.trim();
+      costoCompra = parseFloat(document.getElementById("e_costoCompra").value) || 0;
+      proveedorCompra = document.getElementById("e_proveedorCompra").value.trim();
+      fechaCompra = document.getElementById("e_fechaCompra").value;
+      if (costoCompra <= 0) { mostrarToast("Esta preventa no tiene compra registrada: ingresá el costo del equipo.", "error"); return; }
+      if (!proveedorCompra) { mostrarToast("Ingresá el proveedor del equipo.", "error"); return; }
+    }
+
+    var saldo = p ? p.saldo : 0;
+    var necesario = entregaTotalNecesario();
+    var ef = parseFloat(document.getElementById("e_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("e_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("e_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("e_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var totalCobrarAhora = ef + tr + cu + usPesos;
+
+    if (totalCobrarAhora > necesario + 1) {
+      mostrarToast("Lo que estás cobrando ahora (" + fmtP(totalCobrarAhora) + ") supera el total a cobrar (" + fmtP(necesario) + ").", "error");
+      return;
+    }
+
+    var payload = {
+      nPre: nPre,
+      fecha: document.getElementById("e_fecha").value,
+      efec: ef, transf: tr, cuotas: cu, usd: us,
+      obs: document.getElementById("e_obs").value.trim(),
+      imei: imeiCompra, costoEquipo: costoCompra, proveedor: proveedorCompra, fechaCompra: fechaCompra,
+      accesorios: [
+        { nombre: document.getElementById("e_acc1").value.trim(), precio: parseFloat(document.getElementById("e_acc1p").value) || 0 },
+        { nombre: document.getElementById("e_acc2").value.trim(), precio: parseFloat(document.getElementById("e_acc2p").value) || 0 },
+        { nombre: document.getElementById("e_acc3").value.trim(), precio: parseFloat(document.getElementById("e_acc3p").value) || 0 }
+      ].filter(function(a){ return a.nombre !== ""; }),
+      operador: document.getElementById("e_operador").value
+    };
+
+    var mensajeConfirm = (necesario > 0 && totalCobrarAhora <= 0)
+      ? "Corresponde cobrar " + fmtP(necesario) + " (saldo + accesorios) y no ingresaste ningún cobro.\n¿Confirmás entregar de todas formas (quedará como deuda)?"
+      : "¿Confirmás la entrega de la preventa " + nPre + "?";
+
+    confirmarAccion(mensajeConfirm).then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarEntregaPreventaConOperador", payload, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        // Deja el formulario listo para la próxima entrega: limpia todo lo
+        // que se tipeó a mano (entregaInit() ya repuebla el selector de
+        // preventas y recalcula e_infoDiv/e_compraBox con la lista actualizada).
+        document.getElementById("e_fecha").value = new Date().toISOString().split("T")[0];
+        document.getElementById("e_obs").value = "";
+        document.getElementById("e_imeiCompra").value = "";
+        document.getElementById("e_costoCompra").value = 0;
+        document.getElementById("e_proveedorCompra").value = "";
+        document.getElementById("e_fechaCompra").value = new Date().toISOString().split("T")[0];
+        document.getElementById("e_efec").value = 0;
+        document.getElementById("e_transf").value = 0;
+        document.getElementById("e_cuotas").value = 0;
+        document.getElementById("e_usd").value = 0;
+        document.getElementById("e_acc1").value = ""; document.getElementById("e_acc1p").value = 0;
+        document.getElementById("e_acc2").value = ""; document.getElementById("e_acc2p").value = 0;
+        document.getElementById("e_acc3").value = ""; document.getElementById("e_acc3p").value = 0;
+        entregaInit();
+      });
+    });
+  }
+</script>

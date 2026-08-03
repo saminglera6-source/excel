@@ -1,0 +1,387 @@
+<div id="view-precios" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>💰 Lista de Precios</h3>
+    <div class="hint">Se lee en vivo desde la hoja "Lista de Precios" del Google Sheet — cualquier cambio ahí se refleja acá sin tocar código.</div>
+
+    <div class="fila2" style="margin-top:14px">
+      <div>
+        <label style="font-size:11px">🔎 Buscar modelo</label>
+        <input type="text" id="lp_buscar" placeholder="Ej: iPhone 15 Pro" oninput="preciosFiltrarYRenderizar()"/>
+      </div>
+      <div>
+        <label style="font-size:11px">&nbsp;</label>
+        <div id="lp_actualizado" style="font-size:11px;color:#778;padding-top:11px"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-top:12px;font-size:12.5px">
+      <span style="font-weight:600;color:#334">Vista:</span>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="lp_vista" id="lp_vista_cards" onchange="preciosSetVista('cards')"> Cards
+      </label>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="lp_vista" id="lp_vista_tabla" onchange="preciosSetVista('tabla')"> Tabla
+      </label>
+      <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px;cursor:pointer">
+        <input type="radio" name="lp_vista" id="lp_vista_compacta" onchange="preciosSetVista('compacta')"> Compacta
+      </label>
+    </div>
+
+    <div id="lp_filtros" style="display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 18px"></div>
+
+    <div id="lp_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">
+      <div style="grid-column:1/-1;text-align:center;color:#889;padding:20px">Cargando...</div>
+    </div>
+
+    <div id="lp_tabla_wrap" style="display:none">
+      <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12.5px">
+          <colgroup>
+            <col style="width:24%"><col style="width:10%"><col style="width:14%">
+            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+          </colgroup>
+          <thead>
+            <tr style="text-align:left">
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('modelo')">Modelo <span id="lp_th_modelo"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('almacenamiento')">Almac. <span id="lp_th_almacenamiento"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('precioARS')">Precio Venta <span id="lp_th_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('preventaARS')">Precio Preventa <span id="lp_th_preventaARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('descuentoARS')">Descuento <span id="lp_th_descuentoARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('precioUSD')">Precio USD <span id="lp_th_precioUSD"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="lp_tbody">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="lp_compacta_wrap" style="display:none">
+      <div style="overflow:auto;max-height:calc(100vh - 300px);border:1px solid var(--borde);border-radius:8px">
+        <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:12px">
+          <colgroup>
+            <col style="width:26%"><col style="width:8%"><col style="width:14%">
+            <col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:16%">
+          </colgroup>
+          <thead>
+            <tr style="text-align:left">
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('modelo')">Modelo <span id="lp_thc_modelo"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);text-align:center" onclick="preciosOrdenarPor('almacenamiento')">GB <span id="lp_thc_almacenamiento"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('precioARS')">Venta <span id="lp_thc_precioARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('preventaARS')">Prev <span id="lp_thc_preventaARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('descuentoARS')">Desc <span id="lp_thc_descuentoARS"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;cursor:pointer;user-select:none;z-index:1;box-shadow:0 1px 0 var(--borde);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" onclick="preciosOrdenarPor('precioUSD')">USD <span id="lp_thc_precioUSD"></span></th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:6px 8px;z-index:1;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="lp_tbody_compacta">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Módulo de precios — funciones REUTILIZABLES (no solo por esta
+  //  vista): toma_precios.html, calculadora_toma.html y el drawer
+  //  "💰 Consultar precios" de ventas.html también las usan, para no
+  //  duplicar el fetch, el filtrado, la plantilla de tarjeta ni el
+  //  copiado al portapapeles. Este archivo debe incluirse en index.html
+  //  ANTES que ventas.html (mismo scope global de scripts).
+  // ============================================================
+
+  var FILTROS_MODELO_PRECIOS = ["Todos","iPhone 11","iPhone 12","iPhone 13","iPhone 14","iPhone 15","iPhone 16","iPhone 17"];
+
+  var _preciosCache = []; // último resultado de obtenerListaPrecios()
+
+  function escHtml(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  /** Siempre pide datos frescos al backend (Apps Script lee la hoja en vivo) — así "Consultar precios" nunca muestra un valor viejo sin redeploy. */
+  function preciosCargarDatos(cb){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _preciosCache = datos || [];
+        if (cb) cb(_preciosCache);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerListaPrecios();
+  }
+
+  function preciosFiltrarArray(data, query, filtro){
+    query = (query || "").trim().toLowerCase();
+    return (data || []).filter(function(p){
+      if (filtro && filtro !== "Todos") {
+        var m = p.modelo || "";
+        if (!(m === filtro || m.indexOf(filtro + " ") === 0)) return false;
+      }
+      if (query) {
+        var texto = (p.modelo + " " + (p.almacenamiento || "")).toLowerCase();
+        if (texto.indexOf(query) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function preciosTextoPlano(p){
+    return "📱 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n" +
+      "Venta: " + fmtP(p.precioARS) + "\n" +
+      "Preventa: " + fmtP(p.preventaARS) + "\n" +
+      "Descuento: " + fmtP(p.descuentoARS) + "\n" +
+      "USD: US$" + Number(p.precioUSD || 0).toLocaleString("en-US");
+  }
+
+  function preciosTextoWhatsApp(p){
+    return "📱 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
+      "💰 Precio contado:\n" + fmtP(p.precioARS) + "\n\n" +
+      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n\n" +
+      "✅ Garantía de 12 meses";
+  }
+
+  /** Alias de preciosTextoWhatsApp() — mismo texto, nombre reutilizado por la vista Compacta. */
+  function preciosGenerarWhatsapp(p){ return preciosTextoWhatsApp(p); }
+
+  /** Copia al portapapeles con un textarea temporal + execCommand (más confiable que navigator.clipboard dentro del iframe sandboxeado de HtmlService). */
+  function preciosCopiarTexto(texto, mensajeOk){
+    var ta = document.createElement("textarea");
+    ta.value = texto;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try {
+      document.execCommand("copy");
+      mostrarToast(mensajeOk || "✅ Copiado al portapapeles", "exito");
+    } catch (e) {
+      mostrarToast("❌ No se pudo copiar. Copialo manualmente.", "error");
+    }
+    document.body.removeChild(ta);
+  }
+
+  /**
+   * Arma el HTML de una tarjeta de precio. `ctx` es el prefijo de las
+   * funciones de acción del contexto que la muestra (ej: "precios" para
+   * esta vista, "ventasPrecios" para el drawer de Ventas) — ese contexto
+   * debe definir ${ctx}AccionCopiar(idx), ${ctx}AccionWhatsapp(idx) y,
+   * si mostrarUsar es true, ${ctx}AccionUsar(idx).
+   */
+  function preciosCrearTarjetaHTML(p, idx, ctx, mostrarUsar, mostrarCuotas){
+    var botonUsar = mostrarUsar
+      ? "<button class='btn' style='margin:6px 0 0;padding:7px 8px;font-size:11.5px;width:100%;background:#1E8449' onclick='" + ctx + "AccionUsar(" + idx + ")'>✅ Usar este precio</button>"
+      : "";
+    var botonCuotas = mostrarCuotas
+      ? "<button class='btn' style='margin:6px 0 0;padding:7px 8px;font-size:11.5px;width:100%;background:#8E44AD' onclick='" + ctx + "AccionVerCuotas(" + idx + ")'>💳 Ver cuotas</button>"
+      : "";
+    return "" +
+    "<div style='background:#fff;border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:14px;display:flex;flex-direction:column;gap:5px'>" +
+      "<div style='font-weight:700;font-size:14px;color:var(--azul)'>📱 " + escHtml(p.modelo) + "</div>" +
+      "<div style='font-size:12px;color:#778;margin-bottom:2px'>" + escHtml(p.almacenamiento || "—") + "</div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px'><span>Venta:</span><b>" + fmtP(p.precioARS) + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#B7950B'><span>Preventa:</span><b>" + fmtP(p.preventaARS) + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#1E8449'><span>Descuento:</span><b>" + fmtP(p.descuentoARS) + "</b></div>" +
+      "<div style='display:flex;justify-content:space-between;font-size:12.5px;color:#556'><span>USD:</span><b>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</b></div>" +
+      "<div style='display:flex;gap:6px;margin-top:6px'>" +
+        "<button class='btn' style='margin:0;padding:7px 6px;font-size:10.5px;width:50%;background:#5D6D7E' onclick='" + ctx + "AccionCopiar(" + idx + ")'>📋 Copiar precio</button>" +
+        "<button class='btn' style='margin:0;padding:7px 6px;font-size:10.5px;width:50%;background:#1E8449' onclick='" + ctx + "AccionWhatsapp(" + idx + ")'>📲 WhatsApp</button>" +
+      "</div>" +
+      botonCuotas +
+      botonUsar +
+    "</div>";
+  }
+
+  /**
+   * Arma el <tr> de la vista Compacta (misma convención de `ctx`/`mostrarUsar`
+   * que preciosCrearTarjetaHTML): columnas Modelo | GB | Venta | Prev | Desc |
+   * USD | Acciones. Reutilizable desde "Lista de Precios" (ctx="preciosTabla")
+   * y desde el drawer "Consultar precios" de Ventas (ctx="ventasPrecios").
+   */
+  function preciosCrearFilaCompactaHTML(p, idx, ctx, mostrarUsar){
+    var gbMatch = String(p.almacenamiento || "").match(/\d+/);
+    var gb = gbMatch ? gbMatch[0] : (p.almacenamiento || "—");
+    var botonUsar = mostrarUsar
+      ? "<button class='btn' style='margin:0;padding:3px 6px;font-size:10.5px;width:auto;background:#1E8449' title='Usar este precio' onclick='" + ctx + "AccionUsar(" + idx + ")'>✅</button> "
+      : "";
+    var celda = "padding:4px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    return "<tr style='border-top:1px solid var(--borde)'>" +
+      "<td style='" + celda + ";font-weight:600;color:var(--azul)' title='" + escHtml(p.modelo) + "'>" + escHtml(p.modelo) + "</td>" +
+      "<td style='" + celda + ";text-align:center;color:#778'>" + escHtml(gb) + "</td>" +
+      "<td style='" + celda + "'>" + fmtP(p.precioARS) + "</td>" +
+      "<td style='" + celda + ";color:#B7950B'>" + fmtP(p.preventaARS) + "</td>" +
+      "<td style='" + celda + ";color:#1E8449'>" + fmtP(p.descuentoARS) + "</td>" +
+      "<td style='" + celda + ";color:#556'>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</td>" +
+      "<td style='padding:3px 8px;white-space:nowrap;overflow:hidden'>" +
+        botonUsar +
+        "<button class='btn' style='margin:0;padding:3px 6px;font-size:10.5px;width:auto;background:#5D6D7E' title='Copiar precio' onclick='" + ctx + "AccionCopiar(" + idx + ")'>📋</button> " +
+        "<button class='btn' style='margin:0;padding:3px 6px;font-size:10.5px;width:auto;background:#1E8449' title='WhatsApp' onclick='" + ctx + "AccionWhatsapp(" + idx + ")'>📲</button>" +
+      "</td>" +
+    "</tr>";
+  }
+
+  // ---------- Vista principal "Lista de Precios" ----------
+  var _preciosFiltroActivo = "Todos";
+  var _preciosFiltrada = [];
+
+  // ---------- Selector de vista Cards/Tabla (persistido en localStorage) ----------
+  var LP_VISTA_KEY = "gp_precios_vista";
+  var _preciosVistaModo = "cards";
+  try { _preciosVistaModo = localStorage.getItem(LP_VISTA_KEY) || "cards"; } catch (e) { /* localStorage no disponible */ }
+
+  function preciosAplicarVista(){
+    document.getElementById("lp_grid").style.display = (_preciosVistaModo === "cards") ? "grid" : "none";
+    document.getElementById("lp_tabla_wrap").style.display = (_preciosVistaModo === "tabla") ? "block" : "none";
+    document.getElementById("lp_compacta_wrap").style.display = (_preciosVistaModo === "compacta") ? "block" : "none";
+    var rCards    = document.getElementById("lp_vista_cards");
+    var rTabla    = document.getElementById("lp_vista_tabla");
+    var rCompacta = document.getElementById("lp_vista_compacta");
+    if (rCards)    rCards.checked    = (_preciosVistaModo === "cards");
+    if (rTabla)    rTabla.checked    = (_preciosVistaModo === "tabla");
+    if (rCompacta) rCompacta.checked = (_preciosVistaModo === "compacta");
+  }
+
+  function preciosSetVista(modo){
+    _preciosVistaModo = modo;
+    try { localStorage.setItem(LP_VISTA_KEY, modo); } catch (e) { /* localStorage no disponible */ }
+    preciosAplicarVista();
+    preciosRenderizar();
+  }
+
+  function preciosInit(){
+    document.getElementById("lp_filtros").innerHTML = FILTROS_MODELO_PRECIOS.map(function(f){
+      return "<button class='btn' style='margin:0;width:auto;padding:6px 12px;font-size:12px;" + (f === _preciosFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='preciosSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";
+    }).join("");
+    preciosAplicarVista();
+    preciosCargarDatos(function(){
+      document.getElementById("lp_actualizado").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR");
+      preciosRenderizar();
+    });
+  }
+
+  function preciosSetFiltro(f){
+    _preciosFiltroActivo = f;
+    document.querySelectorAll("#lp_filtros button").forEach(function(b){
+      b.style.background = (b.textContent === f) ? "" : "#B8C4CE";
+    });
+    preciosRenderizar();
+  }
+
+  function preciosFiltrarYRenderizar(){ preciosRenderizar(); }
+
+  /** Recalcula el filtrado (compartido por las 3 vistas) y delega el pintado según _preciosVistaModo. */
+  function preciosRenderizar(){
+    var q = document.getElementById("lp_buscar").value;
+    _preciosFiltrada = preciosFiltrarArray(_preciosCache, q, _preciosFiltroActivo);
+    if (_preciosVistaModo === "tabla") preciosRenderizarTabla();
+    else if (_preciosVistaModo === "compacta") preciosRenderizarCompacta();
+    else preciosRenderizarGrid();
+  }
+
+  function preciosRenderizarGrid(){
+    var grid = document.getElementById("lp_grid");
+    if (_preciosFiltrada.length === 0) {
+      grid.innerHTML = "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados.</div>";
+      return;
+    }
+    grid.innerHTML = _preciosFiltrada.map(function(p, i){ return preciosCrearTarjetaHTML(p, i, "precios", false, true); }).join("");
+  }
+
+  function preciosAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_preciosFiltrada[idx])); }
+  function preciosAccionWhatsapp(idx){ preciosCopiarTexto(preciosTextoWhatsApp(_preciosFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  /** Parte 4: calcula cuotas en tiempo real sobre el Precio contado del modelo — no guarda nada. */
+  function preciosAccionVerCuotas(idx){
+    var p = _preciosFiltrada[idx];
+    renderCalculadoraCuotas(p.precioARS, {
+      titulo: "💳 Cuotas — " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""),
+      mostrarCopiar: false
+    });
+  }
+
+  // ---------- Orden por columna (compartido por Tabla y Compacta) ----------
+  var _preciosOrdenCampo = null;
+  var _preciosOrdenDir = 1; // 1 = ascendente, -1 = descendente
+  var _preciosTablaFiltrada = []; // copia ordenada de _preciosFiltrada, usada por las acciones de fila de Tabla y Compacta
+  var LP_COLUMNAS_TABLA = ["modelo","almacenamiento","precioARS","preventaARS","descuentoARS","precioUSD"];
+
+  function preciosOrdenarPor(campo){
+    if (_preciosOrdenCampo === campo) _preciosOrdenDir = -_preciosOrdenDir;
+    else { _preciosOrdenCampo = campo; _preciosOrdenDir = 1; }
+    preciosRenderizar();
+  }
+
+  /** Devuelve una copia ordenada de `arr` según _preciosOrdenCampo/_preciosOrdenDir (sin mutar `arr`). */
+  function preciosOrdenarArray(arr){
+    if (!_preciosOrdenCampo) return arr.slice();
+    var campo = _preciosOrdenCampo, dir = _preciosOrdenDir;
+    return arr.slice().sort(function(a, b){
+      var va = a[campo], vb = b[campo];
+      if (typeof va === "string") {
+        va = va.toLowerCase(); vb = String(vb || "").toLowerCase();
+        return va < vb ? -dir : (va > vb ? dir : 0);
+      }
+      return ((Number(va) || 0) - (Number(vb) || 0)) * dir;
+    });
+  }
+
+  function preciosActualizarIndicadoresOrden(){
+    LP_COLUMNAS_TABLA.forEach(function(c){
+      var marca = (c === _preciosOrdenCampo) ? (_preciosOrdenDir === 1 ? "▲" : "▼") : "";
+      var elTabla = document.getElementById("lp_th_" + c);
+      if (elTabla) elTabla.textContent = marca;
+      var elCompacta = document.getElementById("lp_thc_" + c);
+      if (elCompacta) elCompacta.textContent = marca;
+    });
+  }
+
+  // ---------- Vista Tabla (misma data/filtro que Cards) ----------
+  function preciosRenderizarTabla(){
+    var tbody = document.getElementById("lp_tbody");
+    _preciosTablaFiltrada = preciosOrdenarArray(_preciosFiltrada);
+    preciosActualizarIndicadoresOrden();
+
+    if (_preciosTablaFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    var celda = "padding:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap";
+    tbody.innerHTML = _preciosTablaFiltrada.map(function(p, i){
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='" + celda + ";font-weight:600;color:var(--azul)' title='" + escHtml(p.modelo) + "'>📱 " + escHtml(p.modelo) + "</td>" +
+        "<td style='" + celda + "'>" + escHtml(p.almacenamiento || "—") + "</td>" +
+        "<td style='" + celda + "'>" + fmtP(p.precioARS) + "</td>" +
+        "<td style='" + celda + ";color:#B7950B'>" + fmtP(p.preventaARS) + "</td>" +
+        "<td style='" + celda + ";color:#1E8449'>" + fmtP(p.descuentoARS) + "</td>" +
+        "<td style='" + celda + ";color:#556'>US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "</td>" +
+        "<td style='padding:6px 8px;white-space:nowrap;overflow:hidden'>" +
+          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#5D6D7E' title='Copiar precio' onclick='preciosTablaAccionCopiar(" + i + ")'>📋</button> " +
+          "<button class='btn' style='margin:0;padding:5px 7px;font-size:12px;width:auto;background:#1E8449' title='WhatsApp' onclick='preciosTablaAccionWhatsapp(" + i + ")'>📲</button>" +
+        "</td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function preciosTablaAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_preciosTablaFiltrada[idx])); }
+  function preciosTablaAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_preciosTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+
+  // ---------- Vista Compacta: máxima densidad, header sticky, para atención rápida en el local ----------
+  // Reutiliza _preciosTablaFiltrada/preciosOrdenarArray (mismo orden que Tabla) y
+  // preciosCrearFilaCompactaHTML con ctx="preciosTabla", por lo que las acciones de
+  // fila son las mismas preciosTablaAccionCopiar/Whatsapp ya definidas arriba.
+  function preciosRenderizarCompacta(){
+    var tbody = document.getElementById("lp_tbody_compacta");
+    _preciosTablaFiltrada = preciosOrdenarArray(_preciosFiltrada);
+    preciosActualizarIndicadoresOrden();
+
+    if (_preciosTablaFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = _preciosTablaFiltrada.map(function(p, i){ return preciosCrearFilaCompactaHTML(p, i, "preciosTabla", false); }).join("");
+  }
+</script>

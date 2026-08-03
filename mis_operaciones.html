@@ -1,0 +1,421 @@
+<div id="view-mis_operaciones" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3 id="mo_tituloPanel">🗂️ Mis Operaciones</h3>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn" id="mo_tabActivas" style="margin:0;width:auto;padding:8px 16px" onclick="misOperacionesMostrarTab('activas')">🗂️ Mis Operaciones</button>
+      <button class="btn" id="mo_tabAnuladas" style="margin:0;width:auto;padding:8px 16px;background:#888" onclick="misOperacionesMostrarTab('anuladas')">🗑 Operaciones Anuladas</button>
+    </div>
+
+    <div id="mo_panel_activas">
+    <div class="fila4">
+      <div>
+        <label style="font-size:11px">Operador</label>
+        <select id="mo_operador" onchange="misOperacionesFiltrar()">
+          <option value="">Todos</option>
+          <option value="Martin">Martin</option>
+          <option value="Maca">Maca</option>
+          <option value="Sam">Sam</option>
+          <option value="Eva">Eva</option>
+          <option value="Buda">Buda</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Tipo</label>
+        <select id="mo_tipo" onchange="misOperacionesFiltrar()">
+          <option value="">Todos</option>
+          <option value="Compra">Compra</option>
+          <option value="Venta">Venta</option>
+          <option value="Preventa">Preventa</option>
+          <option value="Reparación">Reparación</option>
+          <option value="Gasto">Gasto</option>
+          <option value="Compra Accesorio">Compra Accesorio</option>
+          <option value="Venta Accesorio">Venta Accesorio</option>
+          <option value="Cambio Moneda">Cambio Moneda</option>
+          <option value="Ajuste Caja">Ajuste Caja</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Fecha</label>
+        <input type="date" id="mo_fecha" onchange="misOperacionesFiltrar()"/>
+      </div>
+      <div>
+        <label style="font-size:11px">Buscar N°</label>
+        <input type="text" id="mo_busqueda" placeholder="Ej: VTA-004" oninput="misOperacionesFiltrar()"/>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Usá el filtro "Operador" para ver solo las de uno en particular. Cualquier operación puede anularse o corregirse en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+
+    <div style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Fecha</th>
+            <th style="padding:8px">Tipo</th>
+            <th style="padding:8px">Número</th>
+            <th style="padding:8px">Equipo</th>
+            <th style="padding:8px">Cliente</th>
+            <th style="padding:8px;text-align:right">Importe</th>
+            <th style="padding:8px">Operador</th>
+            <th style="padding:8px">Estado</th>
+            <th style="padding:8px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="mo_tbody">
+          <tr><td colspan="9" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div>
+
+    <div id="mo_panel_anuladas" style="display:none">
+      <div class="hint" style="margin-bottom:10px">Operaciones anuladas (con o sin corrección asociada), reconstruidas a partir de ESTADO_REGISTRO + AUDITORIA + CORRECCIONES. Solo lectura.</div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead>
+            <tr style="background:#F4F6F9;text-align:left">
+              <th style="padding:8px">Fecha</th>
+              <th style="padding:8px">Tipo</th>
+              <th style="padding:8px">Operación Original</th>
+              <th style="padding:8px">Operación Nueva</th>
+              <th style="padding:8px">Operador</th>
+              <th style="padding:8px">Motivo</th>
+            </tr>
+          </thead>
+          <tbody id="mo_anuladas_tbody">
+            <tr><td colspan="6" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ver-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.5);display:none;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;border-radius:12px;padding:22px;max-width:540px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.25)">
+    <h3 id="ver-titulo" style="margin:0 0 12px;color:#1A5276"></h3>
+    <div id="ver-contenido" style="font-size:13px;line-height:1.7"></div>
+    <button class="btn" onclick="document.getElementById('ver-overlay').style.display='none'">Cerrar</button>
+  </div>
+</div>
+
+<script>
+  var _misOperacionesData = [];
+
+  // Reutilizable desde Reparaciones, Mis Operaciones y el modal Ver Reparación.
+  // Pide al backend el HTML ya armado (etiqueta imprimible ~10x5cm, etiquetas.gs)
+  // y lo abre en una ventana nueva; window.print() se dispara dentro de ese HTML.
+  // No genera PDF ni usa Drive/DocumentApp: es una vista imprimible, no modifica datos.
+  function imprimirEtiquetaReparacion(numero){
+    if (!numero) return;
+    google.script.run
+      .withSuccessHandler(function(html){
+        var w = window.open("", "_blank", "width=420,height=320");
+        if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para imprimir la etiqueta.", "error"); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .generarEtiquetaReparacion(numero);
+  }
+
+  /** Botones rápidos de avance de estado (En Proceso / Listo / Retirado) para filas de tipo Reparación. "PARA DIAGNOSTICAR" no muestra botones acá: ese caso se resuelve desde "Ver" (Cliente aceptó/rechazó el presupuesto). "Retirado" es terminal. */
+  function _botonesEstadoReparacion(op){
+    if (op.tipo !== "Reparación") return "";
+    var estado = String(op.estado || "");
+    if (estado.indexOf("Retirado") !== -1) return "";
+    if (estado === "PARA DIAGNOSTICAR") return "";
+
+    var yaListo = estado.indexOf("Listo") !== -1;
+    var botones = "";
+    if (!yaListo && estado !== "🟡 En Proceso") {
+      botones += "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#B7950B' onclick=\"misOperacionesCambiarEstadoReparacion('" + op.numero + "','🟡 En Proceso')\">🟡 En Proceso</button> ";
+    }
+    if (!yaListo) {
+      botones += "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"misOperacionesCambiarEstadoReparacion('" + op.numero + "','🟢 Listo')\">🟢 Listo</button> ";
+    } else {
+      botones += "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1A5276' onclick=\"misOperacionesCambiarEstadoReparacion('" + op.numero + "','✅ Retirado')\">✅ Retirado</button> ";
+    }
+    return botones;
+  }
+
+  /** Botón rápido para equipos de Compra que quedaron "🔧 En Reparación" / "🟣 Preventa + Reparación" (necesitaban un arreglo antes de poder venderse). No confundir con las Reparaciones de clientes: esto es el estado de stock del equipo en "Compras". */
+  function _botonReparacionInternaCompra(op){
+    if (op.tipo !== "Compra") return "";
+    var estado = String(op.estado || "");
+    if (estado.indexOf("Reparación") === -1) return "";
+    return "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"misOperacionesMarcarEquipoReparado('" + op.numero + "')\">🔧 Reparación lista</button> ";
+  }
+
+  function misOperacionesMarcarEquipoReparado(nOp){
+    pedirOperador("¿Quién confirma que el equipo " + nOp + " ya está reparado?").then(function(operador){
+      if (!operador) return;
+      confirmarAccion("¿Confirmás que " + nOp + " ya está reparado y pasa a estar disponible para la venta?").then(function(ok){
+        if (!ok) return;
+        llamarBackend("marcarEquipoReparado", { nOp: nOp, operador: operador }, function(msg){
+          mostrarToast(msg, "exito");
+          misOperacionesInit();
+          cargarDashboard();
+        });
+      });
+    });
+  }
+
+  function misOperacionesCambiarEstadoReparacion(numero, estadoNuevo){
+    pedirOperador("¿Quién marca " + numero + " como \"" + estadoNuevo + "\"?").then(function(operador){
+      if (!operador) return;
+      confirmarAccion("¿Confirmás cambiar el estado de " + numero + " a \"" + estadoNuevo + "\"?").then(function(ok){
+        if (!ok) return;
+        llamarBackend("actualizarEstadoReparacionWeb", { numero: numero, estado: estadoNuevo, operador: operador }, function(msg){
+          mostrarToast(msg, "exito");
+          misOperacionesInit();
+          cargarDashboard();
+        });
+      });
+    });
+  }
+
+  function misOperacionesInit(){
+    document.getElementById("mo_operador").value = "";
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _misOperacionesData = datos || [];
+        misOperacionesFiltrar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerOperacionesRecientes();
+  }
+
+  function misOperacionesFiltrar(){
+    var fOperador = document.getElementById("mo_operador").value;
+    var fTipo     = document.getElementById("mo_tipo").value;
+    var fFecha    = document.getElementById("mo_fecha").value;
+    var fBusqueda = document.getElementById("mo_busqueda").value.trim().toLowerCase();
+
+    var filtradas = _misOperacionesData.filter(function(op){
+      if (fOperador && op.operador !== fOperador) return false;
+      if (fTipo && op.tipo !== fTipo) return false;
+      if (fFecha && op.fechaISO !== fFecha) return false;
+      if (fBusqueda && op.numero.toLowerCase().indexOf(fBusqueda) === -1) return false;
+      return true;
+    });
+
+    var tbody = document.getElementById("mo_tbody");
+    if (filtradas.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='9' style='padding:14px;text-align:center;color:#889'>Sin operaciones para este filtro.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = filtradas.map(function(op){
+      var numeroCelda = op.numero;
+      if (op.operacionOrigen) numeroCelda += "<br><small style='color:#889'>↳ corrige " + op.operacionOrigen + "</small>";
+      if (op.operacionCorregida) numeroCelda += "<br><small style='color:#889'>↳ corregida en " + op.operacionCorregida + "</small>";
+
+      var puedeCorregir = !op.operacionCorregida; // si ya fue corregida, la acción corresponde a la operación nueva
+      var tieneHistorial = op.operacionOrigen || op.operacionCorregida;
+      var acciones =
+        "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto' onclick=\"misOperacionesVer('" + op.numero + "')\">Ver</button> " +
+        (op.tipo === "Reparación"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> "
+          : "") +
+        _botonesEstadoReparacion(op) +
+        _botonReparacionInternaCompra(op) +
+        (puedeCorregir
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#B7950B' onclick=\"misOperacionesCorregir('" + op.numero + "')\">Corregir</button> "
+          : "") +
+        "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#922B21' onclick=\"misOperacionesAnular('" + op.numero + "')\">Anular</button> " +
+        (tieneHistorial
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1A5276' onclick=\"misOperacionesHistorial('" + op.numero + "')\">Historial</button>"
+          : "");
+
+      return "<tr style='border-top:1px solid #E1E5EA'>" +
+        "<td style='padding:8px'>" + op.fecha + "</td>" +
+        "<td style='padding:8px'>" + op.tipo + "</td>" +
+        "<td style='padding:8px'>" + numeroCelda + "</td>" +
+        "<td style='padding:8px'>" + (op.equipo || "—") + "</td>" +
+        "<td style='padding:8px'>" + (op.cliente || "—") + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + fmtP(op.importe) + "</td>" +
+        "<td style='padding:8px'>" + (op.operador || "—") + "</td>" +
+        "<td style='padding:8px'>" + (op.estado || "—") + "</td>" +
+        "<td style='padding:8px;white-space:nowrap'>" + acciones + "</td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  // ---------- VER ----------
+  function misOperacionesVer(numero){
+    google.script.run
+      .withSuccessHandler(function(op){
+        document.getElementById("ver-titulo").textContent = op.tipo + " — " + op.numero;
+        var html = "<b>Operador:</b> " + (op.operador || "—") + "<br>" +
+          "<b>Estado:</b> " + (op.estado || "—") + "<br>";
+        if (op.operacionOrigen) html += "<b>Corrige a:</b> " + op.operacionOrigen + "<br>";
+        if (op.operacionCorregida) html += "<b>Corregida en:</b> " + op.operacionCorregida + "<br>";
+        html += "<hr><b>Datos:</b><br>";
+        Object.keys(op.datos).forEach(function(k){
+          if (k === "OPERADOR" || k === "ESTADO_REGISTRO" || k === "OPERACION_ORIGEN" || k === "FECHA_CREACION") return;
+          var v = op.datos[k];
+          if (v === "" || v === null || v === undefined) return;
+          html += k + ": " + v + "<br>";
+        });
+        if (Object.keys(op.relaciones).length > 0) {
+          html += "<hr><b>Relaciones:</b><br>";
+          Object.keys(op.relaciones).forEach(function(k){ html += k + ": " + op.relaciones[k] + "<br>"; });
+        }
+        if (op.accesorios && op.accesorios.length > 0) {
+          html += "<hr><b>Accesorios asociados:</b><br>";
+          op.accesorios.forEach(function(a){ html += a.producto + " — " + fmtP(a.precio) + "<br>"; });
+        }
+        if (op.lineasCompraAccesorio && op.lineasCompraAccesorio.length > 0) {
+          html += "<hr><b>Líneas de la compra (" + op.lineasCompraAccesorio.length + "):</b><br>";
+          op.lineasCompraAccesorio.forEach(function(l){
+            html += l["Producto"] + " — " + l["Marca"] + " " + (l["Color"] || "") + " — Cant: " + l["Cantidad"] +
+              " — Costo total: " + fmtP(l["Costo Total"]) + "<br>";
+          });
+        }
+        if (op.movimientos.length > 0) {
+          html += "<hr><b>Movimientos en Libro Diario:</b><br>";
+          op.movimientos.forEach(function(m){
+            html += m.fecha + " — " + m.descripcion + " — " + fmtP(m.monto) + " (" + m.medio + ")<br>";
+          });
+        }
+        if (op.prefijo === "REP") {
+          html += "<hr><button class='btn' style='margin:0;width:auto;padding:8px 16px;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Imprimir etiqueta</button>";
+        }
+        // Parte 6: presupuesto de diagnóstico pendiente de respuesta del cliente.
+        // Usa op.estado + op.datos["PRESUPUESTO_DIAGNOSTICO"], ya presentes en
+        // obtenerOperacionCompleta_() sin tocar el backend — mismo criterio que
+        // el resto del modal "Ver" (no duplica lógica, Parte 10).
+        if (op.prefijo === "REP" && op.estado === "PARA DIAGNOSTICAR" && op.datos["PRESUPUESTO_DIAGNOSTICO"] === "PENDIENTE") {
+          html += "<hr><div style='display:flex;gap:8px'>" +
+            "<button class='btn' style='margin:0;width:auto;padding:8px 16px;background:#1E8449' onclick=\"misOperacionesAceptarDiagnostico('" + op.numero + "')\">✅ Cliente aceptó</button>" +
+            "<button class='btn' style='margin:0;width:auto;padding:8px 16px;background:#922B21' onclick=\"misOperacionesRechazarDiagnostico('" + op.numero + "')\">❌ Cliente rechazó</button>" +
+          "</div>";
+        }
+        document.getElementById("ver-contenido").innerHTML = html;
+        document.getElementById("ver-overlay").style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerOperacionCompletaWeb(numero);
+  }
+
+  // ---------- DIAGNÓSTICO: aceptar / rechazar (Partes 6-8) ----------
+  function misOperacionesAceptarDiagnostico(numero){
+    pedirOperador("¿Quién está registrando la aceptación del diagnóstico " + numero + "?").then(function(operador){
+      if (!operador) return;
+      confirmarAccion("¿Confirmás que el cliente ACEPTÓ el presupuesto de " + numero + "? Se anulará el diagnóstico y se creará automáticamente la reparación.").then(function(ok){
+        if (!ok) return;
+        llamarBackend("aceptarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
+          mostrarToast(msg, "exito");
+          document.getElementById("ver-overlay").style.display = "none";
+          misOperacionesInit();
+          cargarDashboard();
+        });
+      });
+    });
+  }
+
+  function misOperacionesRechazarDiagnostico(numero){
+    pedirOperador("¿Quién está registrando el rechazo del diagnóstico " + numero + "?").then(function(operador){
+      if (!operador) return;
+      confirmarAccion("¿Confirmás que el cliente RECHAZÓ el presupuesto de " + numero + "?").then(function(ok){
+        if (!ok) return;
+        llamarBackend("rechazarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
+          mostrarToast(msg, "exito");
+          document.getElementById("ver-overlay").style.display = "none";
+          misOperacionesInit();
+        });
+      });
+    });
+  }
+
+  // ---------- ANULAR ----------
+  function misOperacionesAnular(numero){
+    pedirOperador("¿Quién está anulando " + numero + "?").then(function(operador){
+      if (!operador) return;
+      pedirTexto("Motivo de la anulación de " + numero + ":").then(function(motivo){
+        if (motivo === null) return;
+        if (!motivo.trim()) { mostrarToast("Ingresá un motivo.", "error"); return; }
+        confirmarAccion("¿Confirmás anular " + numero + "?").then(function(ok){
+          if (!ok) return;
+          llamarBackend("anularOperacionPropia", { numero: numero, motivo: motivo, operador: operador }, function(msg){
+            mostrarToast(msg, "exito");
+            misOperacionesInit();
+            cargarDashboard();
+          });
+        });
+      });
+    });
+  }
+
+  // ---------- CORREGIR ----------
+  function misOperacionesCorregir(numero){
+    google.script.run
+      .withSuccessHandler(function(op){
+        iniciarCorreccion(op);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerOperacionCompletaWeb(numero);
+  }
+
+  // ---------- HISTORIAL (PASO 2/3) ----------
+  function misOperacionesHistorial(numero){
+    google.script.run
+      .withSuccessHandler(function(h){
+        document.getElementById("ver-titulo").textContent = "🕓 Historial de " + numero;
+        var html =
+          "<b>Operación original:</b> " + h.original + "<br>" +
+          "<b>Operación actual:</b> " + h.actual + "<br>" +
+          "<b>Cantidad de correcciones:</b> " + h.cantidadCorrecciones + "<br>";
+        if (h.ultimaCorreccion) {
+          html += "<b>Última corrección:</b> " + h.ultimaCorreccion.fecha + " — " + h.ultimaCorreccion.operador +
+            (h.ultimaCorreccion.motivo ? " (" + h.ultimaCorreccion.motivo + ")" : "") + "<br>";
+        }
+        html += "<hr><b>Cadena completa:</b><br>" + h.cadena.join(" &rarr; ");
+        document.getElementById("ver-contenido").innerHTML = html;
+        document.getElementById("ver-overlay").style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerHistorialCorreccion(numero);
+  }
+
+  // ---------- PESTAÑAS: Mis Operaciones / Operaciones Anuladas (PASO 1) ----------
+  var _anuladasCargadas = false;
+
+  function misOperacionesMostrarTab(tab){
+    var esActivas = tab === "activas";
+    document.getElementById("mo_panel_activas").style.display  = esActivas ? "block" : "none";
+    document.getElementById("mo_panel_anuladas").style.display = esActivas ? "none" : "block";
+    document.getElementById("mo_tabActivas").style.background  = esActivas ? "" : "#888";
+    document.getElementById("mo_tabAnuladas").style.background = esActivas ? "#888" : "#922B21";
+    document.getElementById("mo_tituloPanel").textContent = esActivas ? "🗂️ Mis Operaciones" : "🗑 Operaciones Anuladas";
+    if (!esActivas && !_anuladasCargadas) {
+      _anuladasCargadas = true;
+      misOperacionesCargarAnuladas();
+    }
+  }
+
+  function misOperacionesCargarAnuladas(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var tbody = document.getElementById("mo_anuladas_tbody");
+        if (!datos || datos.length === 0) {
+          tbody.innerHTML = "<tr><td colspan='6' style='padding:14px;text-align:center;color:#889'>No hay operaciones anuladas.</td></tr>";
+          return;
+        }
+        tbody.innerHTML = datos.map(function(a){
+          return "<tr style='border-top:1px solid #E1E5EA'>" +
+            "<td style='padding:8px'>" + (a.fecha || "—") + "</td>" +
+            "<td style='padding:8px'>" + a.tipo + "</td>" +
+            "<td style='padding:8px'>" + a.operacionOriginal + "</td>" +
+            "<td style='padding:8px'>" + (a.operacionNueva || "—") + "</td>" +
+            "<td style='padding:8px'>" + (a.operador || "—") + "</td>" +
+            "<td style='padding:8px'>" + (a.motivo || "—") + "</td>" +
+          "</tr>";
+        }).join("");
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerOperacionesAnuladas();
+  }
+</script>

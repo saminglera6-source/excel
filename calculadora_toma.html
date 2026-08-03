@@ -1,0 +1,145 @@
+<div id="view-calculadora_toma" class="view">
+  <div class="panel" style="max-width:640px">
+    <h3>🧮 Calculadora de Toma</h3>
+    <div class="hint">Calcula el valor de toma según las fallas marcadas, usando "Toma de Equipos" en vivo.</div>
+
+    <label>Modelo:</label>
+    <div class="gp-modelo-wrap">
+      <input type="text" id="ct_modelo" placeholder="🔎 Buscar modelo (Toma de Equipos)..." autocomplete="off"/>
+    </div>
+
+    <div class="box" style="margin-top:14px">
+      <label style="margin-top:0">Fallas del equipo:</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;font-size:13px">
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_bateria" onchange="calcTomaRecalcular()"> Falta batería</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_pantalla" onchange="calcTomaRecalcular()"> Falta pantalla</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_camara" onchange="calcTomaRecalcular()"> Falta cámara</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_microfono" onchange="calcTomaRecalcular()"> Falta micrófono</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_parlante" onchange="calcTomaRecalcular()"> Falta parlante</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_tapa" onchange="calcTomaRecalcular()"> Falta tapa trasera</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_marco" onchange="calcTomaRecalcular()"> Falta marco</label>
+        <label style="font-weight:normal;margin-top:0"><input type="checkbox" id="ct_f_pin" onchange="calcTomaRecalcular()"> Falta pin de carga</label>
+      </div>
+    </div>
+
+    <div class="box box-info" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px"><span>Precio impecable:</span><b id="ct_impecable">$0</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;color:var(--rojo)"><span>Descuentos:</span><b id="ct_descuentos">-$0</b></div>
+      <div style="border-top:1px dashed var(--borde);margin:10px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:#1E8449"><span>VALOR DE TOMA</span><span id="ct_valorToma">$0</span></div>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:640px;margin-top:20px">
+    <h3>🔁 Calculadora de Canje</h3>
+    <div class="hint">Usa el valor de toma calculado arriba + "Lista de Precios" en vivo para saber cuánto debe agregar el cliente.</div>
+
+    <label>Equipo vendido:</label>
+    <div class="gp-modelo-wrap">
+      <input type="text" id="cj_modelo" placeholder="🔎 Buscar modelo (Lista de Precios)..." autocomplete="off"/>
+    </div>
+
+    <label style="margin-top:14px">Tipo de venta:</label>
+    <div style="display:flex;gap:18px;margin-top:6px;font-size:13.5px">
+      <label style="font-weight:normal;margin-top:0"><input type="radio" name="cj_tipo" value="normal" checked onchange="calcTomaRecalcularCanje()"> ○ Venta normal</label>
+      <label style="font-weight:normal;margin-top:0"><input type="radio" name="cj_tipo" value="preventa" onchange="calcTomaRecalcularCanje()"> ○ Preventa</label>
+    </div>
+
+    <div class="box box-info" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px"><span>Precio venta:</span><b id="cj_precioVenta">$0</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;color:#1E8449"><span>Valor toma:</span><b id="cj_valorToma">$0</b></div>
+      <div style="border-top:1px dashed var(--borde);margin:10px 0"></div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;color:var(--azul)"><span>CLIENTE DEBE AGREGAR</span><span id="cj_diferencia">$0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Calculadora de Toma + Calculadora de Canje.
+  //  Reutiliza calcularValorToma() (backend) y, para el canje,
+  //  preciosCargarDatos()/_preciosCache/escHtml/fmtP definidas en
+  //  precios.html (incluido antes que esta vista en index.html) —
+  //  no duplica el fetch de "Lista de Precios". El selector de modelo
+  //  (ambos: Toma de Equipos y Lista de Precios) es crearSelectorModelos(),
+  //  el mismo componente que usan Compras/Ventas/Preventas/Reparaciones.
+  // ============================================================
+
+  var _calcTomaCache      = []; // último resultado de obtenerPreciosToma()
+  var _calcTomaResultado  = null; // último resultado de calcularValorToma()
+  var _cjSeleccionado     = null; // fila de _preciosCache elegida en "Equipo vendido"
+
+  crearSelectorModelos(document.getElementById("ct_modelo"), {
+    strict: true,
+    obtenerDatos: function(cb){ cb(_calcTomaCache); },
+    textoDe: function(p){ return p.modelo; },
+    onSeleccion: function(){ calcTomaRecalcular(); }
+  });
+
+  crearSelectorModelos(document.getElementById("cj_modelo"), {
+    strict: true,
+    onSeleccion: function(p){
+      _cjSeleccionado = p;
+      calcTomaRecalcularCanje();
+    }
+  });
+
+  function calculadoraTomaInit(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _calcTomaCache = datos || [];
+        calcTomaRecalcular();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreciosToma();
+
+    preciosCargarDatos(function(){
+      calcTomaRecalcularCanje();
+    });
+  }
+
+  function calcTomaRecalcular(){
+    var modelo = document.getElementById("ct_modelo").value;
+    if (!modelo) return;
+    var d = {
+      modelo: modelo,
+      fallas: {
+        bateria:   document.getElementById("ct_f_bateria").checked,
+        pantalla:  document.getElementById("ct_f_pantalla").checked,
+        camara:    document.getElementById("ct_f_camara").checked,
+        microfono: document.getElementById("ct_f_microfono").checked,
+        parlante:  document.getElementById("ct_f_parlante").checked,
+        tapa:      document.getElementById("ct_f_tapa").checked,
+        marco:     document.getElementById("ct_f_marco").checked,
+        pin:       document.getElementById("ct_f_pin").checked
+      }
+    };
+    google.script.run
+      .withSuccessHandler(function(r){
+        _calcTomaResultado = r;
+        document.getElementById("ct_impecable").textContent  = fmtP(r.impecable);
+        document.getElementById("ct_descuentos").textContent = "-" + fmtP(r.descuentos);
+        document.getElementById("ct_valorToma").textContent  = fmtP(r.valorToma);
+        calcTomaRecalcularCanje();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .calcularValorToma(d);
+  }
+
+  function calcTomaRecalcularCanje(){
+    var valorToma = _calcTomaResultado ? _calcTomaResultado.valorToma : 0;
+    document.getElementById("cj_valorToma").textContent = fmtP(valorToma);
+
+    var p = _cjSeleccionado;
+    if (!p) {
+      document.getElementById("cj_precioVenta").textContent = fmtP(0);
+      document.getElementById("cj_diferencia").textContent  = fmtP(-valorToma);
+      return;
+    }
+    var esPreventa   = document.querySelector('input[name="cj_tipo"]:checked').value === "preventa";
+    var precioVenta  = esPreventa ? p.preventaARS : p.precioARS;
+    var diferencia   = precioVenta - valorToma;
+    document.getElementById("cj_precioVenta").textContent = fmtP(precioVenta);
+    document.getElementById("cj_diferencia").textContent  = fmtP(diferencia);
+  }
+</script>

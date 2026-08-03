@@ -1,0 +1,55 @@
+<div id="view-comisiones" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>💼 Comisiones</h3>
+    <div class="hint">Indicadores por operador. Todavía NO calcula un monto de comisión — solo la información base para definirla más adelante.</div>
+
+    <div style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Operador</th>
+            <th style="padding:8px;text-align:right">Cantidad de ventas</th>
+            <th style="padding:8px;text-align:right">Facturación</th>
+            <th style="padding:8px;text-align:right">Ganancia</th>
+            <th style="padding:8px;text-align:right">Preventas</th>
+            <th style="padding:8px;text-align:right">Reparaciones</th>
+            <th style="padding:8px;text-align:right">Cant. accesorios vendidos</th>
+            <th style="padding:8px;text-align:right">Importe accesorios vendidos</th>
+            <th style="padding:8px;text-align:right">Regalos entregados</th>
+            <th style="padding:8px;text-align:right">Correcciones realizadas</th>
+            <th style="padding:8px;text-align:right">Anulaciones realizadas</th>
+          </tr>
+        </thead>
+        <tbody id="cm_tbody">
+          <tr><td colspan="11" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function comisionesInit(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var tbody = document.getElementById("cm_tbody");
+        tbody.innerHTML = (datos || []).map(function(r){
+          return "<tr style='border-top:1px solid #E1E5EA'>" +
+            "<td style='padding:8px;font-weight:600'>" + r.operador + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + r.cantidadVentas + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + fmtP(r.facturacion) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + fmtP(r.ganancia) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + r.preventas + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + r.reparaciones + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + (r.cantidadAccesorios || 0) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + fmtP(r.importeAccesorios || 0) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + (r.regalosEntregados || 0) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + (r.correccionesRealizadas || 0) + "</td>" +
+            "<td style='padding:8px;text-align:right'>" + (r.anulacionesRealizadas || 0) + "</td>" +
+          "</tr>";
+        }).join("");
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerResumenComisiones();
+  }
+</script>

@@ -1,0 +1,181 @@
+<script>
+  // ============================================================
+  //  crearSelectorModelos(input, opts) — componente único y reutilizable
+  //  para elegir un modelo con búsqueda, sin <select> clásico. Es el
+  //  selector oficial del ERP: Compras, Ventas (canje), Preventas,
+  //  Reparaciones y Calculadora de Toma lo usan por igual — misma
+  //  experiencia (búsqueda instantánea, scroll, ↑↓, Enter, Escape, click
+  //  afuera, búsqueda parcial/capacidad/Pro/Max/Plus) en todos lados.
+  //
+  //  input: el <input type="text"> ya existente en el formulario (se
+  //  conserva su id — el código que lee document.getElementById(id).value
+  //  para armar el payload NO cambia). Debe estar envuelto en un
+  //  contenedor con class="gp-modelo-wrap" (position:relative) para que
+  //  el dropdown se posicione debajo.
+  //
+  //  opts = {
+  //    onSeleccion: function(fila, textoCompleto) {}  // fila = objeto de
+  //      la fuente de datos. Cada formulario decide ahí qué autocompletar
+  //      (o nada, en Compras).
+  //    strict: true|false (default false)  // si es true, el valor final
+  //      SOLO puede ser uno que exista en la fuente de datos — al perder
+  //      el foco, si el texto no matchea ninguna opción exacta, se
+  //      revierte al último valor confirmado.
+  //    obtenerDatos: function(cb)  // opcional — de dónde salen los
+  //      modelos. Por default usa "Lista de Precios" (preciosCargarDatos()/
+  //      _preciosCache, ya definidas en precios.html) — así Compras,
+  //      Ventas (canje) y Preventas no necesitan pasar nada. Reparaciones
+  //      y Calculadora de Toma pasan su propia fuente ("Toma de Equipos",
+  //      vía obtenerPreciosToma(), ya existente) sin duplicar el fetch ni
+  //      crear un array/catálogo nuevo — cada vista sigue siendo dueña de
+  //      su propio caché, exactamente como ya lo era antes de este cambio.
+  //    textoDe: function(fila) -> string  // opcional — cómo se arma el
+  //      texto de cada opción. Por default "modelo + almacenamiento"
+  //      (Lista de Precios); Toma de Equipos no tiene almacenamiento, así
+  //      que sus consumidores pasan textoDe: function(p){ return p.modelo; }.
+  //  }
+  //
+  //  Devuelve { setValor(texto) } — para que el formulario que lo usa
+  //  pueda precargar un valor válido (ej. al corregir una operación) sin
+  //  pasar por el buscador y sin que el modo strict lo rechace luego.
+  //
+  //  Comportamiento no-strict: elegir una sugerencia completa el texto y
+  //  dispara onSeleccion; el operador puede seguir editando o escribiendo
+  //  un modelo que no esté en la lista. Nunca bloquea la edición mientras
+  //  se escribe — en modo strict, la validación ocurre recién al salir
+  //  del campo, no en cada tecla.
+  // ============================================================
+
+  function crearSelectorModelos(input, opts){
+    opts = opts || {};
+    var onSeleccion = opts.onSeleccion || function(){};
+    var strict = !!opts.strict;
+    var wrap = input.parentElement;
+
+    var obtenerDatos = opts.obtenerDatos || function(cb){
+      if (_preciosCache && _preciosCache.length > 0) cb(_preciosCache);
+      else preciosCargarDatos(cb);
+    };
+    var textoDe = opts.textoDe || function(p){ return p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""); };
+
+    var dropdown = document.createElement("div");
+    dropdown.className = "gp-modelo-dropdown";
+    wrap.appendChild(dropdown);
+
+    var itemsCache = [];   // último array recibido de obtenerDatos()
+    var items = [];        // filtrado actualmente mostrado
+    var highlighted = -1;
+    var abierto = false;
+    var valorConfirmado = input.value || "";
+
+    /** Demasiados modelos para listarlos todos (Parte 7 del rediseño anterior) — se limita a 50 resultados, ya filtrados por texto. */
+    function filtrar(q){
+      q = (q || "").trim().toLowerCase();
+      var base = itemsCache || [];
+      var filtrado = !q ? base : base.filter(function(p){ return textoDe(p).toLowerCase().indexOf(q) !== -1; });
+      return filtrado.slice(0, 50);
+    }
+
+    function render(){
+      if (items.length === 0) {
+        dropdown.innerHTML = "<div class='gp-modelo-vacio'>Sin resultados</div>";
+      } else {
+        dropdown.innerHTML = items.map(function(p, i){
+          return "<div class='gp-modelo-opcion" + (i === highlighted ? " activo" : "") + "' data-i='" + i + "'>" + escHtml(textoDe(p)) + "</div>";
+        }).join("");
+      }
+      dropdown.style.display = "block";
+      abierto = true;
+    }
+
+    function cerrar(){
+      dropdown.style.display = "none";
+      abierto = false;
+      highlighted = -1;
+    }
+
+    function elegir(i){
+      var p = items[i];
+      if (!p) return;
+      input.value = textoDe(p);
+      valorConfirmado = input.value;
+      cerrar();
+      onSeleccion(p, textoDe(p));
+    }
+
+    function scrollAlHighlight(){
+      var el = dropdown.children[highlighted];
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+    }
+
+    function abrirConFiltroActual(){
+      obtenerDatos(function(datos){
+        itemsCache = datos || [];
+        items = filtrar(input.value);
+        render();
+      });
+    }
+
+    input.addEventListener("focus", function(){ highlighted = -1; abrirConFiltroActual(); });
+    input.addEventListener("input", function(){ highlighted = -1; abrirConFiltroActual(); });
+
+    input.addEventListener("keydown", function(e){
+      if (!abierto) {
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") { abrirConFiltroActual(); }
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        highlighted = Math.min(items.length - 1, highlighted + 1);
+        render(); scrollAlHighlight();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        highlighted = Math.max(0, highlighted - 1);
+        render(); scrollAlHighlight();
+      } else if (e.key === "Enter") {
+        if (highlighted >= 0) { e.preventDefault(); elegir(highlighted); }
+      } else if (e.key === "Escape") {
+        cerrar();
+      }
+    });
+
+    dropdown.addEventListener("mousedown", function(e){
+      var opt = e.target.closest(".gp-modelo-opcion");
+      if (!opt) return;
+      e.preventDefault(); // evita que el input pierda foco antes del click
+      elegir(Number(opt.dataset.i));
+    });
+
+    document.addEventListener("click", function(e){
+      if (abierto && !wrap.contains(e.target)) cerrar();
+    });
+
+    /**
+     * Modo strict: al salir del campo, si lo escrito no matchea exacto
+     * ninguna opción de la fuente de datos, se revierte al último valor
+     * confirmado (por selección o por setValor()). Se valida solo al
+     * perder el foco, nunca mientras se tipea. Si itemsCache todavía no
+     * cargó (carrera rara, foco+blur inmediato antes de que responda el
+     * backend), no se revierte para no borrar por error un valor válido.
+     */
+    if (strict) {
+      input.addEventListener("blur", function(){
+        var val = input.value.trim();
+        if (val === valorConfirmado) return;
+        if (!itemsCache || itemsCache.length === 0) return;
+        var existe = itemsCache.some(function(p){ return textoDe(p) === val; });
+        if (existe) { valorConfirmado = val; return; }
+        input.value = valorConfirmado;
+        if (val) mostrarToast("❌ Elegí un modelo de la lista — no se puede escribir texto libre.", "error");
+      });
+    }
+
+    return {
+      /** Precarga un valor ya válido (ej. al corregir una operación) sin pasar por el buscador. */
+      setValor: function(texto){
+        input.value = texto || "";
+        valorConfirmado = input.value;
+      }
+    };
+  }
+</script>

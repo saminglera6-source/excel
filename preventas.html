@@ -1,0 +1,263 @@
+<div id="view-preventas" class="view">
+  <div class="panel">
+    <h3>🟡 Registrar Preventa</h3>
+
+    <form id="preventas_form" onsubmit="return false;">
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién toma el pedido y cuándo?</p>
+      <div class="fila2">
+        <div>
+          <label>Operador: <span class="req">*</span></label>
+          <select id="p_operador" required>
+            <option value="" disabled selected>Seleccionar...</option>
+            <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+          </select>
+        </div>
+        <div>
+          <label>Vendedor: <span class="req">*</span></label>
+          <input type="text" id="p_vendedor" placeholder="Nombre del vendedor" value="Martin"/>
+        </div>
+      </div>
+      <div class="hint">"Vendedor" es quien concretó la venta con el cliente — puede ser distinto de "Operador" (arriba), que es quien está cargando esta pantalla ahora mismo.</div>
+
+      <label>Fecha preventa:</label>
+      <input type="date" id="p_fecha"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> ¿Qué pidió el cliente?</p>
+      <label>Modelo solicitado: <span class="req">*</span></label>
+      <div class="gp-modelo-wrap">
+        <input type="text" id="p_modelo" placeholder="🔎 Buscar modelo... (Lista de Precios)" autocomplete="off"/>
+      </div>
+
+      <label>Cliente: <span class="req">*</span></label>
+      <input type="text" id="p_cliente" placeholder="Nombre y apellido"/>
+
+      <div class="fila2">
+        <div>
+          <label>CUIL cliente (opcional):</label>
+          <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9"/>
+        </div>
+        <div>
+          <label>Teléfono:</label>
+          <input type="text" id="p_tel" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">3</span> Plazo de entrega</p>
+      <div class="box box-info" style="margin-top:0">
+        <label style="margin-top:0">📅 Plazo de entrega (7 a 10 días hábiles)</label>
+        <div class="fila2">
+          <div>
+            <label style="font-size:11px">Fecha Prometida Desde</label>
+            <input type="date" id="p_fechaDesde"/>
+          </div>
+          <div>
+            <label style="font-size:11px">Fecha Prometida Hasta</label>
+            <input type="date" id="p_fechaHasta"/>
+          </div>
+        </div>
+        <div class="hint" id="p_plazoHint">Calculando plazo permitido...</div>
+        <div class="hint">Estas fechas se completan solas apenas elegís la "Fecha preventa" — esperá que aparezca el rango antes de registrar. Si hace falta, las podés editar a mano.</div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
+
+      <label>Precio de venta pactado ($): <span class="req">*</span></label>
+      <input type="number" id="p_precioVenta" value="0" min="0" oninput="preventasCalcTotal()"/>
+      <div class="hint">Buscá el "Modelo solicitado" en Lista de Precios (Precio Preventa) si no estás seguro del valor.</div>
+      <button type="button" class="btn" style="background:#8E44AD;margin-top:8px" onclick="preventasAbrirCalculadoraCuotas()">💳 Calcular cuotas</button>
+
+      <label>Cobrado en ($):</label>
+      <div class="fila4">
+        <div><label style="font-size:11px">Efectivo</label><input type="number" id="p_efec" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="number" id="p_transf" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="number" id="p_cuotas" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+      </div>
+      <div class="total" id="p_totalDiv">Total cobrado: $0</div>
+    </div>
+
+    <label>Observaciones:</label>
+    <input type="text" id="p_obs" placeholder="Opcional"/>
+
+    <button type="button" class="btn" onclick="preventasEnviar()">✅ Registrar preventa</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.getElementById("p_fecha").value = new Date().toISOString().split("T")[0];
+
+  // ------------------------------------------------------------
+  //  PLAZO DE ENTREGA (7 a 10 días hábiles) — dias_habiles.gs.
+  //  fechaDesde/fechaHasta se autocompletan al calcular el plazo, pero el
+  //  operador puede modificarlas a mano en cualquier momento (Parte 1): el
+  //  <input type="date"> ya no es readonly y el backend
+  //  (procesarPreventaConOperador, operadores.gs) respeta lo que llegue en
+  //  el payload en vez de pisarlo siempre con el valor calculado.
+  // ------------------------------------------------------------
+
+  function preventasFmtDDMMYYYY(iso){
+    var p = iso.split("-");
+    return p[2] + "/" + p[1] + "/" + p[0];
+  }
+
+  /** Recalcula fechaDesde/fechaHasta sugeridas y el hint de plazo. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve el rango). */
+  function preventasRecalcularPlazoEntrega(){
+    var fecha = document.getElementById("p_fecha").value;
+    if (!fecha) return;
+    google.script.run
+      .withSuccessHandler(function(rango){
+        document.getElementById("p_fechaDesde").value = rango.fechaMinima;
+        document.getElementById("p_fechaHasta").value = rango.fechaMaxima;
+        document.getElementById("p_plazoHint").textContent =
+          "Plazo permitido: del " + preventasFmtDDMMYYYY(rango.fechaMinima) + " al " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (7 a 10 días hábiles).";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .calcularRangoEntregaPreventa(fecha);
+  }
+
+  document.getElementById("p_fecha").addEventListener("change", preventasRecalcularPlazoEntrega);
+  preventasRecalcularPlazoEntrega();
+
+  // Precio Inteligente (precio_automatico.html, mismo helper que Ventas):
+  // autocompleta Precio Preventa al seleccionar modelo SOLO si el operador
+  // todavía no lo personalizó a mano; si ya lo tocó, ninguna selección
+  // posterior lo vuelve a pisar. Nunca bloquea la edición.
+  var _precioAutoPreventas = crearPrecioAutomatico(document.getElementById("p_precioVenta"));
+
+  // Selector reutilizable con búsqueda (selector_modelos.html), fuente única
+  // "Lista de Precios". Modo strict: el operador SOLO puede elegir un modelo
+  // existente, no texto libre. Autocompleta SIEMPRE el Precio Preventa
+  // (nunca el Contado) — vía _precioAutoPreventas, que decide si corresponde.
+  var _selectorModeloPreventas = crearSelectorModelos(document.getElementById("p_modelo"), {
+    strict: true,
+    onSeleccion: function(fila){
+      _precioAutoPreventas.autocompletar(fila.preventaARS || 0);
+    }
+  });
+
+  /** Busca el "Modelo solicitado" en _preciosCache (precios.html) y abre la calculadora de cuotas sobre Precio Preventa — una preventa siempre usa Precio Preventa, nunca Precio Venta (Parte 5). No guarda nada, se recalcula siempre en el momento. */
+  function preventasAbrirCalculadoraCuotas(){
+    var modelo = document.getElementById("p_modelo").value.trim();
+    if (!modelo) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
+
+    function continuar(){
+      var modeloLower = modelo.toLowerCase();
+      var match = null;
+      for (var i = 0; i < _preciosCache.length; i++) {
+        var m = (_preciosCache[i].modelo || "").toLowerCase();
+        if (m === modeloLower || m.indexOf(modeloLower) === 0 || modeloLower.indexOf(m) === 0) { match = _preciosCache[i]; break; }
+      }
+      if (!match) { mostrarToast("No encontré \"" + modelo + "\" en Lista de Precios.", "error"); return; }
+
+      var monto = match.preventaARS;
+      if (!monto || monto <= 0) { mostrarToast("Ese modelo no tiene Precio Preventa cargado.", "error"); return; }
+
+      renderCalculadoraCuotas(monto, {
+        titulo: "💳 Cuotas — " + match.modelo + " (Preventa)",
+        mostrarCopiar: true,
+        encabezadoWhatsapp: "💳 Financiación disponible"
+      });
+    }
+
+    if (_preciosCache && _preciosCache.length > 0) continuar();
+    else preciosCargarDatos(continuar);
+  }
+
+  function preventasCalcTotal(){
+    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("p_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var t = ef + tr + cu + usPesos;
+    var txt = "Total cobrado: " + fmtP(t);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("p_totalDiv").textContent = txt;
+  }
+
+  function preventasPrecargarCorreccion(datos){
+    document.getElementById("p_operador").value    = datos["OPERADOR"] || "";
+    document.getElementById("p_fecha").value        = fechaParaInput(datos["Fecha Preventa"]) || document.getElementById("p_fecha").value;
+    _selectorModeloPreventas.setValor(datos["Modelo Solicitado"] || "");
+    document.getElementById("p_cliente").value     = datos["Cliente"] || "";
+    document.getElementById("p_cuil").value        = datos["CUIL Cliente"] || "";
+    document.getElementById("p_vendedor").value    = datos["Vendedor"] || "Martin";
+    document.getElementById("p_tel").value         = datos["Teléfono"] || "";
+    _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
+    document.getElementById("p_efec").value        = datos["Cobrado Efectivo"] || 0;
+    document.getElementById("p_transf").value      = datos["Cobrado Transferencia"] || 0;
+    document.getElementById("p_cuotas").value       = datos["Cobrado Cuotas"] || 0;
+    document.getElementById("p_usd").value          = datos["Cobrado USD"] || 0;
+    document.getElementById("p_obs").value          = datos["Observaciones"] || "";
+    var fDesde = fechaParaInput(datos["Fecha Prometida Desde"]);
+    var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
+    if (fDesde) document.getElementById("p_fechaDesde").value = fDesde;
+    if (fHasta) document.getElementById("p_fechaHasta").value = fHasta;
+    preventasCalcTotal();
+  }
+
+  function preventasEnviar(){
+    var pv = parseFloat(document.getElementById("p_precioVenta").value) || 0;
+    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("p_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var total = ef + tr + cu + usPesos;
+
+    if (!document.getElementById("p_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!document.getElementById("p_cliente").value.trim()) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
+    if (!document.getElementById("p_modelo").value.trim()) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
+    if (!document.getElementById("p_vendedor").value.trim()) { mostrarToast("Ingresá el nombre del vendedor.", "error"); return; }
+    if (pv <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
+    if (total <= 0) { mostrarToast("Debe registrarse al menos un cobro.", "error"); return; }
+
+    var d = {
+      fecha: document.getElementById("p_fecha").value,
+      modelo: document.getElementById("p_modelo").value.trim(),
+      cliente: document.getElementById("p_cliente").value.trim(),
+      cuil: document.getElementById("p_cuil").value.trim(),
+      tel: document.getElementById("p_tel").value.trim(),
+      vendedor: document.getElementById("p_vendedor").value.trim(),
+      precioVenta: pv,
+      efec: ef, transf: tr, cuotas: cu, usd: us,
+      fechaDesde: document.getElementById("p_fechaDesde").value,
+      fechaHasta: document.getElementById("p_fechaHasta").value,
+      obs: document.getElementById("p_obs").value.trim(),
+      operador: document.getElementById("p_operador").value
+    };
+
+    if (_correccion && _correccion.tipo === "PREVENTA") { enviarCorreccion("corregirPreventa", d); return; }
+
+    confirmarAccion("¿Confirmás registrar la preventa de " + d.modelo + " para " + d.cliente + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarPreventaConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        preventasLimpiarForm();
+      });
+    });
+  }
+
+  /** Deja "Registrar Preventa" en blanco y listo para la próxima carga. Reutilizada tanto tras una preventa normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
+  function preventasLimpiarForm(){
+    _precioAutoPreventas.reset(); // Parte 3: nueva preventa → vuelve a proponer precio
+    limpiarFormulario(document.getElementById("preventas_form"), {
+      preservarIds: ["p_operador"],
+      fechasHoy: ["p_fecha"],
+      despues: function(){
+        preventasCalcTotal();
+        preventasRecalcularPlazoEntrega(); // form.reset() no dispara "change" en p_fecha
+      }
+    });
+  }
+</script>

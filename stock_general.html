@@ -1,0 +1,117 @@
+<div id="view-stock_general" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>📋 Stock General</h3>
+    <div class="hint">Inventario consolidado: equipos y accesorios.</div>
+
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" class="btn" id="sg_tab_equipos" style="width:auto;padding:8px 16px" onclick="stockGeneralSetTab('equipos')">Equipos</button>
+      <button type="button" class="btn" id="sg_tab_accesorios" style="width:auto;padding:8px 16px" onclick="stockGeneralSetTab('accesorios')">Accesorios</button>
+      <button type="button" class="btn" id="sg_tab_todo" style="width:auto;padding:8px 16px" onclick="stockGeneralSetTab('todo')">Todo</button>
+    </div>
+
+    <div id="sg_panel_equipos" style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Modelo</th><th style="padding:8px">IMEI</th><th style="padding:8px">Color</th>
+            <th style="padding:8px;text-align:right">Costo</th><th style="padding:8px;text-align:right">Precio Est. Venta</th>
+            <th style="padding:8px">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="sg_tbody_equipos"><tr><td colspan="6" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="sg_panel_accesorios" style="overflow-x:auto;margin-top:14px;display:none">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Categoría</th><th style="padding:8px">Producto</th><th style="padding:8px">Marca</th>
+            <th style="padding:8px;text-align:right">Stock</th><th style="padding:8px;text-align:right">Total</th><th style="padding:8px">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="sg_tbody_accesorios"><tr><td colspan="6" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div id="sg_panel_todo" style="overflow-x:auto;margin-top:14px;display:none">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Tipo</th><th style="padding:8px">Descripción</th>
+            <th style="padding:8px;text-align:right">Cantidad</th><th style="padding:8px;text-align:right">Valor</th><th style="padding:8px">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="sg_tbody_todo"><tr><td colspan="5" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  var _sgCache = { equipos: [], accesorios: [] };
+  var _sgTabActiva = "equipos";
+
+  function stockGeneralInit(){
+    google.script.run
+      .withSuccessHandler(function(data){
+        _sgCache = data || { equipos: [], accesorios: [] };
+        stockGeneralRenderizar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerStockGeneral();
+  }
+
+  function stockGeneralSetTab(tab){
+    _sgTabActiva = tab;
+    ["equipos", "accesorios", "todo"].forEach(function(t){
+      document.getElementById("sg_panel_" + t).style.display = (t === tab) ? "block" : "none";
+      document.getElementById("sg_tab_" + t).style.background = (t === tab) ? "" : "#B8C4CE";
+    });
+    stockGeneralRenderizar();
+  }
+
+  function stockGeneralRenderizar(){
+    var tEq = document.getElementById("sg_tbody_equipos");
+    if (_sgCache.equipos.length === 0) {
+      tEq.innerHTML = "<tr><td colspan='6' style='padding:14px;text-align:center;color:#889'>Sin equipos en stock.</td></tr>";
+    } else {
+      tEq.innerHTML = _sgCache.equipos.map(function(e){
+        return "<tr><td style='padding:8px;font-weight:600'>" + e.modelo + "</td><td style='padding:8px'>" + e.imei + "</td>" +
+          "<td style='padding:8px'>" + e.color + "</td><td style='padding:8px;text-align:right'>" + fmtP(e.costo) + "</td>" +
+          "<td style='padding:8px;text-align:right'>" + fmtP(e.precioVenta) + "</td><td style='padding:8px'>" + e.estado + "</td></tr>";
+      }).join("");
+    }
+
+    var tAcc = document.getElementById("sg_tbody_accesorios");
+    if (_sgCache.accesorios.length === 0) {
+      tAcc.innerHTML = "<tr><td colspan='6' style='padding:14px;text-align:center;color:#889'>Sin accesorios en el catálogo.</td></tr>";
+    } else {
+      tAcc.innerHTML = _sgCache.accesorios.map(function(s){
+        return "<tr><td style='padding:8px'>" + s.categoria + "</td><td style='padding:8px;font-weight:600'>" + s.producto + "</td>" +
+          "<td style='padding:8px'>" + s.marca + "</td><td style='padding:8px;text-align:right'>" + s.stock + "</td>" +
+          "<td style='padding:8px;text-align:right'>" + fmtP(s.valorStock) + "</td><td style='padding:8px'>" + s.estado + "</td></tr>";
+      }).join("");
+    }
+
+    var tTodo = document.getElementById("sg_tbody_todo");
+    var filas = [];
+    _sgCache.equipos.forEach(function(e){
+      filas.push("<tr><td style='padding:8px'>📱 Equipo</td><td style='padding:8px;font-weight:600'>" + e.modelo + " (" + e.imei + ")</td>" +
+        "<td style='padding:8px;text-align:right'>1</td><td style='padding:8px;text-align:right'>" + fmtP(e.costo) + "</td><td style='padding:8px'>" + e.estado + "</td></tr>");
+    });
+    _sgCache.accesorios.forEach(function(s){
+      filas.push("<tr><td style='padding:8px'>📦 Accesorio</td><td style='padding:8px;font-weight:600'>" + s.producto + " — " + s.marca + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + s.stock + "</td><td style='padding:8px;text-align:right'>" + fmtP(s.valorStock) + "</td><td style='padding:8px'>" + s.estado + "</td></tr>");
+    });
+    tTodo.innerHTML = filas.length ? filas.join("") : "<tr><td colspan='5' style='padding:14px;text-align:center;color:#889'>Sin datos.</td></tr>";
+
+    stockGeneralSetTabEstilo();
+  }
+
+  function stockGeneralSetTabEstilo(){
+    ["equipos", "accesorios", "todo"].forEach(function(t){
+      document.getElementById("sg_tab_" + t).style.background = (t === _sgTabActiva) ? "" : "#B8C4CE";
+    });
+  }
+</script>

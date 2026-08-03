@@ -1,0 +1,73 @@
+<div id="view-stock_accesorios" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>📦 Stock Accesorios</h3>
+    <div class="hint">Stock calculado a partir de Compras Accesorios y Ventas Accesorios. Se recalcula solo con cada compra/venta.</div>
+
+    <input type="text" id="sa_buscar" placeholder="🔎 Buscar por producto, marca o categoría..." oninput="stockAccesoriosRenderizar()" style="margin-top:10px"/>
+
+    <div style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Categoría</th>
+            <th style="padding:8px">Producto</th>
+            <th style="padding:8px">Marca</th>
+            <th style="padding:8px">Color</th>
+            <th style="padding:8px;text-align:right">Stock</th>
+            <th style="padding:8px;text-align:right">Costo</th>
+            <th style="padding:8px;text-align:right">Venta</th>
+            <th style="padding:8px;text-align:right">Total</th>
+            <th style="padding:8px">Ubicación</th>
+            <th style="padding:8px">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="sa_tbody">
+          <tr><td colspan="10" style="padding:14px;text-align:center;color:#889">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  var _saCache = [];
+
+  function stockAccesoriosInit(){
+    google.script.run
+      .withSuccessHandler(function(stock){
+        _saCache = stock || [];
+        stockAccesoriosRenderizar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerStockAccesorios();
+  }
+
+  function stockAccesoriosRenderizar(){
+    var q = (document.getElementById("sa_buscar").value || "").trim().toLowerCase();
+    var filtrado = !q ? _saCache : _saCache.filter(function(s){
+      return (s.producto + " " + s.marca + " " + s.categoria + " " + s.color).toLowerCase().indexOf(q) !== -1;
+    });
+
+    var tbody = document.getElementById("sa_tbody");
+    if (filtrado.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='10' style='padding:14px;text-align:center;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+
+    tbody.innerHTML = filtrado.map(function(s){
+      var color = s.estado.indexOf("Sin stock") !== -1 ? "#F9EBEA" : (s.estado.indexOf("Bajo stock") !== -1 ? "#FDEBD0" : "#EAFAF1");
+      return "<tr style='background:" + color + "'>" +
+        "<td style='padding:8px'>" + s.categoria + "</td>" +
+        "<td style='padding:8px;font-weight:600'>" + s.producto + "</td>" +
+        "<td style='padding:8px'>" + s.marca + "</td>" +
+        "<td style='padding:8px'>" + s.color + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + s.stock + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + fmtP(s.costoPromedio) + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + fmtP(s.precioVenta) + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + fmtP(s.valorStock) + "</td>" +
+        "<td style='padding:8px'>" + (s.ubicacion || "—") + "</td>" +
+        "<td style='padding:8px'>" + s.estado + "</td>" +
+      "</tr>";
+    }).join("");
+  }
+</script>

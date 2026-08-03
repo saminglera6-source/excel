@@ -1,0 +1,55 @@
+<div id="view-tarifario_reparaciones" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>🔧 Tarifario Reparaciones</h3>
+    <div class="hint">Calculado en tiempo real desde "Toma de Equipos" + "CONFIG_REPARACIONES" — no se guarda nada acá. Un cambio de descuento o multiplicador se refleja al instante.</div>
+
+    <input type="text" id="tr_buscar" placeholder="🔎 Buscar modelo..." oninput="tarifarioRenderizar()" style="margin-top:10px"/>
+
+    <div id="tr_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:14px">
+      <div style="grid-column:1/-1;text-align:center;color:#889;padding:20px">Cargando...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var _tarifarioCache = [];
+
+  function tarifarioReparacionesInit(){
+    document.getElementById("tr_grid").innerHTML = "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Cargando...</div>";
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _tarifarioCache = datos || [];
+        // Precalculado una sola vez acá (no en cada tecla del buscador,
+        // Parte "cientos de modelos sin degradar" — evita recalcular
+        // toLowerCase() de todo el catálogo en cada oninput).
+        _tarifarioCache.forEach(function(m){ m._modeloLower = (m.modelo || "").toLowerCase(); });
+        tarifarioRenderizar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerTarifarioReparaciones();
+  }
+
+  function tarifarioRenderizar(){
+    var q = (document.getElementById("tr_buscar").value || "").trim().toLowerCase();
+    var filtrado = !q ? _tarifarioCache : _tarifarioCache.filter(function(m){
+      return m._modeloLower.indexOf(q) !== -1;
+    });
+
+    var grid = document.getElementById("tr_grid");
+    if (filtrado.length === 0) {
+      grid.innerHTML = "<div style='grid-column:1/-1;text-align:center;color:#889;padding:20px'>Sin resultados.</div>";
+      return;
+    }
+
+    grid.innerHTML = filtrado.map(function(m){
+      var filas = (m.trabajos || []).map(function(t){
+        var valor = t.sinConfigurar ? "<span style='color:#B7950B'>sin configurar</span>" : "<b>" + fmtP(t.precio) + "</b>";
+        return "<div style='display:flex;justify-content:space-between;font-size:12.5px'><span>" + t.nombre + ":</span>" + valor + "</div>";
+      }).join("");
+      return "<div style='background:#fff;border:1px solid var(--borde);border-radius:var(--radio);box-shadow:var(--sombra);padding:14px;display:flex;flex-direction:column;gap:5px'>" +
+        "<div style='font-weight:700;font-size:14px;color:var(--azul);margin-bottom:4px'>📱 " + m.modelo + "</div>" +
+        filas +
+      "</div>";
+    }).join("");
+  }
+</script>

@@ -1,0 +1,441 @@
+<div id="view-compras" class="view">
+  <div class="panel">
+    <h3>🛒 Registrar Compra / Consignación</h3>
+
+    <label>¿Qué querés registrar?</label>
+    <select id="c_modo" onchange="comprasToggleModo()">
+      <option value="EQUIPO">Compra equipo / Consignación</option>
+      <option value="ACCESORIOS">Compra accesorios</option>
+    </select>
+
+    <form id="compras_form" onsubmit="return false;">
+    <div id="c_bloqueEquipo">
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién carga esto y qué tipo de ingreso es?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="c_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <label>Tipo de ingreso: <span class="req">*</span></label>
+      <select id="c_tipo" onchange="comprasActualizarVisibilidad()">
+        <option value="COMPRA">COMPRA — equipo propio</option>
+        <option value="CONSIGNACION">CONSIGNACION — equipo de tercero</option>
+      </select>
+      <div class="hint">COMPRA: el equipo pasa a ser tuyo, vos le pagás el precio de compra ahora. CONSIGNACIÓN: el equipo sigue siendo del dueño hasta que se venda — solo acordás cuánto se le va a pagar cuando eso pase.</div>
+
+      <label>Fecha:</label>
+      <input type="date" id="c_fecha"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Datos del equipo</p>
+
+      <label>Proveedor / Origen:</label>
+      <input type="text" id="c_proveedor" placeholder="Ej: Juan Pérez, Particular"/>
+
+      <label>CUIL/CUIT proveedor (opcional):</label>
+      <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9"/>
+      <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
+
+      <div class="fila2">
+        <div>
+          <label>Equipo / Modelo: <span class="req">*</span></label>
+          <div class="gp-modelo-wrap">
+            <input type="text" id="c_modelo" placeholder="🔎 Buscar modelo... (Lista de Precios)" autocomplete="off"/>
+          </div>
+        </div>
+        <div>
+          <label>IMEI:</label>
+          <input type="text" id="c_imei" placeholder="15 dígitos"/>
+        </div>
+      </div>
+
+      <div class="fila2">
+        <div>
+          <label>Color:</label>
+          <input type="text" id="c_color" placeholder="Ej: Negro"/>
+        </div>
+        <div>
+          <label>Estado físico:</label>
+          <select id="c_estadoFisico">
+            <option>Excelente</option><option selected>Bueno</option>
+            <option>Regular</option><option>Para Reparación</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">3</span> Precio y forma de pago</p>
+
+      <div id="c_wrapPrecioCompra">
+        <label>Precio de compra ($): <span class="req">*</span></label>
+        <input type="number" id="c_precioCompra" value="0" min="0"/>
+      </div>
+
+      <div id="c_wrapPrecioConsig">
+        <label>Precio acordado consignación ($): <span class="req">*</span></label>
+        <input type="number" id="c_precioConsig" value="0" min="0"/>
+      </div>
+
+      <label>Forma de pago:</label>
+      <select id="c_formaPago">
+        <option>Efectivo</option><option>Transferencia</option>
+        <option>Mixto</option><option>Pendiente</option>
+      </select>
+    </div>
+
+    <div class="paso paso-opcional">
+      <p class="paso-titulo"><span class="paso-num">4</span> ¿Necesita arreglo antes de ponerlo a la venta?</p>
+      <select id="c_reparacion" onchange="comprasActualizarVisibilidad()"><option>No</option><option>Sí</option></select>
+
+      <div id="c_wrapReparacionEstimados" style="display:none;margin-top:10px">
+        <div class="hint">Son estimaciones para uso interno — no bloquean el registro de la compra. Cuando el equipo quede reparado, se marca desde "Mis Operaciones" (botón "🔧 Reparación lista") para que pase a estar disponible en la venta.</div>
+        <div class="fila2">
+          <div>
+            <label>Costo reparación estimado ($):</label>
+            <input type="number" id="c_costoRep" value="0" min="0"/>
+          </div>
+          <div>
+            <label>Precio estimado de venta ($):</label>
+            <input type="number" id="c_precioVenta" value="0" min="0"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso paso-opcional">
+      <p class="paso-titulo"><span class="paso-num">5</span> ¿Es para una preventa ya pactada?</p>
+      <select id="c_esPreventa" onchange="comprasTogglePreventa()">
+        <option value="No">No</option>
+        <option value="Si">Sí — vincular a preventa existente</option>
+      </select>
+
+      <div id="c_selectorPreventa" style="display:none" class="box box-info">
+        <label style="margin-top:0">Preventa asociada:</label>
+        <select id="c_nPreAsociada"><option value="">Cargando preventas...</option></select>
+      </div>
+    </div>
+
+    <label>Observaciones:</label>
+    <textarea id="c_obs"></textarea>
+
+    <button type="button" class="btn" onclick="comprasEnviar()">✅ Registrar compra</button>
+    </div>
+
+    <div id="c_bloqueAccesorios" style="display:none">
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién carga esto y cuándo?</p>
+        <label>Operador: <span class="req">*</span></label>
+        <select id="ca_operador" required>
+          <option value="" disabled selected>Seleccionar...</option>
+          <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+        </select>
+        <label>Fecha:</label>
+        <input type="date" id="ca_fecha"/>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">2</span> Proveedor</p>
+        <label>Proveedor:</label>
+        <input type="text" id="ca_proveedor" placeholder="Ej: Distribuidora ElectroMax"/>
+        <label>CUIL/CUIT proveedor (opcional):</label>
+        <input type="text" id="ca_cuil" placeholder="Ej: 20-12345678-9"/>
+        <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">3</span> Productos comprados</p>
+        <div id="ca_lineas"></div>
+        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="comprasAccLineaAgregar()">➕ Agregar línea</button>
+        <div class="box box-info" id="ca_totalDiv" style="margin-top:10px;font-weight:bold">Costo total: $0</div>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">4</span> ¿Cómo se pagó?</p>
+        <div class="fila2" style="grid-template-columns:1fr 1fr 1fr">
+          <div><label style="font-size:11px">Efectivo</label><input type="number" id="ca_pagEfec" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="number" id="ca_pagTransf" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="ca_pagUsd" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
+        </div>
+        <div class="total" id="ca_totalPagadoDiv">Total pagado: $0</div>
+      </div>
+
+      <label>Observaciones:</label>
+      <textarea id="ca_obs"></textarea>
+
+      <button type="button" class="btn" onclick="comprasAccEnviar()">✅ Registrar compra de accesorios</button>
+    </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.getElementById("c_fecha").value = new Date().toISOString().split("T")[0];
+  document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
+
+  // Parte 1/4/5/6 (rediseño UX): selector reutilizable con búsqueda
+  // (selector_modelos.html), fuente única "Lista de Precios". Modo strict:
+  // el operador SOLO puede elegir un modelo existente, no texto libre. En
+  // Compras solo completa el texto del modelo — no autocompleta precio,
+  // cliente, IMEI, color ni estado (Parte 8 del rediseño anterior).
+  var _selectorModeloCompras = crearSelectorModelos(document.getElementById("c_modelo"), { strict: true });
+
+  var CATS_ACCESORIOS = ["Cargadores", "Auriculares", "Fundas", "Vidrios templados", "Cables", "Accesorios varios", "Otros"];
+
+  function comprasToggleModo(){
+    var modo = document.getElementById("c_modo").value;
+    document.getElementById("c_bloqueEquipo").style.display      = (modo === "EQUIPO") ? "block" : "none";
+    document.getElementById("c_bloqueAccesorios").style.display  = (modo === "ACCESORIOS") ? "block" : "none";
+  }
+
+  /**
+   * Muestra solo el campo de precio que corresponde al tipo de ingreso
+   * elegido (COMPRA vs CONSIGNACION), y solo los campos de estimación de
+   * reparación si "¿Necesita arreglo?" está en "Sí". El campo que se oculta
+   * se resetea a 0 para no dejar un valor viejo cargado por error en un
+   * campo que ya no aplica (riesgo detectado en la auditoría de usabilidad:
+   * antes los dos precios quedaban siempre visibles y editables).
+   */
+  function comprasActualizarVisibilidad(){
+    var tipo = document.getElementById("c_tipo").value;
+    var esCompra = tipo === "COMPRA";
+    document.getElementById("c_wrapPrecioCompra").style.display = esCompra ? "block" : "none";
+    document.getElementById("c_wrapPrecioConsig").style.display = esCompra ? "none" : "block";
+    if (esCompra) document.getElementById("c_precioConsig").value = 0;
+    else document.getElementById("c_precioCompra").value = 0;
+
+    var necesitaRep = document.getElementById("c_reparacion").value === "Sí";
+    document.getElementById("c_wrapReparacionEstimados").style.display = necesitaRep ? "block" : "none";
+    if (!necesitaRep) {
+      document.getElementById("c_costoRep").value = 0;
+      document.getElementById("c_precioVenta").value = 0;
+    }
+  }
+  comprasActualizarVisibilidad();
+
+  var _caContador = 0;
+  function comprasAccLineaAgregar(){
+    _caContador++;
+    var id = _caContador;
+    var div = document.createElement("div");
+    div.className = "box";
+    div.id = "ca_linea-" + id;
+    div.style.marginTop = "8px";
+    div.innerHTML =
+      '<div class="fila2">' +
+        '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'">' +
+          CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("") +
+        '</select></div>' +
+        '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'"/></div>' +
+      '</div>' +
+      '<div class="fila2">' +
+        '<div><label style="font-size:11px">Marca</label><input type="text" id="ca_marca-'+id+'"/></div>' +
+        '<div><label style="font-size:11px">Color</label><input type="text" id="ca_color-'+id+'"/></div>' +
+      '</div>' +
+      '<div class="fila2">' +
+        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="1" min="1" oninput="comprasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Costo unitario ($)</label><input type="number" id="ca_costo-'+id+'" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>' +
+      '</div>' +
+      '<div class="fila2">' +
+        '<div><label style="font-size:11px">Precio venta ($)</label><input type="number" id="ca_precio-'+id+'" value="0" min="0"/></div>' +
+        '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="0" min="0"/></div>' +
+      '</div>' +
+      '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
+    document.getElementById("ca_lineas").appendChild(div);
+    comprasAccCalcTotal();
+  }
+
+  function comprasAccLineaQuitar(id){
+    var el = document.getElementById("ca_linea-" + id);
+    if (el) el.remove();
+    comprasAccCalcTotal();
+  }
+
+  function comprasAccLeerLineas(){
+    var out = [];
+    document.querySelectorAll("[id^='ca_linea-']").forEach(function(div){
+      var id = div.id.split("-")[1];
+      var producto = document.getElementById("ca_prod-"+id).value.trim();
+      if (!producto) return;
+      out.push({
+        categoria: document.getElementById("ca_cat-"+id).value,
+        producto: producto,
+        marca: document.getElementById("ca_marca-"+id).value.trim(),
+        color: document.getElementById("ca_color-"+id).value.trim(),
+        cantidad: parseInt(document.getElementById("ca_cant-"+id).value) || 0,
+        costoUnit: parseFloat(document.getElementById("ca_costo-"+id).value) || 0,
+        precioVenta: parseFloat(document.getElementById("ca_precio-"+id).value) || 0,
+        stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
+      });
+    });
+    return out;
+  }
+
+  function comprasAccCalcTotal(){
+    var lineas = comprasAccLeerLineas();
+    var total = lineas.reduce(function(s,l){ return s + l.cantidad*l.costoUnit; }, 0);
+    document.getElementById("ca_totalDiv").textContent = "Costo total: " + fmtP(total);
+
+    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
+    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var totalPagado = ef + tr + usPesos;
+    var txt = "Total pagado: " + fmtP(totalPagado);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("ca_totalPagadoDiv").textContent = txt;
+    return total;
+  }
+
+  function comprasAccEnviar(){
+    var operador = document.getElementById("ca_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var lineas = comprasAccLeerLineas();
+    if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto.", "error"); return; }
+    for (var i = 0; i < lineas.length; i++) {
+      if (lineas[i].cantidad <= 0) { mostrarToast("Revisá la cantidad de: " + lineas[i].producto, "error"); return; }
+    }
+    var total = comprasAccCalcTotal();
+    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
+    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var totalPagado = ef + tr + usPesos;
+    if (Math.abs(totalPagado - total) > 1) {
+      mostrarToast("El total pagado (" + fmtP(totalPagado) + ") no coincide con el costo total (" + fmtP(total) + ").", "error");
+      return;
+    }
+    var d = {
+      fecha: document.getElementById("ca_fecha").value,
+      proveedor: document.getElementById("ca_proveedor").value.trim(),
+      cuil: document.getElementById("ca_cuil").value.trim(),
+      operador: operador,
+      obs: document.getElementById("ca_obs").value.trim(),
+      lineas: lineas,
+      pagadoEfectivo: ef,
+      pagadoTransferencia: tr,
+      pagadoUSD: us
+    };
+    confirmarAccion("¿Confirmás registrar esta compra de accesorios (" + lineas.length + " línea/s)?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarCompraAccesoriosConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        document.getElementById("ca_lineas").innerHTML = "";
+        document.getElementById("ca_proveedor").value = "";
+        document.getElementById("ca_cuil").value = "";
+        document.getElementById("ca_obs").value = "";
+        ["ca_pagEfec","ca_pagTransf","ca_pagUsd"].forEach(function(id){ document.getElementById(id).value = 0; });
+        document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
+        comprasAccLineaAgregar();
+      });
+    });
+  }
+  comprasAccLineaAgregar();
+
+  function comprasTogglePreventa(){
+    var val = document.getElementById("c_esPreventa").value;
+    var div = document.getElementById("c_selectorPreventa");
+    if (val === "Si") {
+      div.style.display = "block";
+      google.script.run
+        .withSuccessHandler(function(opts){
+          var sel = document.getElementById("c_nPreAsociada");
+          sel.innerHTML = "";
+          if (!opts || opts.length === 0) {
+            sel.innerHTML = "<option value=''>— Sin preventas pendientes —</option>";
+          } else {
+            opts.forEach(function(o){
+              var op = document.createElement("option");
+              op.value = o.value; op.text = o.label;
+              sel.appendChild(op);
+            });
+          }
+        })
+        .withFailureHandler(function(e){
+          document.getElementById("c_nPreAsociada").innerHTML = "<option value=''>— Error cargando —</option>";
+        })
+        .getPreventasPendientes();
+    } else {
+      div.style.display = "none";
+    }
+  }
+
+  function comprasPrecargarCorreccion(datos){
+    document.getElementById("c_operador").value      = datos["OPERADOR"] || "";
+    document.getElementById("c_fecha").value         = fechaParaInput(datos["Fecha Ingreso"]) || document.getElementById("c_fecha").value;
+    document.getElementById("c_tipo").value          = datos["Tipo Ingreso"] || "COMPRA";
+    document.getElementById("c_proveedor").value     = datos["Proveedor / Origen"] || "";
+    document.getElementById("c_cuil").value          = datos["CUIL/CUIT Proveedor"] || "";
+    _selectorModeloCompras.setValor(datos["Equipo / Modelo"] || "");
+    document.getElementById("c_imei").value          = datos["IMEI"] || "";
+    document.getElementById("c_color").value         = datos["Color"] || "";
+    document.getElementById("c_estadoFisico").value  = datos["Estado Físico"] || "Bueno";
+    document.getElementById("c_precioCompra").value  = datos["Precio Compra"] || 0;
+    document.getElementById("c_precioConsig").value  = datos["Precio Acordado Consignación"] || 0;
+    document.getElementById("c_formaPago").value     = datos["Forma de Pago Compra"] || "Efectivo";
+    document.getElementById("c_reparacion").value    = datos["¿Necesita Reparación?"] || "No";
+    document.getElementById("c_costoRep").value      = datos["Costo Reparación Estimado"] || 0;
+    document.getElementById("c_precioVenta").value   = datos["Precio Estimado Venta"] || 0;
+    document.getElementById("c_obs").value           = datos["Observaciones"] || "";
+    comprasActualizarVisibilidad();
+  }
+
+  function comprasEnviar(){
+    var d = {
+      tipo: document.getElementById("c_tipo").value,
+      fecha: document.getElementById("c_fecha").value,
+      proveedor: document.getElementById("c_proveedor").value.trim(),
+      cuil: document.getElementById("c_cuil").value.trim(),
+      modelo: document.getElementById("c_modelo").value.trim(),
+      imei: document.getElementById("c_imei").value.trim(),
+      color: document.getElementById("c_color").value.trim(),
+      estadoFisico: document.getElementById("c_estadoFisico").value,
+      precioCompra: parseFloat(document.getElementById("c_precioCompra").value) || 0,
+      precioConsig: parseFloat(document.getElementById("c_precioConsig").value) || 0,
+      formaPago: document.getElementById("c_formaPago").value,
+      reparacion: document.getElementById("c_reparacion").value,
+      costoRep: parseFloat(document.getElementById("c_costoRep").value) || 0,
+      precioVenta: parseFloat(document.getElementById("c_precioVenta").value) || 0,
+      obs: document.getElementById("c_obs").value.trim(),
+      esPreventa: document.getElementById("c_esPreventa").value,
+      nPreAsociada: document.getElementById("c_esPreventa").value === "Si"
+        ? document.getElementById("c_nPreAsociada").value
+        : "",
+      operador: document.getElementById("c_operador").value
+    };
+    if (!d.operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!d.modelo) { mostrarToast("Ingresá el modelo del equipo.", "error"); return; }
+    if (d.tipo === "COMPRA" && d.precioCompra <= 0) { mostrarToast("Para COMPRA, el precio de compra debe ser > 0.", "error"); return; }
+    if (d.tipo === "CONSIGNACION" && d.precioConsig <= 0) { mostrarToast("Para CONSIGNACION, el precio acordado debe ser > 0.", "error"); return; }
+    if (d.esPreventa === "Si" && !d.nPreAsociada) { mostrarToast("Seleccioná la preventa a vincular.", "error"); return; }
+
+    if (_correccion && _correccion.tipo === "COMPRA") { enviarCorreccion("corregirCompra", d); return; }
+
+    confirmarAccion("¿Confirmás registrar esta " + (d.tipo === "CONSIGNACION" ? "consignación" : "compra") + " de " + d.modelo + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarCompraConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        comprasLimpiarForm();
+      });
+    });
+  }
+
+  /** Deja "Registrar Compra" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una compra normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
+  function comprasLimpiarForm(){
+    limpiarFormulario(document.getElementById("compras_form"), {
+      preservarIds: ["c_operador"],
+      fechasHoy: ["c_fecha"],
+      despues: function(){
+        comprasTogglePreventa();
+        comprasActualizarVisibilidad();
+      }
+    });
+  }
+</script>

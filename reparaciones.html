@@ -1,0 +1,446 @@
+<div id="view-reparaciones" class="view">
+  <div class="panel">
+    <h3>🔧 Registrar Reparación</h3>
+
+    <form id="rep_form" onsubmit="return false;">
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién y qué tipo de reparación es?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="r_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <div class="fila2">
+        <div>
+          <label>Tipo:</label>
+          <select id="r_tipo">
+            <option>Particular</option><option>Garantía</option>
+            <option>Preventa</option><option>Interno</option>
+          </select>
+        </div>
+        <div>
+          <label>Fecha:</label>
+          <input type="date" id="r_fecha"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Datos del cliente</p>
+      <div class="fila2">
+        <div>
+          <label>Cliente: <span class="req">*</span></label>
+          <input type="text" id="r_cliente" placeholder="Nombre y apellido"/>
+        </div>
+        <div>
+          <label>Teléfono:</label>
+          <input type="text" id="r_tel" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">3</span> Equipo</p>
+      <div class="fila2">
+        <div>
+          <label>Buscar modelo (opcional, para calcular el presupuesto):</label>
+          <div class="gp-modelo-wrap">
+            <input type="text" id="r_modeloToma" placeholder="🔎 Buscar modelo (Toma de Equipos)..." autocomplete="off"/>
+          </div>
+        </div>
+        <div>
+          <label>Equipo: <span class="req">*</span></label>
+          <input type="text" id="r_equipo" placeholder="Ej: iPhone 14 Pro Max 256 GB" oninput="reparacionesEquipoManual()"/>
+        </div>
+      </div>
+      <div class="hint">Elegí el modelo (de "Toma de Equipos") para calcular el presupuesto automático. El campo de la derecha es lo que se guarda como "Equipo" — podés agregar detalle (color, GB, etc.).</div>
+
+      <div class="fila2">
+        <div>
+          <label>IMEI (opcional):</label>
+          <input type="text" id="r_imei" placeholder="15 dígitos"/>
+        </div>
+        <div>
+          <label>PIN (opcional):</label>
+          <input type="text" id="r_pin" placeholder="Ej: 1234"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Falla</p>
+      <label>Falla principal: <span class="req">*</span></label>
+      <input type="text" id="r_falla1" placeholder="Describe la falla reportada por el cliente"/>
+
+      <label>Falla 2 (opcional):</label>
+      <input type="text" id="r_falla2" placeholder="Falla adicional detectada"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">5</span> Presupuesto automático</p>
+      <label style="margin-top:0">🔧 Trabajos (presupuesto automático desde Toma de Equipos)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:6px" id="r_checksTrabajos">
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_bateria" style="width:auto" onchange="reparacionesRecalcular()"/> Batería</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_pantalla" style="width:auto" onchange="reparacionesRecalcular()"/> Pantalla</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_camara" style="width:auto" onchange="reparacionesRecalcular()"/> Cámara</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_microfono" style="width:auto" onchange="reparacionesRecalcular()"/> Micrófono</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_parlante" style="width:auto" onchange="reparacionesRecalcular()"/> Parlante</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_tapa" style="width:auto" onchange="reparacionesRecalcular()"/> Tapa</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_marco" style="width:auto" onchange="reparacionesRecalcular()"/> Marco</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_pin" style="width:auto" onchange="reparacionesRecalcular()"/> Pin</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_flex" style="width:auto" onchange="reparacionesRecalcular()"/> Flex de carga</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_botones" style="width:auto" onchange="reparacionesRecalcular()"/> Botones laterales</label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px"><input type="checkbox" id="r_chk_chasis" style="width:auto" onchange="reparacionesRecalcular()"/> Chasis</label>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:18px;margin-top:12px;padding:8px 10px;background:#F4F6F9;border-radius:6px">
+        <b style="font-size:12.5px">Tipo de ingreso:</b>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px">
+          <input type="radio" name="r_tipoIngreso" id="r_tipoIngreso_reparacion" value="reparacion" checked style="width:auto" onchange="reparacionesRecalcular()"/> Reparación
+        </label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:5px">
+          <input type="radio" name="r_tipoIngreso" id="r_tipoIngreso_diagnostico" value="diagnostico" style="width:auto" onchange="reparacionesRecalcular()"/> Diagnóstico
+        </label>
+      </div>
+      <div class="hint" style="margin-top:4px">Diagnóstico: usar cuando la falla es desconocida (no enciende / placa / mojado / falla extraña / reinicios / consumo anormal). No se seleccionan trabajos ni precio — se cotiza luego de revisar el equipo (48 hs hábiles).</div>
+
+      <div id="r_presupuestoResultado" style="margin-top:12px"></div>
+    </div>
+
+    <div id="r_presupuestoCliente" style="display:none;margin-top:14px">
+      <div class="box box-info">
+        <label style="margin-top:0">📋 Presupuesto para el cliente</label>
+        <div id="r_presupuestoTexto" style="white-space:pre-wrap;font-size:12.5px;background:#fff;border:1px solid var(--borde);border-radius:6px;padding:10px;margin-top:6px"></div>
+        <div class="fila3" style="margin-top:10px">
+          <button type="button" class="btn" style="margin:0;background:#5D6D7E" onclick="reparacionesCopiarPresupuesto()">📋 Copiar</button>
+          <button type="button" class="btn" style="margin:0;background:#1E8449" onclick="reparacionesWhatsappPresupuesto()">📲 WhatsApp</button>
+          <button type="button" class="btn" style="margin:0;background:#117864" onclick="reparacionesImprimirPresupuesto()">🖨 Imprimir presupuesto</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">6</span> Cobro</p>
+      <label style="margin-top:0">Precio cobrado ($):</label>
+      <input type="number" id="r_precioCob" value="0" min="0"/>
+
+      <div class="fila2">
+        <div>
+          <label>Cobrado efectivo ($):</label>
+          <input type="number" id="r_efec" value="0" min="0"/>
+        </div>
+        <div>
+          <label>Cobrado transferencia ($):</label>
+          <input type="number" id="r_transf" value="0" min="0"/>
+        </div>
+      </div>
+    </div>
+
+    <label>Observaciones:</label>
+    <textarea id="r_obs"></textarea>
+
+    <button type="button" class="btn" onclick="reparacionesEnviar()">✅ Registrar</button>
+    </form>
+
+    <div id="r_etiquetaBox" style="display:none;margin-top:14px;padding:10px;background:#F4F6F9;border-radius:8px;text-align:center">
+      <span id="r_etiquetaNumero" style="font-size:12.5px"></span><br>
+      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("r_fecha").value = new Date().toISOString().split("T")[0];
+  var _ultimaReparacionNumero = null;
+
+  // Reutilizable desde Reparaciones, Mis Operaciones y el modal Ver Reparación.
+  // Pide al backend el HTML ya armado (etiqueta imprimible ~10x5cm, etiquetas.gs)
+  // y lo abre en una ventana nueva; window.print() se dispara dentro de ese HTML.
+  // No genera PDF ni usa Drive/DocumentApp: es una vista imprimible, no modifica datos.
+  function imprimirEtiquetaReparacion(numero){
+    if (!numero) return;
+    google.script.run
+      .withSuccessHandler(function(html){
+        var w = window.open("", "_blank", "width=420,height=320");
+        if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para imprimir la etiqueta.", "error"); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .generarEtiquetaReparacion(numero);
+  }
+
+  // ============================================================
+  //  PRESUPUESTO AUTOMÁTICO — toda la lógica de precio vive en el backend
+  //  (calcularPresupuestoReparacion), acá solo se arma la UI y el texto.
+  // ============================================================
+
+  var _repModelosToma = [];
+  var _repUltimoPresupuesto = null; // último resultado de calcularPresupuestoReparacion()
+
+  var REP_TRABAJOS_CHECKS = [
+    { key: "bateria",   id: "r_chk_bateria"   },
+    { key: "pantalla",  id: "r_chk_pantalla"  },
+    { key: "camara",    id: "r_chk_camara"    },
+    { key: "microfono", id: "r_chk_microfono" },
+    { key: "parlante",  id: "r_chk_parlante"  },
+    { key: "tapa",      id: "r_chk_tapa"      },
+    { key: "marco",     id: "r_chk_marco"     },
+    { key: "pin",       id: "r_chk_pin"       },
+    { key: "flex",      id: "r_chk_flex"      },
+    { key: "botones",   id: "r_chk_botones"   },
+    { key: "chasis",    id: "r_chk_chasis"    }
+  ];
+
+  // Selector reutilizable con búsqueda (selector_modelos.html) — mismo
+  // componente que Compras/Ventas/Preventas, ahora también acá. Fuente:
+  // "Toma de Equipos" (_repModelosToma, mantenido fresco por reparacionesInit()
+  // en cada apertura de la vista, igual que antes) en vez de "Lista de
+  // Precios" — sigue reutilizando obtenerPreciosToma(), no se duplica nada.
+  // Modo strict: solo se puede dejar cargado un modelo real de Toma de
+  // Equipos (o ninguno) — si no está en la lista, se escribe directo en
+  // "Equipo" (reemplaza a la vieja opción "Otro (no está en la lista)").
+  var _selectorModeloReparaciones = crearSelectorModelos(document.getElementById("r_modeloToma"), {
+    strict: true,
+    obtenerDatos: function(cb){ cb(_repModelosToma); },
+    textoDe: function(p){ return p.modelo; },
+    onSeleccion: function(p, texto){
+      document.getElementById("r_equipo").value = texto;
+      reparacionesRecalcular();
+    }
+  });
+
+  function reparacionesInit(){
+    google.script.run
+      .withSuccessHandler(function(datos){ _repModelosToma = datos || []; })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreciosToma();
+  }
+
+  /** Si el usuario edita "Equipo" a mano después de elegir un modelo, no se vuelve a pisar el texto — solo se actualiza el cálculo si el modelo elegido sigue siendo válido. */
+  function reparacionesEquipoManual(){ /* el cálculo depende de r_modeloToma, no de este texto — no hace falta recalcular acá */ }
+
+  function reparacionesLeerModeloSeleccionado(){
+    return document.getElementById("r_modeloToma").value.trim();
+  }
+
+  /** Parte 4: internamente se sigue guardando/calculando en horas (24/48/72/96) — esto solo cambia cómo se muestra. */
+  function repDiasHabiles(horas){
+    var dias = Math.round((Number(horas) || 0) / 24) || 1;
+    return dias + (dias === 1 ? " día hábil" : " días hábiles");
+  }
+
+  function reparacionesRecalcular(){
+    var diagnostico = document.getElementById("r_tipoIngreso_diagnostico").checked;
+    var checksBox = document.getElementById("r_checksTrabajos");
+    checksBox.style.opacity = diagnostico ? "0.5" : "1";
+    REP_TRABAJOS_CHECKS.forEach(function(it){ document.getElementById(it.id).disabled = diagnostico; });
+
+    if (diagnostico) {
+      google.script.run
+        .withSuccessHandler(function(res){ _repRenderResultado(res, ""); })
+        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+        .calcularPresupuestoReparacion({ diagnostico: true });
+      return;
+    }
+
+    var modelo = reparacionesLeerModeloSeleccionado();
+    var algunTrabajo = REP_TRABAJOS_CHECKS.some(function(it){ return document.getElementById(it.id).checked; });
+    if (!modelo || !algunTrabajo) {
+      _repUltimoPresupuesto = null;
+      document.getElementById("r_presupuestoResultado").innerHTML = "";
+      document.getElementById("r_presupuestoCliente").style.display = "none";
+      return;
+    }
+
+    var d = { modelo: modelo };
+    REP_TRABAJOS_CHECKS.forEach(function(it){ d[it.key] = document.getElementById(it.id).checked; });
+
+    google.script.run
+      .withSuccessHandler(function(res){ _repRenderResultado(res, modelo); })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .calcularPresupuestoReparacion(d);
+  }
+
+  function _repRenderResultado(res, modelo){
+    _repUltimoPresupuesto = res;
+    _repUltimoPresupuesto.modeloUsado = modelo;
+
+    var html = "";
+    if (res.estado === "DIAGNOSTICO") {
+      html = "<div class='box' style='background:#FEF9E7'>" +
+        "<b>Precio:</b> A confirmar<br>" +
+        "<b>Tiempo:</b> " + repDiasHabiles(res.horasEstimadas) + "<br>" +
+        "<b>Estado:</b> DIAGNÓSTICO" +
+      "</div>";
+    } else {
+      var lineas = res.trabajos.map(function(t){
+        if (t.sinConfigurar) return "<div style='display:flex;justify-content:space-between'><span>" + t.nombre + ":</span><b style='color:#B7950B'>" + (t.motivo || "sin configurar") + "</b></div>";
+        return "<div style='display:flex;justify-content:space-between'><span>" + t.nombre + ":</span><b>" + fmtP(t.precio) + "</b></div>";
+      }).join("");
+      html = "<div class='box'>" +
+        "<b>TRABAJOS</b><br>" +
+        res.trabajos.map(function(t){ return "✓ " + t.nombre; }).join("<br>") +
+      "</div>" +
+      "<div class='box' style='margin-top:8px'>" + lineas + "</div>" +
+      "<div class='total' style='margin-top:8px'>TOTAL: " + fmtP(res.precioTotal) + "</div>" +
+      "<div class='hint' style='margin-top:4px'>Tiempo estimado: " + repDiasHabiles(res.horasEstimadas) + "</div>";
+
+      document.getElementById("r_precioCob").value = res.precioTotal;
+    }
+    document.getElementById("r_presupuestoResultado").innerHTML = html;
+
+    document.getElementById("r_presupuestoTexto").textContent = reparacionesArmarTextoPresupuesto();
+    document.getElementById("r_presupuestoCliente").style.display = "block";
+  }
+
+  function reparacionesArmarTextoPresupuesto(){
+    var res = _repUltimoPresupuesto;
+    if (!res) return "";
+    var equipo = document.getElementById("r_equipo").value.trim() || res.modeloUsado || "—";
+    var lineas = [];
+    lineas.push("🔧 GreatPhones Service");
+    lineas.push("");
+    lineas.push("Equipo:");
+    lineas.push(equipo);
+    lineas.push("");
+    lineas.push("Trabajos:");
+    lineas.push("");
+    if (res.estado === "DIAGNOSTICO") {
+      lineas.push("✓ Diagnóstico técnico");
+    } else {
+      res.trabajos.forEach(function(t){ lineas.push("✓ " + t.nombre); });
+    }
+    lineas.push("");
+    lineas.push("Precio estimado:");
+    lineas.push("");
+    lineas.push(res.estado === "DIAGNOSTICO" ? "A confirmar" : fmtP(res.precioTotal));
+    lineas.push("");
+    lineas.push("Tiempo estimado:");
+    lineas.push("");
+    lineas.push(repDiasHabiles(res.horasEstimadas));
+    lineas.push("");
+    lineas.push("Garantía:");
+    lineas.push("90 días");
+    return lineas.join("\n");
+  }
+
+  function reparacionesCopiarPresupuesto(){ preciosCopiarTexto(reparacionesArmarTextoPresupuesto()); }
+  function reparacionesWhatsappPresupuesto(){ preciosCopiarTexto(reparacionesArmarTextoPresupuesto(), "✅ Presupuesto copiado para WhatsApp"); }
+
+  /** Parte 6: reutiliza el mismo sistema de impresión que las etiquetas (etiquetas.gs) — no crea un mecanismo nuevo. */
+  function reparacionesImprimirPresupuesto(){
+    var res = _repUltimoPresupuesto;
+    if (!res) { mostrarToast("Calculá un presupuesto primero.", "error"); return; }
+    var datos = {
+      equipo: document.getElementById("r_equipo").value.trim() || res.modeloUsado || "",
+      trabajos: res.trabajos || [],
+      precioTotal: res.precioTotal,
+      horasEstimadas: res.horasEstimadas,
+      esDiagnostico: res.estado === "DIAGNOSTICO"
+    };
+    google.script.run
+      .withSuccessHandler(function(html){
+        var w = window.open("", "_blank", "width=420,height=600");
+        if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para imprimir.", "error"); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .generarPresupuestoReparacionImprimible(datos);
+  }
+
+  function reparacionesPrecargarCorreccion(datos){
+    document.getElementById("r_operador").value = datos["OPERADOR"] || "";
+    document.getElementById("r_fecha").value    = fechaParaInput(datos["Fecha Ingreso"]) || document.getElementById("r_fecha").value;
+    document.getElementById("r_tipo").value     = datos["Tipo"] || "Particular";
+    document.getElementById("r_cliente").value  = datos["Cliente"] || "";
+    document.getElementById("r_tel").value      = datos["Teléfono"] || "";
+    document.getElementById("r_equipo").value   = datos["Equipo"] || "";
+    document.getElementById("r_imei").value     = datos["IMEI"] || "";
+    document.getElementById("r_pin").value      = datos["PIN"] || "";
+    document.getElementById("r_falla1").value   = datos["Falla 1"] || "";
+    document.getElementById("r_falla2").value   = datos["Falla 2"] || "";
+    document.getElementById("r_precioCob").value= datos["Precio Cobrado"] || 0;
+    document.getElementById("r_efec").value     = datos["Cobrado Efectivo"] || 0;
+    document.getElementById("r_transf").value   = datos["Cobrado Transferencia"] || 0;
+    document.getElementById("r_obs").value      = datos["Observaciones"] || "";
+    document.getElementById(datos["Es Diagnóstico"] === "SI" ? "r_tipoIngreso_diagnostico" : "r_tipoIngreso_reparacion").checked = true;
+    reparacionesRecalcular();
+  }
+
+  function reparacionesEnviar(){
+    var d = {
+      tipo: document.getElementById("r_tipo").value,
+      fecha: document.getElementById("r_fecha").value,
+      cliente: document.getElementById("r_cliente").value.trim(),
+      tel: document.getElementById("r_tel").value.trim(),
+      equipo: document.getElementById("r_equipo").value.trim(),
+      imei: document.getElementById("r_imei").value.trim(),
+      pin: document.getElementById("r_pin").value.trim(),
+      falla1: document.getElementById("r_falla1").value.trim(),
+      falla2: document.getElementById("r_falla2").value.trim(),
+      precioCob: parseFloat(document.getElementById("r_precioCob").value) || 0,
+      efec: parseFloat(document.getElementById("r_efec").value) || 0,
+      transf: parseFloat(document.getElementById("r_transf").value) || 0,
+      obs: document.getElementById("r_obs").value.trim(),
+      operador: document.getElementById("r_operador").value
+    };
+
+    var res = _repUltimoPresupuesto;
+    if (res) {
+      d.esDiagnostico = res.estado === "DIAGNOSTICO";
+      d.trabajosSeleccionados = d.esDiagnostico ? ["Diagnóstico"] : res.trabajos.map(function(t){ return t.nombre; });
+      d.tiempoEstimadoHoras = res.horasEstimadas;
+      d.precioCalculado = d.esDiagnostico ? 0 : res.precioTotal;
+      d.detallePresupuesto = d.esDiagnostico ? "Diagnóstico técnico — precio a confirmar" :
+        res.trabajos.map(function(t){
+          if (t.sinConfigurar) return t.nombre + ": " + (t.motivo || "sin configurar");
+          if (t.precioGuia != null) return t.nombre + ": " + fmtP(t.precioGuia) + " x1.20 = " + fmtP(t.precio);
+          if (t.descuentoToma != null) return t.nombre + ": " + fmtP(t.descuentoToma) + " x" + t.multiplicador + " = " + fmtP(t.precio);
+          return t.nombre + ": " + fmtP(t.precio);
+        }).join(" | ");
+    } else {
+      d.esDiagnostico = false;
+      d.trabajosSeleccionados = [];
+      d.tiempoEstimadoHoras = 0;
+      d.precioCalculado = 0;
+      d.detallePresupuesto = "";
+    }
+
+    if (!d.operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!d.cliente) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
+    if (!d.equipo) { mostrarToast("Ingresá el equipo.", "error"); return; }
+    if (!d.falla1) { mostrarToast("Describí la falla principal.", "error"); return; }
+
+    if (_correccion && _correccion.tipo === "REPARACION") { enviarCorreccion("corregirReparacion", d); return; }
+
+    llamarBackend("procesarReparacionConOperador", d, function(msg){
+      mostrarToastOperacion(msg);
+      var m = String(msg || "").match(/\bREP-\S+/);
+      if (m) {
+        _ultimaReparacionNumero = m[0].replace(/[.,;:]+$/, "");
+        document.getElementById("r_etiquetaNumero").textContent = "Reparación registrada: " + _ultimaReparacionNumero;
+        document.getElementById("r_etiquetaBox").style.display = "block";
+      }
+      cargarDashboard();
+      reparacionesLimpiarForm();
+    });
+  }
+
+  /** Deja "Registrar Reparación" en blanco y listo para la próxima carga (r_etiquetaBox queda fuera del <form>, así que el mensaje "Reparación registrada" y el botón "Imprimir etiqueta" no se tocan). Reutilizada tanto tras una reparación normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
+  function reparacionesLimpiarForm(){
+    limpiarFormulario(document.getElementById("rep_form"), {
+      preservarIds: ["r_operador"],
+      fechasHoy: ["r_fecha"]
+    });
+    _repUltimoPresupuesto = null;
+    document.getElementById("r_presupuestoResultado").innerHTML = "";
+    document.getElementById("r_presupuestoCliente").style.display = "none";
+    _selectorModeloReparaciones.setValor("");
+  }
+</script>

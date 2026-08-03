@@ -1,0 +1,181 @@
+<div id="view-reportes" class="view">
+  <div class="panel" style="max-width:640px">
+    <h3>📈 Reportes</h3>
+    <div class="hint">GreatPhones ERP — v1.0 Producción</div>
+    <div class="hint">Recalcula la hoja REPORTES (caja, ventas, ganancias, preventas, accesorios y vendedores) y muestra acá un resumen rápido de caja.</div>
+
+    <button class="btn" onclick="reportesActualizar()">🔄 Actualizar Reportes</button>
+
+    <div class="box box-info" id="rep_resumenDiv" style="margin-top:18px">Cargando saldos…</div>
+  </div>
+
+  <div class="panel" style="max-width:100%;margin-top:18px">
+    <h3>📒 Libro Diario (Últimas 96 horas)</h3>
+    <div class="hint">Movimientos de los últimos 4 días (96 horas), más reciente primero. Se lee directamente de la hoja "Libro Diario" — no duplica información ni crea ninguna hoja nueva.</div>
+
+    <div class="fila4">
+      <div>
+        <label style="font-size:11px">Operador</label>
+        <select id="rep_ld_operador" onchange="reportesLibroDiarioFiltrar()">
+          <option value="">Todos</option>
+          <option value="Martin">Martin</option>
+          <option value="Maca">Maca</option>
+          <option value="Sam">Sam</option>
+          <option value="Eva">Eva</option>
+          <option value="Buda">Buda</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Origen</label>
+        <select id="rep_ld_origen" onchange="reportesLibroDiarioFiltrar()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Medio de pago</label>
+        <select id="rep_ld_medio" onchange="reportesLibroDiarioFiltrar()">
+          <option value="">Todos</option>
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Cuotas">Cuotas</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Buscar N° operación</label>
+        <input type="text" id="rep_ld_busqueda" placeholder="Ej: VTA-004" oninput="reportesLibroDiarioFiltrar()"/>
+      </div>
+    </div>
+
+    <div class="fila4" style="margin-top:14px">
+      <div class="box box-info" style="margin:0"><b>💵 Total ingresos</b><br><span id="rep_ld_totalIngresos">$0</span></div>
+      <div class="box box-info" style="margin:0"><b>💸 Total egresos</b><br><span id="rep_ld_totalEgresos">$0</span></div>
+      <div class="box box-info" style="margin:0"><b>💰 Saldo neto</b><br><span id="rep_ld_saldoNeto">$0</span></div>
+      <div class="box box-info" style="margin:0"><b>📄 Movimientos</b><br><span id="rep_ld_cantidad">0</span></div>
+    </div>
+
+    <div style="overflow-x:auto;margin-top:14px">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="background:#F4F6F9;text-align:left">
+            <th style="padding:8px">Fecha y hora</th>
+            <th style="padding:8px">Origen</th>
+            <th style="padding:8px">N° Operación</th>
+            <th style="padding:8px">Tipo</th>
+            <th style="padding:8px">Medio</th>
+            <th style="padding:8px;text-align:right">Monto</th>
+            <th style="padding:8px">Descripción</th>
+            <th style="padding:8px">Operador</th>
+            <th style="padding:8px">Observaciones</th>
+          </tr>
+        </thead>
+        <tbody id="rep_ld_tbody">
+          <tr><td colspan="9" style="padding:14px;text-align:center;color:#889">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function reportesInit(){
+    reportesCargarSaldos();
+    reportesCargarLibroDiario();
+  }
+
+  var _repLibroDiarioData = [];
+
+  function reportesCargarLibroDiario(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _repLibroDiarioData = datos || [];
+        reportesPoblarOrigenesLibroDiario();
+        reportesLibroDiarioFiltrar();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerLibroDiarioReciente();
+  }
+
+  function reportesPoblarOrigenesLibroDiario(){
+    var sel = document.getElementById("rep_ld_origen");
+    var actual = sel.value;
+    var origenes = Array.from(new Set(_repLibroDiarioData.map(function(m){ return m.origen; }))).sort();
+    sel.innerHTML = "<option value=''>Todos</option>" + origenes.map(function(o){
+      return "<option" + (o === actual ? " selected" : "") + ">" + o + "</option>";
+    }).join("");
+  }
+
+  function reportesLibroDiarioFiltrar(){
+    var fOperador = document.getElementById("rep_ld_operador").value;
+    var fOrigen   = document.getElementById("rep_ld_origen").value;
+    var fMedio    = document.getElementById("rep_ld_medio").value;
+    var fBusqueda = document.getElementById("rep_ld_busqueda").value.trim().toLowerCase();
+
+    var filtrados = _repLibroDiarioData.filter(function(m){
+      if (fOperador && m.operador !== fOperador) return false;
+      if (fOrigen && m.origen !== fOrigen) return false;
+      if (fMedio && m.medio !== fMedio) return false;
+      if (fBusqueda && String(m.numero || "").toLowerCase().indexOf(fBusqueda) === -1) return false;
+      return true;
+    });
+
+    // Cabecera de resumen: se calcula sobre "filtrados" (mismo array que arma
+    // la tabla, mismos filtros activos) — no vuelve a leer la hoja ni pide
+    // datos nuevos al backend.
+    var totalIngresos = 0, totalEgresos = 0;
+    filtrados.forEach(function(m){
+      if (m.tipo === "INGRESO") totalIngresos += m.monto;
+      else if (m.tipo === "EGRESO") totalEgresos += m.monto;
+    });
+    document.getElementById("rep_ld_totalIngresos").textContent = fmtP(totalIngresos);
+    document.getElementById("rep_ld_totalEgresos").textContent  = fmtP(totalEgresos);
+    document.getElementById("rep_ld_saldoNeto").textContent     = fmtP(totalIngresos - totalEgresos);
+    document.getElementById("rep_ld_cantidad").textContent      = filtrados.length;
+
+    var tbody = document.getElementById("rep_ld_tbody");
+    if (filtrados.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='9' style='padding:14px;text-align:center;color:#889'>Sin movimientos para este filtro.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = filtrados.map(function(m){
+      return "<tr style='border-top:1px solid #E1E5EA'>" +
+        "<td style='padding:8px;white-space:nowrap'>" + m.fecha + "</td>" +
+        "<td style='padding:8px'>" + (m.origen || "—") + "</td>" +
+        "<td style='padding:8px'>" + (m.numero || "—") + "</td>" +
+        "<td style='padding:8px'>" + (m.tipo || "—") + "</td>" +
+        "<td style='padding:8px'>" + (m.medio || "—") + "</td>" +
+        "<td style='padding:8px;text-align:right'>" + fmtP(m.monto) + "</td>" +
+        "<td style='padding:8px'>" + (m.descripcion || "—") + "</td>" +
+        "<td style='padding:8px'>" + (m.operador || "—") + "</td>" +
+        "<td style='padding:8px'>" + (m.observaciones || "—") + "</td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function reportesCargarSaldos(){
+    google.script.run
+      .withSuccessHandler(function(cot){
+        google.script.run
+          .withSuccessHandler(function(saldos){
+            var usdPesos = saldos.USD * cot.venta;
+            document.getElementById("rep_resumenDiv").innerHTML =
+              "<b>Efectivo:</b> " + fmtP(saldos.Efectivo) + "<br>" +
+              "<b>Transferencia:</b> " + fmtP(saldos.Transferencia) + "<br>" +
+              "<b>USD:</b> " + fmtUSDweb(saldos.USD) + " (≈ " + fmtP(usdPesos) + " a " + fmtP(cot.venta) + ")<br>" +
+              "<b>Cuotas:</b> " + fmtP(saldos.Cuotas);
+          })
+          .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+          .obtenerSaldosCaja();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCotizacionUSD();
+  }
+
+  function reportesActualizar(){
+    llamarBackend("actualizarReportes", undefined, function(){
+      mostrarToast("✅ Reportes actualizados en la hoja REPORTES.", "exito");
+      reportesCargarSaldos();
+      cargarDashboard();
+    });
+  }
+</script>

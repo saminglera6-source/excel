@@ -1,0 +1,70 @@
+<div id="view-inversores" class="view">
+  <div class="panel">
+    <h3>🏦 Movimiento de Inversor</h3>
+
+    <label>Inversor:</label>
+    <select id="i_inv"><option value="">Cargando inversores...</option></select>
+
+    <label>Tipo:</label>
+    <select id="i_tipo">
+      <option value="INGRESO_CAPITAL">INGRESO_CAPITAL — suma capital</option>
+      <option value="RETIRO_CAPITAL">RETIRO_CAPITAL — retira capital</option>
+      <option value="PAGO_RENDIMIENTO">PAGO_RENDIMIENTO — se paga rendimiento</option>
+      <option value="AJUSTE">AJUSTE — corrección</option>
+    </select>
+
+    <label>Fecha:</label>
+    <input type="date" id="i_fecha"/>
+
+    <label>Monto ($):</label>
+    <input type="number" id="i_monto" placeholder="Ingresá el monto" min="1"/>
+
+    <label>Detalle:</label>
+    <input type="text" id="i_detalle" placeholder="Descripción del movimiento"/>
+
+    <div class="box box-info">ℹ️ El capital en la tabla resumen se actualiza automáticamente.</div>
+
+    <button class="btn" onclick="inversoresEnviar()">✅ Registrar</button>
+  </div>
+</div>
+
+<script>
+  document.getElementById("i_fecha").value = new Date().toISOString().split("T")[0];
+
+  function inversoresInit(){
+    google.script.run
+      .withSuccessHandler(function(lista){
+        var sel = document.getElementById("i_inv");
+        sel.innerHTML = "";
+        (lista || []).forEach(function(nombre){
+          var op = document.createElement("option");
+          op.value = nombre; op.text = nombre;
+          sel.appendChild(op);
+        });
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerListaInversores();
+  }
+
+  function inversoresEnviar(){
+    var d = {
+      inv: document.getElementById("i_inv").value,
+      tipo: document.getElementById("i_tipo").value,
+      fecha: document.getElementById("i_fecha").value,
+      monto: parseFloat(document.getElementById("i_monto").value) || 0,
+      detalle: document.getElementById("i_detalle").value.trim()
+    };
+    if (d.monto <= 0) { mostrarToast("El monto debe ser > 0.", "error"); return; }
+    if (!d.detalle) { mostrarToast("Ingresá un detalle.", "error"); return; }
+
+    llamarBackend("procesarMovimientoInversor", d, function(msg){
+      mostrarToast(msg, "exito");
+      // Queda listo para cargar el próximo movimiento: se preserva el
+      // inversor/tipo seleccionados (suele repetirse en cargas consecutivas)
+      // y se limpian monto/detalle, con la fecha repuesta a hoy.
+      document.getElementById("i_monto").value = "";
+      document.getElementById("i_detalle").value = "";
+      document.getElementById("i_fecha").value = new Date().toISOString().split("T")[0];
+    });
+  }
+</script>

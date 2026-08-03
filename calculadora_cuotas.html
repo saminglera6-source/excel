@@ -1,0 +1,124 @@
+<div id="view-calculadora_cuotas" class="view">
+  <div class="panel" style="max-width:480px">
+    <h3>💳 Calculadora de Cuotas</h3>
+    <div class="hint">Los coeficientes se leen en vivo desde la hoja "CONFIG_CUOTAS" — cualquier cambio ahí se refleja acá sin tocar código.</div>
+
+    <label>Monto ($):</label>
+    <input type="number" id="cc_monto" value="0" min="0"/>
+    <button type="button" class="btn" onclick="cuotasStandaloneCalcular()">Calcular</button>
+
+    <div id="cc_resultado" style="display:grid;gap:10px;margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- Modal reutilizable: renderCalculadoraCuotas() lo abre desde acá, precios.html,
+     ventas.html y preventas.html — un solo DOM compartido, sin duplicar markup. -->
+<div id="cuotas-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.5);display:none;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;border-radius:12px;padding:22px;max-width:480px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <h3 id="cuotas-titulo" style="margin:0;color:var(--azul)">💳 Financiación</h3>
+      <button onclick="cerrarModalCuotas()" style="background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:#667">✕</button>
+    </div>
+    <div id="cuotas-cards" style="display:grid;gap:10px;margin-top:14px"></div>
+    <div id="cuotas-acciones" style="display:flex;gap:8px;margin-top:14px"></div>
+  </div>
+</div>
+
+<script>
+  function calculadoraCuotasInit(){ /* nada que precargar: el cálculo es manual (botón Calcular) */ }
+
+  /** Arma el HTML de una tarjeta de cuota (1 pago vs. N cuotas) — usado tanto por la calculadora standalone como por el modal reutilizable. */
+  function _cuotasTarjetaHTML(c){
+    var titulo = (c.cuotas === 1) ? "1 pago" : (c.cuotas + " cuotas");
+    var detalle = (c.cuotas === 1)
+      ? ("Total: " + fmtP(c.total))
+      : (c.cuotas + " x " + fmtP(c.valorCuota) + "<br>Total: " + fmtP(c.total));
+    return "<div style='background:#F8F9FA;border:1px solid var(--borde);border-radius:8px;padding:12px 14px;box-shadow:var(--sombra)'>" +
+      "<div style='font-weight:700;color:var(--azul);margin-bottom:4px'>" + titulo + "</div>" +
+      "<div style='font-size:13px;color:#334'>" + detalle + "</div>" +
+    "</div>";
+  }
+
+  /** Solo se muestran las filas con Mostrar≠"NO" (Parte 1) — las filas Mostrar="NO" siguen viniendo del backend (uso interno), pero nunca se pintan acá. */
+  function _cuotasVisibles(datos){
+    return (datos || []).filter(function(c){ return c.mostrar !== false; });
+  }
+
+  function _cuotasRenderTarjetas(datos){
+    var visibles = _cuotasVisibles(datos);
+    if (visibles.length === 0) {
+      return "<div style='text-align:center;color:#889;padding:16px'>No hay coeficientes configurados en CONFIG_CUOTAS.</div>";
+    }
+    return visibles.map(_cuotasTarjetaHTML).join("");
+  }
+
+  // ---------- Calculadora standalone (sidebar 💳 Calculadora Cuotas) ----------
+  function cuotasStandaloneCalcular(){
+    var monto = parseFloat(document.getElementById("cc_monto").value) || 0;
+    if (monto <= 0) { mostrarToast("Ingresá un monto mayor a 0.", "error"); return; }
+    document.getElementById("cc_resultado").innerHTML = "<div style='text-align:center;color:#889;padding:10px'>Calculando...</div>";
+    google.script.run
+      .withSuccessHandler(function(datos){
+        document.getElementById("cc_resultado").innerHTML = _cuotasRenderTarjetas(datos);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .calcularCuotas(monto);
+  }
+
+  // ---------- Componente reutilizable: modal de cuotas ----------
+  var _cuotasCache = [];
+  var _cuotasEncabezadoWhatsapp = "💳 Financiación disponible";
+
+  /**
+   * renderCalculadoraCuotas(monto, opciones)
+   * Componente reutilizable (Parte 7) — usado por precios.html, ventas.html
+   * y preventas.html. Abre el modal compartido "cuotas-overlay" y calcula
+   * en tiempo real (Parte 9: no guarda nada, sin impacto contable).
+   * opciones: { titulo, mostrarCopiar, encabezadoWhatsapp }
+   */
+  function renderCalculadoraCuotas(monto, opciones){
+    opciones = opciones || {};
+    var montoNum = Number(monto) || 0;
+    if (montoNum <= 0) { mostrarToast("No hay un monto válido para calcular cuotas.", "error"); return; }
+
+    _cuotasEncabezadoWhatsapp = opciones.encabezadoWhatsapp || "💳 Financiación disponible";
+    document.getElementById("cuotas-titulo").textContent = opciones.titulo || "💳 Financiación";
+    document.getElementById("cuotas-cards").innerHTML = "<div style='text-align:center;color:#889;padding:16px'>Calculando...</div>";
+    document.getElementById("cuotas-acciones").innerHTML = "";
+    document.getElementById("cuotas-overlay").style.display = "flex";
+
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _cuotasCache = datos || [];
+        document.getElementById("cuotas-cards").innerHTML = _cuotasRenderTarjetas(_cuotasCache);
+        if (opciones.mostrarCopiar) {
+          document.getElementById("cuotas-acciones").innerHTML =
+            "<button class='btn' style='margin:0;background:#5D6D7E' onclick='cuotasAccionCopiar()'>📋 Copiar</button>" +
+            "<button class='btn' style='margin:0;background:#1E8449' onclick='cuotasAccionWhatsapp()'>📲 Copiar WhatsApp</button>";
+        }
+      })
+      .withFailureHandler(function(e){
+        document.getElementById("cuotas-cards").innerHTML = "<div style='color:#C0392B;text-align:center;padding:16px'>❌ " + e.message + "</div>";
+      })
+      .calcularCuotas(montoNum);
+  }
+
+  function cerrarModalCuotas(){
+    document.getElementById("cuotas-overlay").style.display = "none";
+  }
+
+  function _cuotasLineaTexto(c){
+    if (c.cuotas === 1) return "1 pago:\n" + fmtP(c.total);
+    return c.cuotas + " cuotas:\n" + c.cuotas + " x " + fmtP(c.valorCuota) + "\nTotal: " + fmtP(c.total);
+  }
+
+  function cuotasAccionCopiar(){
+    var texto = _cuotasVisibles(_cuotasCache).map(_cuotasLineaTexto).join("\n\n");
+    preciosCopiarTexto(texto);
+  }
+
+  function cuotasAccionWhatsapp(){
+    var texto = _cuotasEncabezadoWhatsapp + "\n\n" + _cuotasVisibles(_cuotasCache).map(_cuotasLineaTexto).join("\n\n");
+    preciosCopiarTexto(texto, "✅ Mensaje de WhatsApp copiado");
+  }
+</script>

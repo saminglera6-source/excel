@@ -1,0 +1,661 @@
+<div id="view-ventas" class="view">
+  <div class="panel" style="max-width:760px">
+    <h3>💰 Registrar Venta</h3>
+
+    <label>¿Qué querés registrar?</label>
+    <select id="v_modo" onchange="ventasToggleModo()">
+      <option value="EQUIPO">Venta equipo</option>
+      <option value="ACCESORIOS">Venta accesorios</option>
+    </select>
+
+    <form id="ventas_form" onsubmit="return false;">
+    <div id="v_bloqueEquipo">
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién vende y qué equipo?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="v_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <label>Equipo a vender (de stock): <span class="req">*</span></label>
+      <select id="v_nOp" onchange="ventasAutocompletarPrecioDesdeStock()"><option value="">Cargando equipos...</option></select>
+      <div class="hint">Al elegir el equipo, el Precio del Celular se completa solo con el Precio Contado de "Lista de Precios" (si no encuentra el modelo, lo dejás vos). Siempre editable.</div>
+
+      <label>Fecha venta:</label>
+      <input type="date" id="v_fecha"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Datos del cliente</p>
+      <label>Cliente: <span class="req">*</span></label>
+      <input type="text" id="v_cliente" placeholder="Nombre y apellido"/>
+
+      <div class="fila2">
+        <div>
+          <label>CUIL cliente (opcional):</label>
+          <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9"/>
+        </div>
+        <div>
+          <label>Teléfono cliente:</label>
+          <input type="text" id="v_tel" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso paso-opcional">
+      <div class="plegable-cabecera" onclick="ventasToggleAccesoriosBox()">
+        <p class="paso-titulo" style="margin:0"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con el equipo? (opcional)</p>
+        <span class="plegable-flecha" id="v_accFlecha">▾</span>
+      </div>
+      <div id="v_accesoriosBody" style="display:none;margin-top:10px">
+        <div class="hint">Completá solo los que apliquen. Se registran por separado, prorrateando el pago según su participación en el total.</div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="v_acc1" placeholder="Ej: Cargador 20W"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc1p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+        </div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="v_acc2" placeholder="Ej: Auriculares"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc2p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+        </div>
+        <div class="fila2" style="grid-template-columns:2fr 1fr">
+          <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="v_acc3" placeholder="Ej: Vidrio templado"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc3p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
+
+      <label>Precio del Celular ($): <span class="req">*</span></label>
+      <input type="number" id="v_precioVenta" value="0" min="0" oninput="ventasCalcTotalOperacion()"/>
+
+      <div class="total" id="v_totalOperacionDiv" style="background:#FEF9E7;color:#7D6608">TOTAL OPERACIÓN: $0</div>
+
+      <label>Cobrado en (por el TOTAL de la operación: celular + accesorios) ($):</label>
+      <div class="fila4">
+        <div><label style="font-size:11px">Efectivo</label><input type="number" id="v_efec" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="number" id="v_transf" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="number" id="v_cuotas" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="v_usd" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+      </div>
+      <div class="total" id="v_totalDiv">Total cobrado: $0</div>
+
+      <div class="fila2" style="margin-top:12px">
+        <button type="button" class="btn" style="background:#5D6D7E;margin-top:0" onclick="ventasAbrirConsultaPrecios()">💰 Consultar precios</button>
+        <button type="button" class="btn" style="background:#8E44AD;margin-top:0" onclick="ventasAbrirCalculadoraCuotas()">💳 Calcular cuotas</button>
+      </div>
+    </div>
+
+    <div class="paso paso-opcional">
+      <p class="paso-titulo"><span class="paso-num">5</span> Regalo y observaciones (opcional)</p>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:0">
+        <input type="checkbox" id="v_entregarRegalos" checked style="width:auto"/>
+        Entregar regalo(s) de bienvenida (si el modelo tiene alguno configurado)
+      </label>
+      <div class="hint">Dejalo tildado salvo que el cliente no quiera llevarse el regalo — si el modelo no tiene ninguno configurado, no cambia nada.</div>
+
+      <label>Observaciones:</label>
+      <input type="text" id="v_obs" placeholder="Opcional"/>
+    </div>
+
+    <button type="button" class="btn" onclick="ventasEnviar()">✅ Confirmar venta</button>
+    </div>
+
+    <div id="v_bloqueAccesorios" style="display:none">
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién vende y cuándo?</p>
+        <div class="fila2">
+          <div><label>Operador: <span class="req">*</span></label>
+            <select id="va_operador">
+              <option value="" disabled selected>Seleccionar...</option>
+              <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+            </select>
+          </div>
+          <div><label>Fecha:</label><input type="date" id="va_fecha"/></div>
+        </div>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">2</span> Datos del cliente</p>
+        <div class="fila2">
+          <div><label>Cliente:</label><input type="text" id="va_cliente" placeholder="Nombre y apellido"/></div>
+          <div><label>Teléfono:</label><input type="text" id="va_tel" placeholder="Ej: 2914123456"/></div>
+        </div>
+        <label>CUIL cliente (opcional):</label>
+        <input type="text" id="va_cuil" placeholder="Ej: 20-12345678-9"/>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">3</span> Productos vendidos</p>
+        <div id="va_lineas"></div>
+        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="ventasAccLineaAgregar()">➕ Agregar línea</button>
+        <div class="total" id="va_totalDiv">TOTAL: $0</div>
+      </div>
+
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">4</span> Cobro</p>
+        <label style="margin-top:0">Cobrado en ($):</label>
+        <div class="fila4">
+          <div><label style="font-size:11px">Efectivo</label><input type="number" id="va_efec" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="number" id="va_transf" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Cuotas</label><input type="number" id="va_cuotas" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+        </div>
+        <div class="total" id="va_totalCobradoDiv">Total cobrado: $0</div>
+      </div>
+
+      <label>Observaciones:</label>
+      <input type="text" id="va_obs" placeholder="Opcional"/>
+
+      <button type="button" class="btn" onclick="ventasAccEnviar()">✅ Confirmar venta de accesorios</button>
+    </div>
+    </form>
+  </div>
+
+  <div id="vp-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;z-index:9997" onclick="ventasPreciosCerrar()">
+    <div id="vp-drawer" style="position:absolute;top:0;right:0;height:100%;width:420px;max-width:92vw;background:#fff;box-shadow:-6px 0 24px rgba(0,0,0,.2);display:flex;flex-direction:column;padding:20px;overflow-y:auto" onclick="event.stopPropagation()">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h3 style="margin:0;color:var(--azul)">💰 Consultar precios</h3>
+        <button onclick="ventasPreciosCerrar()" style="background:none;border:none;font-size:20px;line-height:1;cursor:pointer;color:#667">✕</button>
+      </div>
+      <div class="hint" style="margin-bottom:12px">Se lee en vivo desde "Lista de Precios". Elegí un precio para cargarlo en la venta sin perder los datos ya completados.</div>
+
+      <label style="font-size:11px">Esta venta es:</label>
+      <div style="display:flex;gap:16px;margin:6px 0 12px;font-size:13px">
+        <label style="font-weight:normal;margin-top:0"><input type="radio" name="vp_tipo" value="normal" checked> ○ Venta normal</label>
+        <label style="font-weight:normal;margin-top:0"><input type="radio" name="vp_tipo" value="preventa"> ○ Preventa</label>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;font-size:12px">
+        <span style="font-weight:600;color:#334">Vista:</span>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="radio" name="vp_vista" id="vp_vista_cards" onchange="ventasPreciosSetVista('cards')"> Cards
+        </label>
+        <label style="font-weight:normal;margin-top:0;display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="radio" name="vp_vista" id="vp_vista_compacta" onchange="ventasPreciosSetVista('compacta')"> Compacta
+        </label>
+      </div>
+
+      <input type="text" id="vp_buscar" placeholder="🔎 Buscar modelo..." oninput="ventasPreciosRenderizar()"/>
+      <div id="vp_filtros" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0"></div>
+
+      <div id="vp_grid" style="display:flex;flex-direction:column;gap:10px"></div>
+
+      <div id="vp_compacta_wrap" style="display:none;overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:600px">
+          <thead>
+            <tr style="text-align:left">
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">Modelo</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde);text-align:center">GB</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">Venta</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">Prev</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">Desc</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">USD</th>
+              <th style="position:sticky;top:0;background:#F4F6F9;padding:5px 6px;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="vp_tbody_compacta">
+            <tr><td colspan="7" style="text-align:center;padding:20px;color:#889">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("v_fecha").value = new Date().toISOString().split("T")[0];
+  document.getElementById("va_fecha").value = new Date().toISOString().split("T")[0];
+  ventasAccLineaAgregar();
+
+  /** Sección "Accesorios vendidos junto con el equipo": colapsada por defecto (es opcional y la mayoría de las ventas no la usa) — se abre con un clic en el título. Los valores no se pierden al colapsar/expandir. */
+  var _ventasAccesoriosAbierto = false;
+  function ventasToggleAccesoriosBox(){
+    _ventasAccesoriosAbierto = !_ventasAccesoriosAbierto;
+    document.getElementById("v_accesoriosBody").style.display = _ventasAccesoriosAbierto ? "block" : "none";
+    document.getElementById("v_accFlecha").classList.toggle("abierto", _ventasAccesoriosAbierto);
+  }
+
+  // Precio Inteligente (precio_automatico.html, mismo helper que Preventas):
+  // autocompleta Precio del Celular al cambiar de equipo SOLO si el vendedor
+  // todavía no lo personalizó a mano; si ya lo tocó, ningún cambio de equipo
+  // posterior lo vuelve a pisar. Se resetea en cada nueva venta.
+  var _precioAutoVenta = crearPrecioAutomatico(document.getElementById("v_precioVenta"));
+
+  /**
+   * Sin buscador nuevo. La venta ya sabe qué equipo se vende (v_nOp, de
+   * Stock) — al elegirlo, busca su modelo (guardado tal cual en Compras) en
+   * Lista de Precios (_preciosCache/preciosCargarDatos, ya existentes en
+   * precios.html) y completa el Precio del Celular con el Precio Contado,
+   * vía _precioAutoVenta (que decide si corresponde pisarlo o no). Si no
+   * encuentra un match exacto (equipos cargados antes de este cambio, con
+   * modelo en formato libre), no toca el precio: sigue 100% editable.
+   */
+  function ventasAutocompletarPrecioDesdeStock(){
+    var sel = document.getElementById("v_nOp");
+    var opt = sel.options[sel.selectedIndex];
+    var modelo = (opt && opt.dataset.modelo) || "";
+    if (!modelo) return;
+
+    function continuar(){
+      var match = (_preciosCache || []).find(function(p){
+        return (p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "")) === modelo;
+      });
+      if (!match) return; // sin match exacto: no se inventa un precio, queda editable
+      _precioAutoVenta.autocompletar(match.precioARS || 0);
+      ventasCalcTotalOperacion();
+    }
+
+    if (_preciosCache && _preciosCache.length > 0) continuar();
+    else preciosCargarDatos(continuar);
+  }
+
+  function ventasInit(){
+    google.script.run
+      .withSuccessHandler(function(opts){
+        var sel = document.getElementById("v_nOp");
+        sel.innerHTML = "";
+        if (!opts || opts.length === 0) {
+          sel.innerHTML = "<option value=''>— No hay equipos en stock —</option>";
+        } else {
+          opts.forEach(function(o){
+            var op = document.createElement("option");
+            op.value = o.value; op.text = o.label;
+            op.dataset.modelo = o.modelo || "";
+            sel.appendChild(op);
+          });
+        }
+        // Modo corrección: el equipo de la venta original sigue "Vendido"
+        // (se libera recién al ejecutar la corrección) — se agrega igual.
+        if (_correccionEquipoParaVenta && _correccionEquipoParaVenta.nOp) {
+          var yaEsta = Array.prototype.some.call(sel.options, function(o){ return o.value === _correccionEquipoParaVenta.nOp; });
+          if (!yaEsta) {
+            var opExtra = document.createElement("option");
+            opExtra.value = _correccionEquipoParaVenta.nOp;
+            opExtra.text = _correccionEquipoParaVenta.nOp + " — " + (_correccionEquipoParaVenta.modelo || "") + " (equipo de la venta original)";
+            opExtra.dataset.modelo = _correccionEquipoParaVenta.modelo || "";
+            sel.appendChild(opExtra);
+          }
+          sel.value = _correccionEquipoParaVenta.nOp;
+        }
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerEquiposEnStock();
+    ventasCalcTotalOperacion();
+    ventasCalcTotal();
+    ventasAccCargarStock();
+  }
+
+  function ventasPrecargarCorreccion(datos){
+    document.getElementById("v_operador").value    = datos["OPERADOR"] || "";
+    document.getElementById("v_fecha").value        = fechaParaInput(datos["Fecha Venta"]) || document.getElementById("v_fecha").value;
+    _precioAutoVenta.setValorConfirmado(datos["Precio Venta"] || 0);
+    document.getElementById("v_cliente").value      = datos["Cliente"] || "";
+    document.getElementById("v_cuil").value          = datos["CUIL Cliente"] || "";
+    document.getElementById("v_tel").value          = datos["Teléfono Cliente"] || "";
+    document.getElementById("v_efec").value         = datos["Cobrado Efectivo"] || 0;
+    document.getElementById("v_transf").value       = datos["Cobrado Transferencia"] || 0;
+    document.getElementById("v_cuotas").value       = datos["Cobrado Cuotas"] || 0;
+    document.getElementById("v_usd").value          = datos["Cobrado USD"] || 0;
+    document.getElementById("v_obs").value          = datos["Observaciones"] || "";
+
+    var accs = datos._accesoriosAsociados || [];
+    document.getElementById("v_acc1").value  = accs[0] ? accs[0].producto : "";
+    document.getElementById("v_acc1p").value = accs[0] ? accs[0].precio   : 0;
+    document.getElementById("v_acc2").value  = accs[1] ? accs[1].producto : "";
+    document.getElementById("v_acc2p").value = accs[1] ? accs[1].precio   : 0;
+    document.getElementById("v_acc3").value  = accs[2] ? accs[2].producto : "";
+    document.getElementById("v_acc3p").value = accs[2] ? accs[2].precio   : 0;
+    if (accs.length > 0 && !_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
+
+    ventasCalcTotalOperacion();
+    ventasCalcTotal();
+  }
+
+  function ventasTotalOperacion(){
+    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
+    var a1 = parseFloat(document.getElementById("v_acc1p").value) || 0;
+    var a2 = parseFloat(document.getElementById("v_acc2p").value) || 0;
+    var a3 = parseFloat(document.getElementById("v_acc3p").value) || 0;
+    return pv + a1 + a2 + a3;
+  }
+  function ventasCalcTotalOperacion(){
+    document.getElementById("v_totalOperacionDiv").textContent =
+      "TOTAL OPERACIÓN: " + fmtP(ventasTotalOperacion());
+  }
+  function ventasCalcTotal(){
+    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("v_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var t = ef + tr + cu + usPesos;
+    var txt = "Total cobrado: " + fmtP(t);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("v_totalDiv").textContent = txt;
+  }
+
+  function ventasEnviar(){
+    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
+    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("v_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var nOp = document.getElementById("v_nOp").value;
+
+    if (!nOp) { mostrarToast("No hay equipos en stock disponibles.", "error"); return; }
+    if (pv <= 0) { mostrarToast("El precio de venta debe ser > 0.", "error"); return; }
+    if (!document.getElementById("v_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!document.getElementById("v_cliente").value.trim()) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
+
+    var totOp = ventasTotalOperacion();
+    var totCobrado = ef + tr + cu + usPesos;
+    if (Math.abs(totCobrado - totOp) > 1) {
+      mostrarToast("El total cobrado (" + fmtP(totCobrado) + ") debe coincidir con el TOTAL OPERACIÓN (" + fmtP(totOp) + ").", "error");
+      return;
+    }
+
+    var d = {
+      nOp: nOp,
+      fecha: document.getElementById("v_fecha").value,
+      precioVenta: pv,
+      cliente: document.getElementById("v_cliente").value.trim(),
+      cuil: document.getElementById("v_cuil").value.trim(),
+      tel: document.getElementById("v_tel").value.trim(),
+      efec: ef, transf: tr, cuotas: cu, usd: us,
+      obs: document.getElementById("v_obs").value.trim(),
+      accesorios: [
+        { nombre: document.getElementById("v_acc1").value.trim(), precio: parseFloat(document.getElementById("v_acc1p").value) || 0 },
+        { nombre: document.getElementById("v_acc2").value.trim(), precio: parseFloat(document.getElementById("v_acc2p").value) || 0 },
+        { nombre: document.getElementById("v_acc3").value.trim(), precio: parseFloat(document.getElementById("v_acc3p").value) || 0 }
+      ].filter(function(a){ return a.nombre !== ""; }),
+      operador: document.getElementById("v_operador").value,
+      entregarRegalos: document.getElementById("v_entregarRegalos").checked
+    };
+
+    if (_correccion && _correccion.tipo === "VENTA") { enviarCorreccion("corregirVenta", d); return; }
+
+    confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(pv) + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarVentaConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        ventasLimpiarForm();
+      });
+    });
+  }
+
+  /** Deja "Registrar Venta" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una venta normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
+  function ventasLimpiarForm(){
+    _precioAutoVenta.reset(); // nueva venta → vuelve a proponer precio
+    // ventasInit() repuebla el select de stock (recalculando totales de paso)
+    // ya vacío por el equipo recién vendido.
+    limpiarFormulario(document.getElementById("ventas_form"), {
+      preservarIds: ["v_operador"],
+      fechasHoy: ["v_fecha"],
+      despues: ventasInit
+    });
+    if (_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
+  }
+
+  // ============================================================
+  //  VENTA DE ACCESORIOS — multilínea, independiente de la venta de equipo.
+  // ============================================================
+
+  var _vaStockCache = [];
+
+  function ventasToggleModo(){
+    var modo = document.getElementById("v_modo").value;
+    document.getElementById("v_bloqueEquipo").style.display     = (modo === "EQUIPO") ? "block" : "none";
+    document.getElementById("v_bloqueAccesorios").style.display = (modo === "ACCESORIOS") ? "block" : "none";
+    if (modo === "ACCESORIOS" && _vaStockCache.length === 0) ventasAccCargarStock();
+  }
+
+  function ventasAccCargarStock(){
+    google.script.run
+      .withSuccessHandler(function(stock){
+        _vaStockCache = stock || [];
+        document.querySelectorAll("[id^='va_sku-']").forEach(ventasAccPoblarSelect);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerStockAccesorios();
+  }
+
+  function ventasAccPoblarSelect(select){
+    var actual = select.value;
+    select.innerHTML = "<option value=''>Seleccionar producto...</option>" +
+      _vaStockCache.map(function(s){
+        return "<option value='" + s.skuId + "'>" + s.producto + (s.marca ? " — " + s.marca : "") + (s.color ? " (" + s.color + ")" : "") + " [stock: " + s.stock + "]</option>";
+      }).join("");
+    if (actual) select.value = actual;
+  }
+
+  var _vaContador = 0;
+  function ventasAccLineaAgregar(){
+    _vaContador++;
+    var id = _vaContador;
+    var div = document.createElement("div");
+    div.className = "box";
+    div.id = "va_linea-" + id;
+    div.style.marginTop = "8px";
+    div.innerHTML =
+      '<div class="fila2" style="grid-template-columns:2fr 1fr">' +
+        '<div><label style="font-size:11px">Producto</label><select id="va_sku-'+id+'" onchange="ventasAccCalcTotal()"></select></div>' +
+        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="va_cant-'+id+'" value="1" min="1" oninput="ventasAccCalcTotal()"/></div>' +
+      '</div>' +
+      '<div class="fila2">' +
+        '<div><label style="font-size:11px">Precio unitario ($)</label><input type="number" id="va_precio-'+id+'" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Subtotal</label><input type="text" id="va_subtotal-'+id+'" value="$0" disabled/></div>' +
+      '</div>' +
+      '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="ventasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
+    document.getElementById("va_lineas").appendChild(div);
+    ventasAccPoblarSelect(document.getElementById("va_sku-"+id));
+    ventasAccCalcTotal();
+  }
+
+  function ventasAccLineaQuitar(id){
+    var el = document.getElementById("va_linea-" + id);
+    if (el) el.remove();
+    ventasAccCalcTotal();
+  }
+
+  function ventasAccLeerLineas(){
+    var out = [];
+    document.querySelectorAll("[id^='va_linea-']").forEach(function(div){
+      var id = div.id.split("-")[1];
+      var skuId = document.getElementById("va_sku-"+id).value;
+      var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
+      if (!skuId || cantidad <= 0) return;
+      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      out.push({ skuId: skuId, cantidad: cantidad, precioUnit: precioUnit });
+    });
+    return out;
+  }
+
+  function ventasAccCalcTotal(){
+    var total = 0;
+    document.querySelectorAll("[id^='va_linea-']").forEach(function(div){
+      var id = div.id.split("-")[1];
+      var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
+      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      var subtotal = cantidad * precioUnit;
+      document.getElementById("va_subtotal-"+id).value = fmtP(subtotal);
+      total += subtotal;
+    });
+    document.getElementById("va_totalDiv").textContent = "TOTAL: " + fmtP(total);
+
+    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("va_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var cobrado = ef + tr + cu + usPesos;
+    var txt = "Total cobrado: " + fmtP(cobrado);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("va_totalCobradoDiv").textContent = txt;
+    return total;
+  }
+
+  function ventasAccEnviar(){
+    var operador = document.getElementById("va_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var lineas = ventasAccLeerLineas();
+    if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto y cantidad.", "error"); return; }
+
+    var total = ventasAccCalcTotal();
+    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
+    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var us = parseFloat(document.getElementById("va_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var cobrado = ef + tr + cu + usPesos;
+    if (Math.abs(cobrado - total) > 1) {
+      mostrarToast("El total cobrado (" + fmtP(cobrado) + ") debe coincidir con el TOTAL (" + fmtP(total) + ").", "error");
+      return;
+    }
+
+    var d = {
+      fecha: document.getElementById("va_fecha").value,
+      cliente: document.getElementById("va_cliente").value.trim(),
+      cuil: document.getElementById("va_cuil").value.trim(),
+      tel: document.getElementById("va_tel").value.trim(),
+      operador: operador,
+      obs: document.getElementById("va_obs").value.trim(),
+      medios: { efec: ef, transf: tr, cuotas: cu, usd: us },
+      lineas: lineas
+    };
+
+    confirmarAccion("¿Confirmás esta venta de accesorios por " + fmtP(total) + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarVentaAccesoriosMultiLineaConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        document.getElementById("va_lineas").innerHTML = "";
+        document.getElementById("va_cliente").value = "";
+        document.getElementById("va_cuil").value = "";
+        document.getElementById("va_tel").value = "";
+        document.getElementById("va_obs").value = "";
+        ["va_efec","va_transf","va_cuotas","va_usd"].forEach(function(id){ document.getElementById(id).value = 0; });
+        document.getElementById("va_fecha").value = new Date().toISOString().split("T")[0];
+        _vaStockCache = [];
+        ventasAccLineaAgregar();
+        ventasAccCargarStock();
+      });
+    });
+  }
+
+  /** Parte 5: calcula cuotas en tiempo real sobre el precio del celular ya cargado — no guarda nada. */
+  function ventasAbrirCalculadoraCuotas(){
+    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
+    if (pv <= 0) { mostrarToast("Ingresá el precio del celular primero.", "error"); return; }
+    renderCalculadoraCuotas(pv, {
+      titulo: "💳 Financiación",
+      mostrarCopiar: true,
+      encabezadoWhatsapp: "💳 Financiación disponible"
+    });
+  }
+
+  // ============================================================
+  //  Drawer "💰 Consultar precios" — NO abandona el formulario ni pierde
+  //  datos: reutiliza FILTROS_MODELO_PRECIOS, preciosCargarDatos,
+  //  preciosFiltrarArray, preciosCrearTarjetaHTML, preciosCrearFilaCompactaHTML,
+  //  preciosTextoPlano, preciosGenerarWhatsapp/preciosTextoWhatsApp,
+  //  preciosCopiarTexto y LP_VISTA_KEY de precios.html (incluido antes que
+  //  esta vista en index.html) en vez de duplicar el módulo.
+  // ============================================================
+
+  var _ventasPreciosFiltroActivo = "Todos";
+  var _ventasPreciosFiltrada = [];
+  // El drawer no ofrece la vista "Tabla" (poco ancho): si la última vista
+  // elegida en "Lista de Precios" fue "tabla", acá se muestra como "compacta".
+  var _ventasPreciosVistaModo = (_preciosVistaModo === "tabla") ? "compacta" : _preciosVistaModo;
+
+  function ventasPreciosAplicarVista(){
+    document.getElementById("vp_grid").style.display = (_ventasPreciosVistaModo === "compacta") ? "none" : "flex";
+    document.getElementById("vp_compacta_wrap").style.display = (_ventasPreciosVistaModo === "compacta") ? "block" : "none";
+    var rCards = document.getElementById("vp_vista_cards");
+    var rCompacta = document.getElementById("vp_vista_compacta");
+    if (rCards) rCards.checked = (_ventasPreciosVistaModo !== "compacta");
+    if (rCompacta) rCompacta.checked = (_ventasPreciosVistaModo === "compacta");
+  }
+
+  function ventasPreciosSetVista(modo){
+    _ventasPreciosVistaModo = modo;
+    try { localStorage.setItem(LP_VISTA_KEY, modo); } catch (e) { /* localStorage no disponible */ }
+    ventasPreciosAplicarVista();
+    ventasPreciosRenderizar();
+  }
+
+  function ventasAbrirConsultaPrecios(){
+    document.getElementById("vp-overlay").style.display = "block";
+    document.getElementById("vp_filtros").innerHTML = FILTROS_MODELO_PRECIOS.map(function(f){
+      return "<button class='btn' style='margin:0;width:auto;padding:5px 10px;font-size:11px;" + (f === _ventasPreciosFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='ventasPreciosSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";
+    }).join("");
+    ventasPreciosAplicarVista();
+    preciosCargarDatos(function(){ ventasPreciosRenderizar(); });
+  }
+
+  function ventasPreciosCerrar(){
+    document.getElementById("vp-overlay").style.display = "none";
+  }
+
+  function ventasPreciosSetFiltro(f){
+    _ventasPreciosFiltroActivo = f;
+    document.querySelectorAll("#vp_filtros button").forEach(function(b){
+      b.style.background = (b.textContent === f) ? "" : "#B8C4CE";
+    });
+    ventasPreciosRenderizar();
+  }
+
+  function ventasPreciosRenderizar(){
+    var q = document.getElementById("vp_buscar").value;
+    _ventasPreciosFiltrada = preciosFiltrarArray(_preciosCache, q, _ventasPreciosFiltroActivo);
+    if (_ventasPreciosVistaModo === "compacta") ventasPreciosRenderizarCompacta();
+    else ventasPreciosRenderizarGrid();
+  }
+
+  function ventasPreciosRenderizarGrid(){
+    var grid = document.getElementById("vp_grid");
+    if (_ventasPreciosFiltrada.length === 0) {
+      grid.innerHTML = "<div style='text-align:center;color:#889;padding:20px'>Sin resultados.</div>";
+      return;
+    }
+    grid.innerHTML = _ventasPreciosFiltrada.map(function(p, i){ return preciosCrearTarjetaHTML(p, i, "ventasPrecios", true, true); }).join("");
+  }
+
+  function ventasPreciosRenderizarCompacta(){
+    var tbody = document.getElementById("vp_tbody_compacta");
+    if (_ventasPreciosFiltrada.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='text-align:center;padding:20px;color:#889'>Sin resultados.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = _ventasPreciosFiltrada.map(function(p, i){ return preciosCrearFilaCompactaHTML(p, i, "ventasPrecios", true); }).join("");
+  }
+
+  function ventasPreciosAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_ventasPreciosFiltrada[idx])); }
+  function ventasPreciosAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_ventasPreciosFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  /** Parte 2: reutiliza renderCalculadoraCuotas() ya implementada — mismo modal que Lista de Precios, sin segunda implementación. */
+  function ventasPreciosAccionVerCuotas(idx){
+    var p = _ventasPreciosFiltrada[idx];
+    renderCalculadoraCuotas(p.precioARS, {
+      titulo: "💳 Cuotas — " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""),
+      mostrarCopiar: false
+    });
+  }
+
+  /** "✅ Usar este precio": copia Precio ARS (venta normal) o Preventa ARS (preventa) a Precio Venta, sin perder ningún otro dato ya cargado, y cierra el drawer. */
+  function ventasPreciosAccionUsar(idx){
+    var p = _ventasPreciosFiltrada[idx];
+    var esPreventa = document.querySelector('input[name="vp_tipo"]:checked').value === "preventa";
+    var precio = esPreventa ? p.preventaARS : p.precioARS;
+    _precioAutoVenta.setValorConfirmado(precio);
+    ventasCalcTotalOperacion();
+    ventasPreciosCerrar();
+    mostrarToast("✅ Precio de " + p.modelo + " cargado: " + fmtP(precio), "exito");
+  }
+</script>
