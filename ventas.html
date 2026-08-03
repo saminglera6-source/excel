@@ -383,8 +383,32 @@
         mostrarToastOperacion(msg);
         cargarDashboard();
         ventasLimpiarForm();
+        // Recibo imprimible (garantía + comprobante): apenas se registra la
+        // venta, se abre solo con todos los datos ya cargados — sin esto,
+        // el operador tenía que escribirlo a mano. Mismo patrón que
+        // imprimirEtiquetaReparacion() (reparaciones.html): el backend arma
+        // el HTML completo (recibos.gs) y acá solo se abre en una ventana
+        // nueva; si no hay N° de venta reconocible en el mensaje (no
+        // debería pasar en una venta exitosa), no se intenta abrir nada.
+        var m = String(msg || "").match(/\bVTA-\S+/);
+        if (m) imprimirReciboVenta(m[0].replace(/[.,;:]+$/, ""));
       });
     });
+  }
+
+  /** Reutilizable desde Ventas (recién registrada) y desde Mis Operaciones (reimpresión para garantía). */
+  function imprimirReciboVenta(numeroVenta){
+    if (!numeroVenta) return;
+    google.script.run
+      .withSuccessHandler(function(html){
+        var w = window.open("", "_blank");
+        if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .generarReciboVenta(numeroVenta);
   }
 
   /** Deja "Registrar Venta" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una venta normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */

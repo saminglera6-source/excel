@@ -219,6 +219,9 @@
         (op.tipo === "Reparación"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> "
           : "") +
+        (op.tipo === "Venta"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> "
+          : "") +
         _botonesEstadoReparacion(op) +
         _botonReparacionInternaCompra(op) +
         (puedeCorregir
