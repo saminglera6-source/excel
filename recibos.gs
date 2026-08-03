@@ -116,17 +116,30 @@ function generarReciboVenta(numeroVenta) {
     }
   }
 
-  // Accesorios incluidos en esta venta ("Venta Accesorios", asociados por N° Venta Celular Asociada).
+  // Accesorios incluidos en esta venta ("Venta Accesorios", asociados por N°
+  // Venta Celular Asociada) — incluye tanto los accesorios que el cliente
+  // compró junto con el equipo como los regalos automáticos que se le
+  // entregaron (entregarRegalosAutomaticos_(), Code.gs: mismos registros,
+  // categoría "Regalo automático" y Precio Unitario 0). Se trae la
+  // Categoría para poder distinguirlos en el recibo (comprado vs. regalo).
   const accSheet = ss.getSheetByName("Venta Accesorios");
   if (accSheet) {
     const fEA = 2;
-    let cAsoc = -1, cProd = -1;
+    let cAsoc = -1, cProd = -1, cCat = -1, cPU = -1;
     try { cAsoc = getCol(accSheet, "N° Venta Celular Asociada", fEA); } catch (e) { /* opcional */ }
     try { cProd = getCol(accSheet, "Producto",                  fEA); } catch (e) { /* opcional */ }
+    try { cCat  = getCol(accSheet, "Categoría",                 fEA); } catch (e) { /* opcional */ }
+    try { cPU   = getCol(accSheet, "Precio Unitario",           fEA); } catch (e) { /* opcional */ }
     const lastA = accSheet.getLastRow();
     if (cAsoc > 0 && cProd > 0 && lastA > fEA) {
       accSheet.getRange(fEA + 1, 1, lastA - fEA, accSheet.getLastColumn()).getValues().forEach(r => {
-        if (String(r[cAsoc - 1] || "").trim() === numero) datos.accesorios.push(String(r[cProd - 1] || ""));
+        if (String(r[cAsoc - 1] || "").trim() !== numero) return;
+        const categoria = cCat > 0 ? String(r[cCat - 1] || "") : "";
+        datos.accesorios.push({
+          producto:  String(r[cProd - 1] || ""),
+          esRegalo:  categoria.trim() === "Regalo automático",
+          precio:    cPU > 0 ? (Number(r[cPU - 1]) || 0) : 0
+        });
       });
     }
   }
@@ -181,8 +194,14 @@ function _armarHtmlReciboVenta_(d) {
     filaPago("Cuotas", d.cobradoCu > 0, "$ " + Number(d.cobradoCu).toLocaleString("es-AR"))
   ].join("");
 
+  // Cada accesorio ya viene marcado como comprado o regalo automático
+  // (esRegalo, ver generarReciboVenta()) — acá solo se decide cómo se ve:
+  // el regalo se etiqueta "(Regalo)" y el comprado muestra su precio.
   const accesoriosHtml = d.accesorios.length > 0
-    ? d.accesorios.map(a => `<span class="chk"><span class="chk-box">☑</span> ${esc(a)}</span>`).join("")
+    ? d.accesorios.map(a => {
+        const detalle = a.esRegalo ? "(Regalo)" : (a.precio > 0 ? `(${fmtPeso(a.precio)})` : "");
+        return `<span class="chk"><span class="chk-box">☑</span> ${esc(a.producto)}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
+      }).join("")
     : ["Cable USB-C / Lightning", "Cabezal de cargador", "Funda protectora", "Vidrio templado"]
         .map(a => `<span class="chk"><span class="chk-box">☐</span> ${a}</span>`).join("");
 
@@ -304,10 +323,10 @@ function _armarHtmlReciboVenta_(d) {
   html, body { margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
 
-  .hoja { width: 190mm; padding: 10mm 12mm; margin: 0 auto; }
+  .hoja { width: 190mm; padding: 6mm 12mm; margin: 0 auto; }
 
   /* ---------- Encabezado ---------- */
-  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; }
+  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
   .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
   .direccion { font-size: 10.5px; color: var(--gris-texto); margin-top: 3px; }
   .encabezado-der { text-align: right; }
@@ -317,12 +336,12 @@ function _armarHtmlReciboVenta_(d) {
   /* ---------- Separadores naranjas entre secciones ---------- */
   .seccion-titulo {
     font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
-    margin: 26px 0 12px; padding-bottom: 6px; border-bottom: 3px solid var(--naranja);
+    margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 3px solid var(--naranja);
   }
 
   /* ---------- Filas de 2 columnas (dispositivo / comprador) ---------- */
   .dos-columnas { display: flex; gap: 40px; }
-  .dos-columnas .columna { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .dos-columnas .columna { flex: 1; display: flex; flex-direction: column; gap: 7px; }
   .dos-columnas.comprador { position: relative; }
   .dos-columnas.comprador::after {
     content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%;
@@ -339,41 +358,42 @@ function _armarHtmlReciboVenta_(d) {
   .chk-fila { display: flex; flex-wrap: wrap; gap: 30px; font-size: 11.5px; }
   .chk { white-space: nowrap; }
   .chk-box { font-size: 15px; position: relative; top: 1px; }
+  .chk-detalle { color: var(--gris-texto); font-size: 10px; }
 
   /* ---------- Caja Precio y Forma de Pago (protagonista, bordes rectos) ---------- */
-  .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 6px; }
-  .pago-total { flex: 0 0 34%; text-align: center; padding: 18px 14px; border-right: 1px solid var(--gris); }
+  .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 4px; }
+  .pago-total { flex: 0 0 34%; text-align: center; padding: 10px 14px; border-right: 1px solid var(--gris); }
   .pago-total-label { font-size: 11px; font-weight: bold; letter-spacing: .3px; }
-  .pago-total-monto { font-size: 26px; font-weight: bold; margin-top: 10px; }
-  .son-pesos { font-size: 10px; color: var(--gris-texto); margin-top: 12px; }
-  .pago-detalle { flex: 1; padding: 18px 20px; }
-  .pago-detalle-label { font-weight: bold; font-size: 11px; letter-spacing: .3px; margin-bottom: 10px; }
-  .pago-fila { margin: 7px 0; font-size: 11.5px; }
+  .pago-total-monto { font-size: 26px; font-weight: bold; margin-top: 8px; }
+  .son-pesos { font-size: 10px; color: var(--gris-texto); margin-top: 8px; }
+  .pago-detalle { flex: 1; padding: 10px 20px; }
+  .pago-detalle-label { font-weight: bold; font-size: 11px; letter-spacing: .3px; margin-bottom: 6px; }
+  .pago-fila { margin: 5px 0; font-size: 11.5px; }
   .pago-etiqueta { font-weight: bold; }
-  .pago-comprobante { margin-top: 12px; }
+  .pago-comprobante { margin-top: 8px; }
 
-  .obs { font-size: 11px; margin-top: 10px; color: var(--gris-texto); }
+  .obs { font-size: 11px; margin-top: 6px; color: var(--gris-texto); }
 
   /* ---------- Garantía ---------- */
-  .garantia { font-size: 9.5px; line-height: 1.65; text-align: justify; color: #2b2b2b; }
-  .garantia p { margin: 0 0 8px; }
-  .garantia ol { margin: 6px 0; padding-left: 18px; }
-  .garantia li { margin-bottom: 5px; }
-  .garantia-opciones { list-style: none; margin: 4px 0; padding-left: 14px; }
-  .garantia-opciones li { margin-bottom: 2px; }
+  .garantia { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #2b2b2b; }
+  .garantia p { margin: 0 0 5px; }
+  .garantia ol { margin: 4px 0; padding-left: 18px; }
+  .garantia li { margin-bottom: 2px; }
+  .garantia-opciones { list-style: none; margin: 2px 0; padding-left: 14px; }
+  .garantia-opciones li { margin-bottom: 1px; }
   .garantia-opciones li::before { content: "○ "; }
 
   /* ---------- Firmas (al pie, líneas largas) ---------- */
-  .firmas { display: flex; gap: 50px; margin-top: 34px; }
+  .firmas { display: flex; gap: 50px; margin-top: 16px; }
   .firma-col { flex: 1; text-align: center; }
-  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 30px; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 14px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
 
   /* ---------- Pie ---------- */
-  .pie-separador { border-top: 1px solid var(--gris); margin-top: 18px; }
-  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 8px; }
+  .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
+  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
 
-  @page { size: A4; margin: 8mm; }
+  @page { size: A4; margin: 5mm 8mm; }
   @media print { .hoja { width: 100%; } }
 </style>
 </head>
