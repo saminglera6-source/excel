@@ -414,7 +414,7 @@ function _armarHtmlReciboVenta_(d) {
   html, body { margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
 
-  .hoja { width: 190mm; padding: 6mm 12mm; margin: 0 auto; }
+  .hoja { width: 190mm; padding: 4mm 12mm; margin: 0 auto; }
 
   /* ---------- Encabezado ---------- */
   .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
@@ -427,7 +427,7 @@ function _armarHtmlReciboVenta_(d) {
   /* ---------- Separadores naranjas entre secciones ---------- */
   .seccion-titulo {
     font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
-    margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 3px solid var(--naranja);
+    margin: 11px 0 7px; padding-bottom: 4px; border-bottom: 3px solid var(--naranja);
   }
 
   /* ---------- Filas de 2 columnas (dispositivo / comprador) ---------- */
@@ -476,9 +476,9 @@ function _armarHtmlReciboVenta_(d) {
   .garantia-opciones li::before { content: "○ "; }
 
   /* ---------- Firmas (al pie, líneas largas) ---------- */
-  .firmas { display: flex; gap: 50px; margin-top: 55px; }
+  .firmas { display: flex; gap: 50px; margin-top: 65px; }
   .firma-col { flex: 1; text-align: center; position: relative; }
-  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 70px; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 85px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
   /* Firma de GreatPhones ya estampada — apoyada justo sobre su línea, ocupando el mismo espacio que antes quedaba en blanco para firmar a mano. La columna del comprador no lleva imagen: esa firma la hace la persona presente. */
   .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
@@ -487,7 +487,7 @@ function _armarHtmlReciboVenta_(d) {
   .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
   .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
 
-  @page { size: A4; margin: 5mm 8mm; }
+  @page { size: A4; margin: 4mm 8mm; }
   @media print { .hoja { width: 100%; } }
 </style>
 </head>
@@ -740,7 +740,7 @@ function _armarHtmlReciboPreventa_(d) {
   html, body { margin: 0; padding: 0; }
   body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
 
-  .hoja { width: 190mm; padding: 6mm 12mm; margin: 0 auto; }
+  .hoja { width: 190mm; padding: 4mm 12mm; margin: 0 auto; }
 
   .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
   .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
@@ -757,7 +757,7 @@ function _armarHtmlReciboPreventa_(d) {
 
   .seccion-titulo {
     font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
-    margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 3px solid var(--naranja);
+    margin: 11px 0 7px; padding-bottom: 4px; border-bottom: 3px solid var(--naranja);
   }
 
   .dos-columnas { display: flex; gap: 40px; }
@@ -793,16 +793,16 @@ function _armarHtmlReciboPreventa_(d) {
   .garantia { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #2b2b2b; }
   .garantia p { margin: 0 0 5px; }
 
-  .firmas { display: flex; gap: 50px; margin-top: 30px; }
+  .firmas { display: flex; gap: 50px; margin-top: 55px; }
   .firma-col { flex: 1; text-align: center; position: relative; }
-  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 55px; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 85px; }
   .firma-label { font-size: 10.5px; font-weight: bold; }
   .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
 
   .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
   .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
 
-  @page { size: A4; margin: 5mm 8mm; }
+  @page { size: A4; margin: 4mm 8mm; }
   @media print { .hoja { width: 100%; } }
 </style>
 </head>
