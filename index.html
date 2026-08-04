@@ -446,6 +446,53 @@
   function fmtP(n){ return "$" + Number(n || 0).toLocaleString("es-AR"); }
   function fmtUSDweb(n){ return "USD " + Number(n || 0).toLocaleString("en-US"); }
 
+  /**
+   * Inputs de precio/monto: arrancan vacíos (no en "0") y se autoformatean
+   * con separador de miles a medida que se escribe ("500000" -> "$500.000").
+   * Guarda el valor crudo en data-raw para que valorNumerico() lo lea exacto
+   * sin tener que parsear el "$" ni los puntos. Usar junto con
+   * type="text" inputmode="numeric" (nunca type="number", que no admite "$").
+   */
+  function formatearInputMoneda(el){
+    var digits = el.value.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    if (!digits) { el.value = ""; el.dataset.raw = ""; return; }
+    el.dataset.raw = digits;
+    el.value = "$" + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  /**
+   * Lee el número real de un input (formateado con formatearInputMoneda o
+   * no). Reemplaza a parseFloat(el.value)||0 en todos los formularios.
+   * Si el campo está vacío devuelve 0 directo, sin mirar dataset.raw: un
+   * form.reset() (limpiarFormulario()) vacía el value pero NO borra
+   * data-raw, así que confiar en data-raw con el value ya vacío devolvería
+   * un monto viejo que ya no está a la vista.
+   */
+  function valorNumerico(el){
+    if (!el) return 0;
+    if (!el.value) return 0;
+    if (el.dataset && el.dataset.raw) return Number(el.dataset.raw) || 0;
+    return parseFloat(String(el.value).replace(/[^\d.-]/g, "")) || 0;
+  }
+
+  /** Setea un input de precio/monto programáticamente (precarga de una corrección, reset de formulario, etc.), dejándolo vacío si el valor es 0/vacío — igual criterio que formatearInputMoneda(). */
+  function setInputMoneda(el, n){
+    n = Number(n) || 0;
+    if (!el) return;
+    if (!n) { el.value = ""; el.dataset.raw = ""; return; }
+    el.dataset.raw = String(n);
+    el.value = "$" + n.toLocaleString("es-AR");
+  }
+
+  /** CUIL/CUIT: autoformatea a medida que se escribe como "20-12345678-9". */
+  function formatearInputCUIL(el){
+    var digits = el.value.replace(/[^\d]/g, "").slice(0, 11);
+    var out = digits;
+    if (digits.length > 2)  out = digits.slice(0, 2) + "-" + digits.slice(2);
+    if (digits.length > 10) out = digits.slice(0, 2) + "-" + digits.slice(2, 10) + "-" + digits.slice(10);
+    el.value = out;
+  }
+
   // Convierte una fecha "dd/MM/yyyy" o "dd/MM/yyyy HH:mm:ss" (formato en el
   // que el backend manda las fechas de una operación al precargar una
   // corrección — ver obtenerOperacionCompleta_() en operadores.gs) al

@@ -41,22 +41,22 @@
       <p class="paso-titulo"><span class="paso-num">3</span> ¿Cuánto y cómo se pagó?</p>
 
       <label>Monto total del gasto ($) — opcional, solo para verificar:</label>
-      <input type="number" id="g_montoGasto" value="0" min="0" oninput="gastosCalcTotal()"/>
+      <input type="text" inputmode="numeric" id="g_montoGasto" value="" placeholder="$0" oninput="formatearInputMoneda(this); gastosCalcTotal()"/>
       <div class="hint">Este campo NO se guarda en ningún lado: es una calculadora de control para comparar contra lo que completes abajo (Efectivo/Transferencia/USD). Lo que realmente queda registrado es la suma de esos campos.</div>
 
       <div class="fila2">
         <div>
           <label>Monto efectivo ($):</label>
-          <input type="number" id="g_efec" value="0" min="0" oninput="gastosCalcTotal()"/>
+          <input type="text" inputmode="numeric" id="g_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); gastosCalcTotal()"/>
         </div>
         <div>
           <label>Monto transferencia ($):</label>
-          <input type="number" id="g_transf" value="0" min="0" oninput="gastosCalcTotal()"/>
+          <input type="text" inputmode="numeric" id="g_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); gastosCalcTotal()"/>
         </div>
       </div>
 
       <label>Monto USD (dólares):</label>
-      <input type="number" id="g_usd" value="0" min="0" oninput="gastosCalcTotal()"/>
+      <input type="number" id="g_usd" value="" placeholder="0" min="0" oninput="gastosCalcTotal()"/>
       <div class="hint" id="g_cotizDiv"></div>
 
       <div class="total" id="g_totalDiv">Total pagado: $0</div>
@@ -113,11 +113,11 @@
         <div class="fila2">
           <div>
             <label id="cm_label_monto">Monto USD (dólares): <span class="req">*</span></label>
-            <input type="number" id="cm_monto" value="0" min="0" oninput="cambioCalcular()"/>
+            <input type="text" inputmode="numeric" id="cm_monto" value="" placeholder="$0" oninput="formatearInputMoneda(this); cambioCalcular()"/>
           </div>
           <div>
             <label>Cotización ($): <span class="req">*</span></label>
-            <input type="number" id="cm_cotizacion" value="0" min="0" oninput="cambioCalcular()"/>
+            <input type="number" id="cm_cotizacion" value="" placeholder="0" min="0" oninput="cambioCalcular()"/>
           </div>
         </div>
         <div class="hint" id="cm_cotizOficialDiv"></div>
@@ -178,7 +178,7 @@
       <div class="paso">
         <p class="paso-titulo"><span class="paso-num">3</span> Monto y motivo</p>
         <label id="aj_label_monto">Monto ($): <span class="req">*</span></label>
-        <input type="number" id="aj_monto" value="0" min="0"/>
+        <input type="text" inputmode="numeric" id="aj_monto" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
 
         <label>Motivo: <span class="req">*</span></label>
         <input type="text" id="aj_motivo" placeholder="Ej: Diferencia de conteo de caja"/>
@@ -223,10 +223,10 @@
     document.getElementById("g_desc").value   = datos["Descripción"] || "";
     // "Monto Gasto" no se persiste en la hoja (solo se usa para validar en el
     // momento de cargar) — se deja en 0 y el total pagado abajo ya refleja lo real.
-    document.getElementById("g_montoGasto").value = 0;
-    document.getElementById("g_efec").value   = datos["Monto Efectivo"] || 0;
-    document.getElementById("g_transf").value = datos["Monto Transferencia"] || 0;
-    document.getElementById("g_usd").value    = datos["Monto USD"] || 0;
+    setInputMoneda(document.getElementById("g_montoGasto"), 0);
+    setInputMoneda(document.getElementById("g_efec"), datos["Monto Efectivo"] || 0);
+    setInputMoneda(document.getElementById("g_transf"), datos["Monto Transferencia"] || 0);
+    document.getElementById("g_usd").value    = datos["Monto USD"] || "";
     document.getElementById("g_resp").value   = datos["Responsable"] || "Martin";
     document.getElementById("g_comp").value   = datos["Comprobante"] || "";
     document.getElementById("g_obs").value    = datos["Observaciones"] || "";
@@ -234,8 +234,8 @@
   }
 
   function gastosCalcTotal(){
-    var ef = parseFloat(document.getElementById("g_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("g_transf").value) || 0;
+    var ef = valorNumerico(document.getElementById("g_efec"));
+    var tr = valorNumerico(document.getElementById("g_transf"));
     var us = parseFloat(document.getElementById("g_usd").value) || 0;
     var usPesos = us * _gastosCotizacion;
     var total = ef + tr + usPesos;
@@ -251,9 +251,9 @@
       fecha: document.getElementById("g_fecha").value,
       cat: document.getElementById("g_cat").value,
       desc: document.getElementById("g_desc").value.trim(),
-      montoGasto: parseFloat(document.getElementById("g_montoGasto").value) || 0,
-      efec: parseFloat(document.getElementById("g_efec").value) || 0,
-      transf: parseFloat(document.getElementById("g_transf").value) || 0,
+      montoGasto: valorNumerico(document.getElementById("g_montoGasto")),
+      efec: valorNumerico(document.getElementById("g_efec")),
+      transf: valorNumerico(document.getElementById("g_transf")),
       usd: parseFloat(document.getElementById("g_usd").value) || 0,
       resp: document.getElementById("g_resp").value.trim(),
       comp: document.getElementById("g_comp").value.trim(),
@@ -300,7 +300,7 @@
   }
 
   function cambioCalcular(){
-    var monto = parseFloat(document.getElementById("cm_monto").value) || 0;
+    var monto = valorNumerico(document.getElementById("cm_monto"));
     var cotizacion = parseFloat(document.getElementById("cm_cotizacion").value) || 0;
     var cajaArs = document.getElementById("cm_cajaArs").value;
     var esUsdArs = _cambioTipo === "USD_A_ARS";
@@ -343,7 +343,7 @@
       llamarBackend("procesarCambioMonedaConOperador", d, function(msg){
         mostrarToastOperacion(msg);
         cargarDashboard();
-        document.getElementById("cm_monto").value = 0;
+        setInputMoneda(document.getElementById("cm_monto"), 0);
         document.getElementById("cm_obs").value = "";
         document.getElementById("cm_fecha").value = new Date().toISOString().split("T")[0];
         cambioCalcular();
@@ -355,7 +355,7 @@
   function ajusteEnviar(){
     var operador = document.getElementById("aj_operador").value;
     if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
-    var monto = parseFloat(document.getElementById("aj_monto").value) || 0;
+    var monto = valorNumerico(document.getElementById("aj_monto"));
     if (monto <= 0) { mostrarToast("El monto debe ser > 0.", "error"); return; }
     var motivo = document.getElementById("aj_motivo").value.trim();
     if (!motivo) { mostrarToast("Ingresá el motivo del ajuste.", "error"); return; }
@@ -375,7 +375,7 @@
       llamarBackend("procesarAjusteCajaConOperador", d, function(msg){
         mostrarToastOperacion(msg);
         cargarDashboard();
-        document.getElementById("aj_monto").value = 0;
+        setInputMoneda(document.getElementById("aj_monto"), 0);
         document.getElementById("aj_motivo").value = "";
         document.getElementById("aj_obs").value = "";
         document.getElementById("aj_fecha").value = new Date().toISOString().split("T")[0];

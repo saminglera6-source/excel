@@ -144,16 +144,16 @@
     <div class="paso">
       <p class="paso-titulo"><span class="paso-num">6</span> Cobro</p>
       <label style="margin-top:0">Precio cobrado ($):</label>
-      <input type="number" id="r_precioCob" value="0" min="0"/>
+      <input type="text" inputmode="numeric" id="r_precioCob" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
 
       <div class="fila2">
         <div>
           <label>Cobrado efectivo ($):</label>
-          <input type="number" id="r_efec" value="0" min="0"/>
+          <input type="text" inputmode="numeric" id="r_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
         </div>
         <div>
           <label>Cobrado transferencia ($):</label>
-          <input type="number" id="r_transf" value="0" min="0"/>
+          <input type="text" inputmode="numeric" id="r_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
         </div>
       </div>
     </div>
@@ -333,7 +333,7 @@
       "<div class='total' style='margin-top:8px'>TOTAL: " + fmtP(res.precioTotal) + "</div>" +
       "<div class='hint' style='margin-top:4px'>Tiempo estimado: " + repDiasHabiles(res.horasEstimadas) + "</div>";
 
-      document.getElementById("r_precioCob").value = res.precioTotal;
+      setInputMoneda(document.getElementById("r_precioCob"), res.precioTotal);
     }
     document.getElementById("r_presupuestoResultado").innerHTML = html;
 
@@ -413,9 +413,9 @@
     document.getElementById("r_bateria").value  = datos["Batería"] || "";
     document.getElementById("r_falla1").value   = datos["Falla 1"] || "";
     document.getElementById("r_falla2").value   = datos["Falla 2"] || "";
-    document.getElementById("r_precioCob").value= datos["Precio Cobrado"] || 0;
-    document.getElementById("r_efec").value     = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("r_transf").value   = datos["Cobrado Transferencia"] || 0;
+    setInputMoneda(document.getElementById("r_precioCob"), datos["Precio Cobrado"] || 0);
+    setInputMoneda(document.getElementById("r_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("r_transf"), datos["Cobrado Transferencia"] || 0);
     document.getElementById("r_obs").value      = datos["Observaciones"] || "";
     document.getElementById(datos["Es Diagnóstico"] === "SI" ? "r_tipoIngreso_diagnostico" : "r_tipoIngreso_reparacion").checked = true;
     reparacionesRecalcular();
@@ -436,9 +436,9 @@
       bateria: document.getElementById("r_bateria").value.trim(),
       falla1: document.getElementById("r_falla1").value.trim(),
       falla2: document.getElementById("r_falla2").value.trim(),
-      precioCob: parseFloat(document.getElementById("r_precioCob").value) || 0,
-      efec: parseFloat(document.getElementById("r_efec").value) || 0,
-      transf: parseFloat(document.getElementById("r_transf").value) || 0,
+      precioCob: valorNumerico(document.getElementById("r_precioCob")),
+      efec: valorNumerico(document.getElementById("r_efec")),
+      transf: valorNumerico(document.getElementById("r_transf")),
       obs: document.getElementById("r_obs").value.trim(),
       operador: document.getElementById("r_operador").value
     };

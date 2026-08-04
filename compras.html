@@ -37,7 +37,7 @@
       <input type="text" id="c_proveedor" placeholder="Ej: Juan Pérez, Particular"/>
 
       <label>CUIL/CUIT proveedor (opcional):</label>
-      <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9"/>
+      <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
       <div class="hint">Completalo solo si necesitás facturar esta compra. El DNI de la cesión de titularidad se calcula solo a partir de este dato.</div>
 
       <div class="fila2">
@@ -86,12 +86,12 @@
 
       <div id="c_wrapPrecioCompra">
         <label>Precio de compra ($): <span class="req">*</span></label>
-        <input type="number" id="c_precioCompra" value="0" min="0"/>
+        <input type="text" inputmode="numeric" id="c_precioCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
       </div>
 
       <div id="c_wrapPrecioConsig">
         <label>Precio acordado consignación ($): <span class="req">*</span></label>
-        <input type="number" id="c_precioConsig" value="0" min="0"/>
+        <input type="text" inputmode="numeric" id="c_precioConsig" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
       </div>
 
       <label>Forma de pago:</label>
@@ -110,11 +110,11 @@
         <div class="fila2">
           <div>
             <label>Costo reparación estimado ($):</label>
-            <input type="number" id="c_costoRep" value="0" min="0"/>
+            <input type="text" inputmode="numeric" id="c_costoRep" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
           </div>
           <div>
             <label>Precio estimado de venta ($):</label>
-            <input type="number" id="c_precioVenta" value="0" min="0"/>
+            <input type="text" inputmode="numeric" id="c_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
           </div>
         </div>
       </div>
@@ -157,7 +157,7 @@
         <label>Proveedor:</label>
         <input type="text" id="ca_proveedor" placeholder="Ej: Distribuidora ElectroMax"/>
         <label>CUIL/CUIT proveedor (opcional):</label>
-        <input type="text" id="ca_cuil" placeholder="Ej: 20-12345678-9"/>
+        <input type="text" id="ca_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
         <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
       </div>
 
@@ -171,9 +171,9 @@
       <div class="paso">
         <p class="paso-titulo"><span class="paso-num">4</span> ¿Cómo se pagó?</p>
         <div class="fila2" style="grid-template-columns:1fr 1fr 1fr">
-          <div><label style="font-size:11px">Efectivo</label><input type="number" id="ca_pagEfec" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Transferencia</label><input type="number" id="ca_pagTransf" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="ca_pagUsd" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="ca_pagEfec" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="ca_pagTransf" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="ca_pagUsd" value="" placeholder="0" min="0" oninput="comprasAccCalcTotal()"/></div>
         </div>
         <div class="total" id="ca_totalPagadoDiv">Total pagado: $0</div>
       </div>
@@ -228,14 +228,14 @@
     var esCompra = tipo === "COMPRA";
     document.getElementById("c_wrapPrecioCompra").style.display = esCompra ? "block" : "none";
     document.getElementById("c_wrapPrecioConsig").style.display = esCompra ? "none" : "block";
-    if (esCompra) document.getElementById("c_precioConsig").value = 0;
-    else document.getElementById("c_precioCompra").value = 0;
+    if (esCompra) setInputMoneda(document.getElementById("c_precioConsig"), 0);
+    else setInputMoneda(document.getElementById("c_precioCompra"), 0);
 
     var necesitaRep = document.getElementById("c_reparacion").value === "Sí";
     document.getElementById("c_wrapReparacionEstimados").style.display = necesitaRep ? "block" : "none";
     if (!necesitaRep) {
-      document.getElementById("c_costoRep").value = 0;
-      document.getElementById("c_precioVenta").value = 0;
+      setInputMoneda(document.getElementById("c_costoRep"), 0);
+      setInputMoneda(document.getElementById("c_precioVenta"), 0);
     }
   }
   comprasActualizarVisibilidad();
@@ -261,10 +261,10 @@
       '</div>' +
       '<div class="fila2">' +
         '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="1" min="1" oninput="comprasAccCalcTotal()"/></div>' +
-        '<div><label style="font-size:11px">Costo unitario ($)</label><input type="number" id="ca_costo-'+id+'" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Costo unitario ($)</label><input type="text" inputmode="numeric" id="ca_costo-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Precio venta ($)</label><input type="number" id="ca_precio-'+id+'" value="0" min="0"/></div>' +
+        '<div><label style="font-size:11px">Precio venta ($)</label><input type="text" inputmode="numeric" id="ca_precio-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>' +
         '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="0" min="0"/></div>' +
       '</div>' +
       '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
@@ -290,8 +290,8 @@
         marca: document.getElementById("ca_marca-"+id).value.trim(),
         color: document.getElementById("ca_color-"+id).value.trim(),
         cantidad: parseInt(document.getElementById("ca_cant-"+id).value) || 0,
-        costoUnit: parseFloat(document.getElementById("ca_costo-"+id).value) || 0,
-        precioVenta: parseFloat(document.getElementById("ca_precio-"+id).value) || 0,
+        costoUnit: valorNumerico(document.getElementById("ca_costo-"+id)),
+        precioVenta: valorNumerico(document.getElementById("ca_precio-"+id)),
         stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
       });
     });
@@ -303,8 +303,8 @@
     var total = lineas.reduce(function(s,l){ return s + l.cantidad*l.costoUnit; }, 0);
     document.getElementById("ca_totalDiv").textContent = "Costo total: " + fmtP(total);
 
-    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
-    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var ef = valorNumerico(document.getElementById("ca_pagEfec"));
+    var tr = valorNumerico(document.getElementById("ca_pagTransf"));
     var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var totalPagado = ef + tr + usPesos;
@@ -323,8 +323,8 @@
       if (lineas[i].cantidad <= 0) { mostrarToast("Revisá la cantidad de: " + lineas[i].producto, "error"); return; }
     }
     var total = comprasAccCalcTotal();
-    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
-    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var ef = valorNumerico(document.getElementById("ca_pagEfec"));
+    var tr = valorNumerico(document.getElementById("ca_pagTransf"));
     var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var totalPagado = ef + tr + usPesos;
@@ -401,12 +401,12 @@
     document.getElementById("c_imei").value          = datos["IMEI"] || "";
     document.getElementById("c_color").value         = datos["Color"] || "";
     document.getElementById("c_estadoFisico").value  = datos["Estado Físico"] || "Bueno";
-    document.getElementById("c_precioCompra").value  = datos["Precio Compra"] || 0;
-    document.getElementById("c_precioConsig").value  = datos["Precio Acordado Consignación"] || 0;
+    setInputMoneda(document.getElementById("c_precioCompra"), datos["Precio Compra"] || 0);
+    setInputMoneda(document.getElementById("c_precioConsig"), datos["Precio Acordado Consignación"] || 0);
     document.getElementById("c_formaPago").value     = datos["Forma de Pago Compra"] || "Efectivo";
     document.getElementById("c_reparacion").value    = datos["¿Necesita Reparación?"] || "No";
-    document.getElementById("c_costoRep").value      = datos["Costo Reparación Estimado"] || 0;
-    document.getElementById("c_precioVenta").value   = datos["Precio Estimado Venta"] || 0;
+    setInputMoneda(document.getElementById("c_costoRep"), datos["Costo Reparación Estimado"] || 0);
+    setInputMoneda(document.getElementById("c_precioVenta"), datos["Precio Estimado Venta"] || 0);
     document.getElementById("c_obs").value           = datos["Observaciones"] || "";
     comprasActualizarVisibilidad();
   }
@@ -424,12 +424,12 @@
       imei: document.getElementById("c_imei").value.trim(),
       color: document.getElementById("c_color").value.trim(),
       estadoFisico: document.getElementById("c_estadoFisico").value,
-      precioCompra: parseFloat(document.getElementById("c_precioCompra").value) || 0,
-      precioConsig: parseFloat(document.getElementById("c_precioConsig").value) || 0,
+      precioCompra: valorNumerico(document.getElementById("c_precioCompra")),
+      precioConsig: valorNumerico(document.getElementById("c_precioConsig")),
       formaPago: document.getElementById("c_formaPago").value,
       reparacion: document.getElementById("c_reparacion").value,
-      costoRep: parseFloat(document.getElementById("c_costoRep").value) || 0,
-      precioVenta: parseFloat(document.getElementById("c_precioVenta").value) || 0,
+      costoRep: valorNumerico(document.getElementById("c_costoRep")),
+      precioVenta: valorNumerico(document.getElementById("c_precioVenta")),
       obs: document.getElementById("c_obs").value.trim(),
       esPreventa: document.getElementById("c_esPreventa").value,
       nPreAsociada: document.getElementById("c_esPreventa").value === "Si"

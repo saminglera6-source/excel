@@ -38,7 +38,7 @@
       <div class="fila2">
         <div>
           <label>CUIL cliente (opcional):</label>
-          <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9"/>
+          <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
           <div class="hint">El DNI del recibo se calcula solo a partir de este dato.</div>
         </div>
         <div>
@@ -93,16 +93,16 @@
       <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
 
       <label>Precio de venta pactado ($): <span class="req">*</span></label>
-      <input type="number" id="p_precioVenta" value="0" min="0" oninput="preventasCalcTotal()"/>
+      <input type="text" inputmode="numeric" id="p_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/>
       <div class="hint">Buscá el "Modelo solicitado" en Lista de Precios (Precio Preventa) si no estás seguro del valor.</div>
       <button type="button" class="btn" style="background:#8E44AD;margin-top:8px" onclick="preventasAbrirCalculadoraCuotas()">💳 Calcular cuotas</button>
 
       <label>Cobrado en ($):</label>
       <div class="fila4">
-        <div><label style="font-size:11px">Efectivo</label><input type="number" id="p_efec" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Transferencia</label><input type="number" id="p_transf" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Cuotas</label><input type="number" id="p_cuotas" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="p_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="p_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="p_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="" placeholder="0" min="0" oninput="preventasCalcTotal()"/></div>
       </div>
       <div class="total" id="p_totalDiv">Total cobrado: $0</div>
     </div>
@@ -197,9 +197,9 @@
   }
 
   function preventasCalcTotal(){
-    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("p_efec"));
+    var tr = valorNumerico(document.getElementById("p_transf"));
+    var cu = valorNumerico(document.getElementById("p_cuotas"));
     var us = parseFloat(document.getElementById("p_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var t = ef + tr + cu + usPesos;
@@ -222,10 +222,10 @@
     document.getElementById("p_vendedor").value    = datos["Vendedor"] || "Martin";
     document.getElementById("p_tel").value         = datos["Teléfono"] || "";
     _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
-    document.getElementById("p_efec").value        = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("p_transf").value      = datos["Cobrado Transferencia"] || 0;
-    document.getElementById("p_cuotas").value       = datos["Cobrado Cuotas"] || 0;
-    document.getElementById("p_usd").value          = datos["Cobrado USD"] || 0;
+    setInputMoneda(document.getElementById("p_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("p_transf"), datos["Cobrado Transferencia"] || 0);
+    setInputMoneda(document.getElementById("p_cuotas"), datos["Cobrado Cuotas"] || 0);
+    document.getElementById("p_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("p_obs").value          = datos["Observaciones"] || "";
     var fDesde = fechaParaInput(datos["Fecha Prometida Desde"]);
     var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
@@ -235,10 +235,10 @@
   }
 
   function preventasEnviar(){
-    var pv = parseFloat(document.getElementById("p_precioVenta").value) || 0;
-    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var pv = valorNumerico(document.getElementById("p_precioVenta"));
+    var ef = valorNumerico(document.getElementById("p_efec"));
+    var tr = valorNumerico(document.getElementById("p_transf"));
+    var cu = valorNumerico(document.getElementById("p_cuotas"));
     var us = parseFloat(document.getElementById("p_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var total = ef + tr + cu + usPesos;

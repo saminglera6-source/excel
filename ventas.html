@@ -35,7 +35,7 @@
       <div class="fila2">
         <div>
           <label>CUIL cliente (opcional):</label>
-          <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9"/>
+          <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
           <div class="hint">El DNI del recibo se calcula solo a partir de este dato — no hace falta cargarlo aparte.</div>
         </div>
         <div>
@@ -64,15 +64,15 @@
         <div class="hint">Completá solo los que apliquen. Se registran por separado, prorrateando el pago según su participación en el total.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
           <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="v_acc1" placeholder="Ej: Cargador 20W"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc1p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc1p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
           <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="v_acc2" placeholder="Ej: Auriculares"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc2p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc2p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
           <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="v_acc3" placeholder="Ej: Vidrio templado"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc3p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc3p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
       </div>
     </div>
@@ -81,16 +81,16 @@
       <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
 
       <label>Precio del Celular ($): <span class="req">*</span></label>
-      <input type="number" id="v_precioVenta" value="0" min="0" oninput="ventasCalcTotalOperacion()"/>
+      <input type="text" inputmode="numeric" id="v_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/>
 
       <div class="total" id="v_totalOperacionDiv" style="background:#FEF9E7;color:#7D6608">TOTAL OPERACIÓN: $0</div>
 
       <label>Cobrado en (por el TOTAL de la operación: celular + accesorios) ($):</label>
       <div class="fila4">
-        <div><label style="font-size:11px">Efectivo</label><input type="number" id="v_efec" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Transferencia</label><input type="number" id="v_transf" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Cuotas</label><input type="number" id="v_cuotas" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="v_usd" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="v_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="v_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="v_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="v_usd" value="" placeholder="0" min="0" oninput="ventasCalcTotal()"/></div>
       </div>
       <div class="total" id="v_totalDiv">Total cobrado: $0</div>
 
@@ -137,7 +137,7 @@
           <div><label>Teléfono:</label><input type="text" id="va_tel" placeholder="Ej: 2914123456"/></div>
         </div>
         <label>CUIL cliente (opcional):</label>
-        <input type="text" id="va_cuil" placeholder="Ej: 20-12345678-9"/>
+        <input type="text" id="va_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
       </div>
 
       <div class="paso">
@@ -151,10 +151,10 @@
         <p class="paso-titulo"><span class="paso-num">4</span> Cobro</p>
         <label style="margin-top:0">Cobrado en ($):</label>
         <div class="fila4">
-          <div><label style="font-size:11px">Efectivo</label><input type="number" id="va_efec" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Transferencia</label><input type="number" id="va_transf" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Cuotas</label><input type="number" id="va_cuotas" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="va_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="va_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="va_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="" placeholder="0" min="0" oninput="ventasAccCalcTotal()"/></div>
         </div>
         <div class="total" id="va_totalCobradoDiv">Total cobrado: $0</div>
       </div>
@@ -307,19 +307,19 @@
     document.getElementById("v_tel").value          = datos["Teléfono Cliente"] || "";
     document.getElementById("v_domicilio").value    = datos["Domicilio Cliente"] || "";
     document.getElementById("v_email").value        = datos["Email Cliente"] || "";
-    document.getElementById("v_efec").value         = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("v_transf").value       = datos["Cobrado Transferencia"] || 0;
-    document.getElementById("v_cuotas").value       = datos["Cobrado Cuotas"] || 0;
-    document.getElementById("v_usd").value          = datos["Cobrado USD"] || 0;
+    setInputMoneda(document.getElementById("v_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("v_transf"), datos["Cobrado Transferencia"] || 0);
+    setInputMoneda(document.getElementById("v_cuotas"), datos["Cobrado Cuotas"] || 0);
+    document.getElementById("v_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("v_obs").value          = datos["Observaciones"] || "";
 
     var accs = datos._accesoriosAsociados || [];
     document.getElementById("v_acc1").value  = accs[0] ? accs[0].producto : "";
-    document.getElementById("v_acc1p").value = accs[0] ? accs[0].precio   : 0;
+    setInputMoneda(document.getElementById("v_acc1p"), accs[0] ? accs[0].precio   : 0);
     document.getElementById("v_acc2").value  = accs[1] ? accs[1].producto : "";
-    document.getElementById("v_acc2p").value = accs[1] ? accs[1].precio   : 0;
+    setInputMoneda(document.getElementById("v_acc2p"), accs[1] ? accs[1].precio   : 0);
     document.getElementById("v_acc3").value  = accs[2] ? accs[2].producto : "";
-    document.getElementById("v_acc3p").value = accs[2] ? accs[2].precio   : 0;
+    setInputMoneda(document.getElementById("v_acc3p"), accs[2] ? accs[2].precio   : 0);
     if (accs.length > 0 && !_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
 
     ventasCalcTotalOperacion();
@@ -327,10 +327,10 @@
   }
 
   function ventasTotalOperacion(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
-    var a1 = parseFloat(document.getElementById("v_acc1p").value) || 0;
-    var a2 = parseFloat(document.getElementById("v_acc2p").value) || 0;
-    var a3 = parseFloat(document.getElementById("v_acc3p").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
+    var a1 = valorNumerico(document.getElementById("v_acc1p"));
+    var a2 = valorNumerico(document.getElementById("v_acc2p"));
+    var a3 = valorNumerico(document.getElementById("v_acc3p"));
     return pv + a1 + a2 + a3;
   }
   function ventasCalcTotalOperacion(){
@@ -338,9 +338,9 @@
       "TOTAL OPERACIÓN: " + fmtP(ventasTotalOperacion());
   }
   function ventasCalcTotal(){
-    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("v_efec"));
+    var tr = valorNumerico(document.getElementById("v_transf"));
+    var cu = valorNumerico(document.getElementById("v_cuotas"));
     var us = parseFloat(document.getElementById("v_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var t = ef + tr + cu + usPesos;
@@ -350,10 +350,10 @@
   }
 
   function ventasEnviar(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
-    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
+    var ef = valorNumerico(document.getElementById("v_efec"));
+    var tr = valorNumerico(document.getElementById("v_transf"));
+    var cu = valorNumerico(document.getElementById("v_cuotas"));
     var us = parseFloat(document.getElementById("v_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var nOp = document.getElementById("v_nOp").value;
@@ -382,9 +382,9 @@
       efec: ef, transf: tr, cuotas: cu, usd: us,
       obs: document.getElementById("v_obs").value.trim(),
       accesorios: [
-        { nombre: document.getElementById("v_acc1").value.trim(), precio: parseFloat(document.getElementById("v_acc1p").value) || 0 },
-        { nombre: document.getElementById("v_acc2").value.trim(), precio: parseFloat(document.getElementById("v_acc2p").value) || 0 },
-        { nombre: document.getElementById("v_acc3").value.trim(), precio: parseFloat(document.getElementById("v_acc3p").value) || 0 }
+        { nombre: document.getElementById("v_acc1").value.trim(), precio: valorNumerico(document.getElementById("v_acc1p")) },
+        { nombre: document.getElementById("v_acc2").value.trim(), precio: valorNumerico(document.getElementById("v_acc2p")) },
+        { nombre: document.getElementById("v_acc3").value.trim(), precio: valorNumerico(document.getElementById("v_acc3p")) }
       ].filter(function(a){ return a.nombre !== ""; }),
       operador: document.getElementById("v_operador").value,
       entregarRegalos: document.getElementById("v_entregarRegalos").checked
@@ -484,7 +484,7 @@
         '<div><label style="font-size:11px">Cantidad</label><input type="number" id="va_cant-'+id+'" value="1" min="1" oninput="ventasAccCalcTotal()"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Precio unitario ($)</label><input type="number" id="va_precio-'+id+'" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Precio unitario ($)</label><input type="text" inputmode="numeric" id="va_precio-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>' +
         '<div><label style="font-size:11px">Subtotal</label><input type="text" id="va_subtotal-'+id+'" value="$0" disabled/></div>' +
       '</div>' +
       '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="ventasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
@@ -506,7 +506,7 @@
       var skuId = document.getElementById("va_sku-"+id).value;
       var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
       if (!skuId || cantidad <= 0) return;
-      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      var precioUnit = valorNumerico(document.getElementById("va_precio-"+id));
       out.push({ skuId: skuId, cantidad: cantidad, precioUnit: precioUnit });
     });
     return out;
@@ -517,16 +517,16 @@
     document.querySelectorAll("[id^='va_linea-']").forEach(function(div){
       var id = div.id.split("-")[1];
       var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
-      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      var precioUnit = valorNumerico(document.getElementById("va_precio-"+id));
       var subtotal = cantidad * precioUnit;
       document.getElementById("va_subtotal-"+id).value = fmtP(subtotal);
       total += subtotal;
     });
     document.getElementById("va_totalDiv").textContent = "TOTAL: " + fmtP(total);
 
-    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("va_efec"));
+    var tr = valorNumerico(document.getElementById("va_transf"));
+    var cu = valorNumerico(document.getElementById("va_cuotas"));
     var us = parseFloat(document.getElementById("va_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var cobrado = ef + tr + cu + usPesos;
@@ -543,9 +543,9 @@
     if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto y cantidad.", "error"); return; }
 
     var total = ventasAccCalcTotal();
-    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("va_efec"));
+    var tr = valorNumerico(document.getElementById("va_transf"));
+    var cu = valorNumerico(document.getElementById("va_cuotas"));
     var us = parseFloat(document.getElementById("va_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var cobrado = ef + tr + cu + usPesos;
@@ -586,7 +586,7 @@
 
   /** Parte 5: calcula cuotas en tiempo real sobre el precio del celular ya cargado — no guarda nada. */
   function ventasAbrirCalculadoraCuotas(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
     if (pv <= 0) { mostrarToast("Ingresá el precio del celular primero.", "error"); return; }
     renderCalculadoraCuotas(pv, {
       titulo: "💳 Financiación",
