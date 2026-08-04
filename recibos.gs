@@ -1587,3 +1587,305 @@ function _armarHtmlReciboEntregaReparacion_(d) {
 </body>
 </html>`;
 }
+
+// ============================================================
+//  Comprobante de Entrega — Preventa. Mismo patrón que el resto de
+//  recibos.gs. Se emite una vez que la preventa ya tuvo al menos una
+//  entrega (procesarEntregaPreventa, Code.gs) — ahí es donde arranca de
+//  verdad la garantía de 12 meses (no desde que se pagó la seña), así que
+//  reutiliza el mismo texto legal completo del recibo de Venta/Preventa.
+//  Muestra el desglose Precio Total / Seña abonada (capturada una sola
+//  vez en la primera entrega, ver "Seña Abonada (Preventa)" en
+//  procesarEntregaPreventa) / Cobrado en la(s) entrega(s) / Saldo
+//  pendiente (si la entrega fue parcial).
+// ============================================================
+
+/**
+ * generarReciboEntregaPreventa(numeroPreventa)
+ *
+ * Busca la preventa por su N° Preventa en "Preventas" — debe estar
+ * "✅ Entregado" o "🟢 Entregado con saldo" (ya tuvo al menos una entrega)
+ * — y arma el comprobante imprimible (una hoja A4). Completa IMEI/Color
+ * desde la Venta asociada (N° Venta Asociada) si existe, ya que la
+ * Preventa en sí no guarda esos datos del equipo físico entregado.
+ */
+function generarReciboEntregaPreventa(numeroPreventa) {
+  const numero = String(numeroPreventa || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de preventa.");
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Preventas");
+  if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada.");
+
+  const fE = 2;
+  const cNP  = getCol(sheet, "N° Preventa",          fE);
+  const cCL  = getCol(sheet, "Cliente",               fE);
+  const cTL  = getCol(sheet, "Teléfono",              fE);
+  const cMO  = getCol(sheet, "Modelo Solicitado",     fE);
+  const cPV  = getCol(sheet, "Precio Venta Pactado",  fE);
+  const cTC  = getCol(sheet, "Total Cobrado",         fE);
+  const cSP  = getCol(sheet, "Saldo Pendiente",       fE);
+  const cES  = getCol(sheet, "Estado",                fE);
+  const cNV  = getCol(sheet, "N° Venta Asociada",     fE);
+  let cCUIL = -1, cDOM = -1, cEML = -1, cSENA = -1, cFUE = -1, cVend = -1;
+  try { cCUIL = getCol(sheet, "CUIL Cliente",              fE); } catch (e) { /* opcional */ }
+  try { cDOM  = getCol(sheet, "Domicilio Cliente",         fE); } catch (e) { /* opcional */ }
+  try { cEML  = getCol(sheet, "Email Cliente",             fE); } catch (e) { /* opcional */ }
+  try { cSENA = getCol(sheet, "Seña Abonada (Preventa)",   fE); } catch (e) { /* opcional */ }
+  try { cFUE  = getCol(sheet, "Fecha Última Entrega",      fE); } catch (e) { /* opcional */ }
+  try { cVend = getCol(sheet, "Vendedor",                  fE); } catch (e) { /* opcional */ }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Preventas".`);
+  const datosP = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datosP.find(r => String(r[cNP - 1]).trim() === numero);
+  if (!fila) throw new Error(`❌ "${numero}" no encontrado en "Preventas".`);
+
+  const estado = String(fila[cES - 1] || "").trim();
+  if (estado !== "✅ Entregado" && estado !== "🟢 Entregado con saldo") {
+    throw new Error(`❌ "${numero}" todavía no fue entregada (estado actual: "${estado || "—"}") — el comprobante de entrega solo corresponde después de la entrega.`);
+  }
+
+  const tz = Session.getScriptTimeZone();
+  const fechaRaw = cFUE > 0 ? fila[cFUE - 1] : null;
+  const fecha = fechaRaw instanceof Date ? Utilities.formatDate(fechaRaw, tz, "dd/MM/yyyy") : Utilities.formatDate(new Date(), tz, "dd/MM/yyyy");
+
+  const cuil = cCUIL > 0 ? String(fila[cCUIL - 1] || "") : "";
+  const precioTotal = Number(fila[cPV - 1]) || 0;
+  const totalCobrado = Number(fila[cTC - 1]) || 0;
+  const senaAbonada = cSENA > 0 ? (Number(fila[cSENA - 1]) || 0) : 0;
+
+  const datos = {
+    numero:        numero,
+    fecha:         fecha,
+    vendedor:      cVend > 0 ? String(fila[cVend - 1] || "") : "",
+    cliente:       String(fila[cCL - 1] || ""),
+    cuil:          cuil,
+    dni:           extraerDniDeCuil_(cuil),
+    domicilio:     cDOM > 0 ? String(fila[cDOM - 1] || "") : "",
+    email:         cEML > 0 ? String(fila[cEML - 1] || "") : "",
+    tel:           String(fila[cTL - 1] || ""),
+    modelo:        String(fila[cMO - 1] || ""),
+    imei:          "",
+    color:         "",
+    precioTotal:   precioTotal,
+    senaAbonada:   senaAbonada,
+    cobradoEntrega: Math.max(0, totalCobrado - senaAbonada),
+    saldoPendiente: Number(fila[cSP - 1]) || 0
+  };
+
+  // IMEI/Color reales del equipo entregado: viven en Ventas (o en Compras
+  // detrás de esa Venta), no en Preventas — se completan solo si hay N° de
+  // Venta asociada (siempre debería haberla luego de la primera entrega).
+  const nVta = cNV > 0 ? String(fila[cNV - 1] || "").trim() : "";
+  if (nVta) {
+    const ventasSheet = ss.getSheetByName("Ventas");
+    if (ventasSheet) {
+      const fEV = 2;
+      let cNVv = -1, cMOv = -1, cIMv = -1, cNOPv = -1;
+      try { cNVv  = getCol(ventasSheet, "N° Venta",     fEV); } catch (e) { /* opcional */ }
+      try { cMOv  = getCol(ventasSheet, "Modelo",       fEV); } catch (e) { /* opcional */ }
+      try { cIMv  = getCol(ventasSheet, "IMEI",         fEV); } catch (e) { /* opcional */ }
+      try { cNOPv = getCol(ventasSheet, "N° OP Compra", fEV); } catch (e) { /* opcional */ }
+      const lastV = ventasSheet.getLastRow();
+      if (cNVv > 0 && lastV > fEV) {
+        const filaV = ventasSheet.getRange(fEV + 1, 1, lastV - fEV, ventasSheet.getLastColumn())
+          .getValues()
+          .find(r => String(r[cNVv - 1]).trim() === nVta);
+        if (filaV) {
+          if (cMOv > 0 && filaV[cMOv - 1]) datos.modelo = String(filaV[cMOv - 1]);
+          if (cIMv > 0) datos.imei = String(filaV[cIMv - 1] || "");
+          const nOpCompra = cNOPv > 0 ? String(filaV[cNOPv - 1] || "").trim() : "";
+          if (nOpCompra) {
+            const comprasSheet = ss.getSheetByName("Compras");
+            if (comprasSheet) {
+              const fEC = 2;
+              let cOPc = -1, cColorc = -1;
+              try { cOPc    = getCol(comprasSheet, "N° OP",  fEC); } catch (e) { /* opcional */ }
+              try { cColorc = getCol(comprasSheet, "Color",  fEC); } catch (e) { /* opcional */ }
+              const lastC = comprasSheet.getLastRow();
+              if (cOPc > 0 && lastC > fEC) {
+                const filaC = comprasSheet.getRange(fEC + 1, 1, lastC - fEC, comprasSheet.getLastColumn())
+                  .getValues()
+                  .find(r => String(r[cOPc - 1]).trim() === nOpCompra);
+                if (filaC && cColorc > 0) datos.color = String(filaC[cColorc - 1] || "");
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return _armarHtmlReciboEntregaPreventa_(datos);
+}
+
+/** Arma el HTML del comprobante de entrega de preventa. SOLO diseño — mismo sistema (1 hoja A4, firma estampada) que los demás recibos de recibos.gs. */
+function _armarHtmlReciboEntregaPreventa_(d) {
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const neg = RECIBO_NEGOCIO;
+  const linea = (ancho) => `<span class="linea" style="width:${ancho || 160}px"></span>`;
+  const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
+
+  const html = `
+  <div class="hoja">
+    <div class="encabezado">
+      <div class="encabezado-izq">
+        <div class="logo">${esc(neg.nombre)}</div>
+        <div class="direccion">${esc(neg.direccion)} · ${esc(neg.ciudad)}</div>
+        <div class="direccion">Tel: ${esc(neg.telefono)}</div>
+      </div>
+      <div class="encabezado-der">
+        <div class="titulo-recibo">COMPROBANTE DE ENTREGA</div>
+        <div class="dato-header">N° Preventa: <b>${esc(d.numero)}</b></div>
+        <div class="dato-header">Fecha de entrega: <b>${esc(d.fecha)}</b></div>
+        <div class="dato-header">Vendedor: <b>${esc(d.vendedor) || linea(110)}</b></div>
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL DISPOSITIVO ENTREGADO</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Marca/Modelo", `<b>${esc(d.modelo) || "—"}</b>`)}
+        ${campo("Color", `<b>${esc(d.color) || linea(140)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("IMEI", `<b>${esc(d.imei) || linea(180)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL COMPRADOR</div>
+    <div class="dos-columnas comprador">
+      <div class="columna">
+        ${campo("Apellido y Nombre", `<b>${esc(d.cliente) || linea(160)}</b>`)}
+        ${campo("DNI", `<b>${esc(d.dni) || linea(140)}</b>`)}
+        ${campo("CUIL / CUIT", `<b>${esc(d.cuil) || linea(140)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("Teléfono", `<b>${esc(d.tel) || linea(140)}</b>`)}
+        ${campo("Domicilio", `<b>${esc(d.domicilio) || linea(140)}</b>`)}
+        ${campo("Email", `<b>${esc(d.email) || linea(140)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">RESUMEN DE PAGO</div>
+    <div class="pago-box">
+      <div class="pago-total">
+        <div class="pago-total-label">PRECIO TOTAL</div>
+        <div class="pago-total-monto">${fmtPeso(d.precioTotal)}</div>
+        <div class="son-pesos">Son pesos: <b>${numeroAPesosEnLetras_(d.precioTotal)}</b></div>
+      </div>
+      <div class="pago-detalle">
+        <div class="pago-detalle-label">DETALLE</div>
+        <div class="pago-fila"><span class="pago-etiqueta">Seña abonada (preventa):</span> <b>${fmtPeso(d.senaAbonada)}</b></div>
+        <div class="pago-fila"><span class="pago-etiqueta">Cobrado en esta entrega:</span> <b>${fmtPeso(d.cobradoEntrega)}</b></div>
+        <div class="pago-fila" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--gris)"><span class="pago-etiqueta">Total cobrado:</span> <b>${fmtPeso(d.senaAbonada + d.cobradoEntrega)}</b></div>
+        ${d.saldoPendiente > 0 ? `<div class="pago-fila" style="color:#C0392B"><span class="pago-etiqueta">⚠️ Saldo pendiente:</span> <b>${fmtPeso(d.saldoPendiente)}</b></div>` : ""}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">GARANTÍA</div>
+    <div class="garantia">
+      <p>El equipo adquirido cuenta con una garantía de <b>${neg.garantiaMeses} (doce) meses</b> desde la fecha de entrega efectiva al comprador.
+      La garantía cubre únicamente fallas técnicas de origen no provocadas por el cliente, incluyendo problemas de encendido, fallas internas de pantalla,
+      batería defectuosa de origen, fallas de software persistentes, problemas de carga, audio, cámara o conectividad. Toda garantía queda sujeta a
+      diagnóstico y verificación técnica por parte del local.</p>
+      <p>La garantía NO cubre: pantallas rotas, fisuradas o con daño físico; golpes, rayones, deformaciones o daños estéticos; daño por líquido o humedad;
+      equipos abiertos, manipulados o reparados por terceros; daños ocasionados por accesorios no originales o uso incorrecto; problemas relacionados con
+      cuentas, contraseñas o bloqueos del usuario; daños eléctricos externos; fallas posteriores al vencimiento del plazo de garantía. Si el equipo
+      presenta evidencia física de golpe, humedad o manipulación externa, la garantía quedará automáticamente anulada.</p>
+      <p>En caso de ingreso por garantía: 1) El equipo será evaluado técnicamente. 2) El local determinará si corresponde garantía según el diagnóstico
+      realizado. 3) Si corresponde garantía, el local podrá optar por: reparación, reemplazo del equipo, o devolución del dinero abonado (última instancia).</p>
+      <p>El cliente declara haber recibido el equipo en correcto estado de funcionamiento y haber leído y aceptado las presentes condiciones de garantía.</p>
+    </div>
+
+    <div class="firmas">
+      <div class="firma-col">
+        <img class="firma-img" src="data:image/png;base64,${RECIBO_FIRMA_TITULAR_BASE64}" alt="Firma">
+        <div class="firma-linea"></div>
+        <div class="firma-label">${esc(neg.nombre)} / ${esc(neg.titular)} — DNI ${esc(neg.dniTitular)}</div>
+      </div>
+      <div class="firma-col">
+        <div class="firma-linea"></div>
+        <div class="firma-label">Comprador — Aclaración y DNI</div>
+      </div>
+    </div>
+
+    <div class="pie-separador"></div>
+    <div class="pie">Al firmar, el comprador declara recibir el equipo en conformidad con lo descripto. ${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Entrega Preventa ${esc(d.numero)}</title>
+<style>
+  :root { --naranja: #E07B1E; --gris: #D9D9D9; --gris-texto: #6B6B6B; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
+
+  .hoja { width: 190mm; padding: 4mm 12mm; margin: 0 auto; }
+
+  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
+  .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
+  .direccion { font-size: 10.5px; color: var(--gris-texto); margin-top: 3px; }
+  .encabezado-der { text-align: right; }
+  .titulo-recibo { font-size: 20px; font-weight: bold; color: var(--naranja); letter-spacing: .5px; margin-bottom: 6px; }
+  .dato-header { font-size: 11.5px; margin-top: 2px; }
+
+  .seccion-titulo {
+    font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+    margin: 12px 0 7px; padding-bottom: 4px; border-bottom: 3px solid var(--naranja);
+  }
+
+  .dos-columnas { display: flex; gap: 40px; }
+  .dos-columnas .columna { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .dos-columnas.comprador { position: relative; }
+  .dos-columnas.comprador::after {
+    content: ""; position: absolute; top: 2px; bottom: 2px; left: 50%;
+    width: 1px; background: var(--gris); margin-left: -20px;
+  }
+  .campo { font-size: 11.5px; }
+  .etiqueta { font-weight: bold; }
+
+  .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
+
+  .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 4px; }
+  .pago-total { flex: 0 0 34%; text-align: center; padding: 10px 14px; border-right: 1px solid var(--gris); }
+  .pago-total-label { font-size: 11px; font-weight: bold; letter-spacing: .3px; }
+  .pago-total-monto { font-size: 24px; font-weight: bold; margin-top: 8px; }
+  .son-pesos { font-size: 10px; color: var(--gris-texto); margin-top: 8px; }
+  .pago-detalle { flex: 1; padding: 10px 20px; }
+  .pago-detalle-label { font-weight: bold; font-size: 11px; letter-spacing: .3px; margin-bottom: 8px; }
+  .pago-fila { margin: 5px 0; font-size: 11.5px; }
+  .pago-etiqueta { font-weight: bold; }
+
+  .garantia { font-size: 8.5px; line-height: 1.4; text-align: justify; color: #2b2b2b; }
+  .garantia p { margin: 0 0 5px; }
+
+  .firmas { display: flex; gap: 50px; margin-top: 55px; }
+  .firma-col { flex: 1; text-align: center; position: relative; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 85px; }
+  .firma-label { font-size: 10.5px; font-weight: bold; }
+  .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
+
+  .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
+  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
+
+  @page { size: A4; margin: 4mm 8mm; }
+  @media print { .hoja { width: 100%; } }
+</style>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+}

@@ -177,6 +177,20 @@
     document.getElementById("e_totalDiv").textContent = txt;
   }
 
+  function imprimirReciboEntregaPreventa(numeroPreventa){
+    if (!numeroPreventa) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el comprobante.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboEntregaPreventa(numeroPreventa);
+  }
+
   function entregaEnviar(){
     if (!document.getElementById("e_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
     var nPre = document.getElementById("e_nPre").value;
@@ -230,6 +244,11 @@
       if (!ok) return;
       llamarBackend("procesarEntregaPreventaConOperador", payload, function(msg){
         mostrarToastOperacion(msg);
+        mostrarToast("📄 ¿Imprimir el comprobante de entrega?", "info", {
+          persistente: true,
+          accionTexto: "🖨 Entrega",
+          accionFn: function(){ imprimirReciboEntregaPreventa(nPre); }
+        });
         cargarDashboard();
         // Deja el formulario listo para la próxima entrega: limpia todo lo
         // que se tipeó a mano (entregaInit() ya repuebla el selector de

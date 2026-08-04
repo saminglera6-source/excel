@@ -4776,6 +4776,20 @@ function procesarEntregaPreventa(d) {
   preSheet.getRange(filaPreSh, cSP).setValue(saldoFinal).setNumberFormat("$#,##0");
   preSheet.getRange(filaPreSh, cES).setValue(estadoFinalPreventa);
   preSheet.getRange(filaPreSh, cNV).setValue(nVta);
+
+  // Datos exclusivos para el Comprobante de Entrega de Preventa (recibos.gs)
+  // — no participan de ningún cálculo de caja/ganancia, solo alimentan ese
+  // recibo. "Seña Abonada (Preventa)" se escribe UNA sola vez (la primera
+  // entrega, sea total o parcial) para no perderla si después se cobra el
+  // saldo restante en una segunda entrega — totalPrevio en ese segundo
+  // llamado ya incluiría el cobro de la primera entrega, no la seña real.
+  const cSenaOriginal = asegurarColumnaGenerica_(preSheet, fEP, "Seña Abonada (Preventa)");
+  const senaYaGuardada = preSheet.getRange(filaPreSh, cSenaOriginal).getValue();
+  if (senaYaGuardada === "" || senaYaGuardada === null) {
+    preSheet.getRange(filaPreSh, cSenaOriginal).setValue(totalPrevio).setNumberFormat("$#,##0");
+  }
+  const cFechaUltimaEntrega = asegurarColumnaGenerica_(preSheet, fEP, "Fecha Última Entrega");
+  preSheet.getRange(filaPreSh, cFechaUltimaEntrega).setValue(new Date()).setNumberFormat("dd/mm/yyyy");
   if (cUSC >= 0) preSheet.getRange(filaPreSh, cUSC).setValue(usFinalPesos).setNumberFormat("$#,##0");
 
   // Desglose de medios en observaciones (problema 5), incluyendo conversión USD del saldo cobrado ahora
