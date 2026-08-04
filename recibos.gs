@@ -1066,3 +1066,326 @@ function _armarHtmlReciboCesion_(d) {
 </body>
 </html>`;
 }
+
+// ============================================================
+//  Ticket de Ingreso por Reparación / Garantía — mismo patrón que el
+//  resto de recibos.gs (documento HTML autocontenido, solo lectura,
+//  window.print() al cargar). Una sola función lee "Reparaciones" y
+//  elige la plantilla según el campo "Tipo" de la reparación:
+//    - "Garantía"                → _armarHtmlReciboGarantia_ (sin precio,
+//      con el texto legal de condiciones de garantía, banner negro+naranja)
+//    - cualquier otro valor      → _armarHtmlReciboReparacion_ (con precio
+//      y forma de pago, banner blanco con título naranja — igual que
+//      Venta/Preventa/Cesión)
+// ============================================================
+
+/**
+ * generarReciboReparacion(numeroReparacion)
+ *
+ * Busca la reparación por su N° Rep en "Reparaciones" y arma el ticket de
+ * ingreso imprimible (una hoja A4), con la plantilla que corresponda según
+ * el Tipo de la reparación (Particular/Preventa/Interno → recibo con
+ * precio; Garantía → recibo de condiciones, sin precio).
+ */
+function generarReciboReparacion(numeroReparacion) {
+  const numero = String(numeroReparacion || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de reparación.");
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Reparaciones");
+  if (!sheet) throw new Error("❌ Hoja 'Reparaciones' no encontrada.");
+
+  const fE = 2;
+  const cNR  = getCol(sheet, "N° Rep",         fE);
+  const cFE  = getCol(sheet, "Fecha Ingreso",  fE);
+  const cTI  = getCol(sheet, "Tipo",           fE);
+  const cCL  = getCol(sheet, "Cliente",        fE);
+  const cTE  = getCol(sheet, "Teléfono",       fE);
+  const cEQ  = getCol(sheet, "Equipo",         fE);
+  const cIM  = getCol(sheet, "IMEI",           fE);
+  const cF1  = getCol(sheet, "Falla 1",        fE);
+  const cF2  = getCol(sheet, "Falla 2",        fE);
+  const cPC  = getCol(sheet, "Precio Cobrado", fE);
+  const cEF  = getCol(sheet, "Cobrado Efectivo",      fE);
+  const cTR  = getCol(sheet, "Cobrado Transferencia", fE);
+  let cDNI = -1, cEML = -1, cCOL = -1, cBAT = -1;
+  try { cDNI = getCol(sheet, "DNI Cliente",   fE); } catch (e) { /* opcional */ }
+  try { cEML = getCol(sheet, "Email Cliente", fE); } catch (e) { /* opcional */ }
+  try { cCOL = getCol(sheet, "Color",         fE); } catch (e) { /* opcional */ }
+  try { cBAT = getCol(sheet, "Batería",       fE); } catch (e) { /* opcional */ }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Reparaciones".`);
+  const datosR = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datosR.find(r => String(r[cNR - 1]).trim() === numero);
+  if (!fila) throw new Error(`❌ "${numero}" no encontrado en "Reparaciones".`);
+
+  const tz = Session.getScriptTimeZone();
+  const fechaRaw = fila[cFE - 1];
+  const fecha = fechaRaw instanceof Date ? Utilities.formatDate(fechaRaw, tz, "dd/MM/yyyy") : String(fechaRaw || "");
+
+  let falla = String(fila[cF1 - 1] || "");
+  if (fila[cF2 - 1]) falla += (falla ? " / " : "") + fila[cF2 - 1];
+
+  const tipo = String(fila[cTI - 1] || "").trim();
+
+  const datos = {
+    numero:    numero,
+    fecha:     fecha,
+    tipo:      tipo,
+    cliente:   String(fila[cCL - 1] || ""),
+    tel:       String(fila[cTE - 1] || ""),
+    dni:       cDNI > 0 ? String(fila[cDNI - 1] || "") : "",
+    email:     cEML > 0 ? String(fila[cEML - 1] || "") : "",
+    equipo:    String(fila[cEQ - 1] || ""),
+    imei:      String(fila[cIM - 1] || ""),
+    color:     cCOL > 0 ? String(fila[cCOL - 1] || "") : "",
+    bateria:   cBAT > 0 ? String(fila[cBAT - 1] || "") : "",
+    falla:     falla,
+    precio:    Number(fila[cPC - 1]) || 0,
+    cobradoEf: Number(fila[cEF - 1]) || 0,
+    cobradoTr: Number(fila[cTR - 1]) || 0
+  };
+
+  return (tipo === "Garantía")
+    ? _armarHtmlReciboGarantia_(datos)
+    : _armarHtmlReciboReparacion_(datos);
+}
+
+/** CSS compartido por las dos plantillas de este archivo (idéntico salvo el color del banner, ver cada función) — evita duplicar 40 líneas de estilos casi iguales. */
+function _cssBaseTicketReparacion_(bannerCss) {
+  return `
+  :root { --naranja: #E07B1E; --gris: #D9D9D9; --gris-texto: #6B6B6B; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
+  .hoja { width: 190mm; padding: 4mm 12mm; margin: 0 auto; }
+  ${bannerCss}
+  .dato-header-fila { display: flex; justify-content: flex-end; gap: 24px; font-size: 11px; margin: 6px 0 2px; }
+  .seccion-titulo {
+    font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+    margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 3px solid var(--naranja);
+  }
+  .dos-columnas { display: flex; gap: 40px; }
+  .dos-columnas .columna { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .campo { font-size: 11.5px; }
+  .etiqueta { font-weight: bold; }
+  .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
+  .falla-box { border: 1px solid var(--gris); border-radius: 4px; padding: 10px 14px; min-height: 42px; font-size: 11.5px; margin-top: 2px; }
+  .pago-box { display: flex; border: 2px solid var(--naranja); margin-top: 4px; }
+  .pago-total { flex: 0 0 34%; text-align: center; padding: 10px 14px; border-right: 1px solid var(--gris); }
+  .pago-total-label { font-size: 11px; font-weight: bold; letter-spacing: .3px; }
+  .pago-total-monto { font-size: 26px; font-weight: bold; margin-top: 8px; }
+  .son-pesos { font-size: 10px; color: var(--gris-texto); margin-top: 8px; }
+  .pago-detalle { flex: 1; padding: 10px 20px; }
+  .pago-detalle-label { font-weight: bold; font-size: 11px; letter-spacing: .3px; margin-bottom: 6px; }
+  .pago-fila { margin: 5px 0; font-size: 11.5px; }
+  .pago-etiqueta { font-weight: bold; }
+  .pago-comprobante { margin-top: 8px; }
+  .chk-box { font-size: 13px; position: relative; top: 1px; }
+  .garantia-texto { font-size: 9px; line-height: 1.5; text-align: justify; color: #2b2b2b; font-style: italic; margin-top: 4px; }
+  .firmas { display: flex; gap: 50px; margin-top: 65px; }
+  .firma-col { flex: 1; text-align: center; position: relative; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 85px; }
+  .firma-label { font-size: 10.5px; font-weight: bold; }
+  .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
+  .pie-separador { border-top: 1px solid var(--gris); margin-top: 10px; }
+  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
+  @page { size: A4; margin: 4mm 8mm; }
+  @media print { .hoja { width: 100%; } }
+  `;
+}
+
+/** Bloque común "DATOS DEL DISPOSITIVO" + "DATOS DEL CLIENTE" + "FALLA DETECTADA", igual en las 2 plantillas (Particular/Garantía) — ver GARANTIA_TEXTO más abajo para la única diferencia real entre ambas. */
+function _bloqueDispositivoYClienteReparacion_(d, linea, campo, esc) {
+  return `
+    <div class="seccion-titulo">DATOS DEL DISPOSITIVO</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Marca/Modelo", `<b>${esc(d.equipo) || "—"}</b>`)}
+        ${campo("Color", `<b>${esc(d.color) || linea(160)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("IMEI", `<b>${esc(d.imei) || linea(180)}</b>`)}
+        ${campo("Batería", `<b>${esc(d.bateria) || linea(160)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL CLIENTE</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Apellido y Nombre", `<b>${esc(d.cliente) || linea(200)}</b>`)}
+        ${campo("DNI", `<b>${esc(d.dni) || linea(160)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("Tel", `<b>${esc(d.tel) || linea(160)}</b>`)}
+        ${campo("Email", `<b>${esc(d.email) || linea(180)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">FALLA DETECTADA POR EL CLIENTE</div>
+    <div class="falla-box">${esc(d.falla) || "—"}</div>`;
+}
+
+/** Ticket de Ingreso por Reparación (Particular/Preventa/Interno) — con precio y forma de pago. */
+function _armarHtmlReciboReparacion_(d) {
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const neg = RECIBO_NEGOCIO;
+  const linea = (ancho) => `<span class="linea" style="width:${ancho || 160}px"></span>`;
+  const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
+
+  const filaPago = (etiqueta, marcado, valorTexto) =>
+    `<div class="pago-fila"><span class="chk-box">${marcado ? "☑" : "☐"}</span> <span class="pago-etiqueta">${etiqueta}:</span> ${marcado ? `<b>${valorTexto}</b>` : linea(170)}</div>`;
+  const filasPago = [
+    filaPago("Efectivo", d.cobradoEf > 0, fmtPeso(d.cobradoEf)),
+    filaPago("Dólares", false, ""),
+    filaPago("Transferencia", d.cobradoTr > 0, fmtPeso(d.cobradoTr)),
+    filaPago("Cuotas", false, "")
+  ].join("");
+
+  const html = `
+  <div class="hoja">
+    <div class="encabezado">
+      <div class="encabezado-izq">
+        <div class="logo">${esc(neg.nombre)}</div>
+        <div class="direccion">${esc(neg.direccion)} · ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+      </div>
+      <div class="encabezado-der">
+        <div class="titulo-recibo">INGRESO POR REPARACIÓN</div>
+        <div class="dato-header">Ticket N°: <b>${esc(d.numero)}</b></div>
+        <div class="dato-header">Fecha: <b>${esc(d.fecha)}</b></div>
+      </div>
+    </div>
+
+    ${_bloqueDispositivoYClienteReparacion_(d, linea, campo, esc)}
+
+    <div class="seccion-titulo">PRECIO Y FORMA DE PAGO</div>
+    <div class="pago-box">
+      <div class="pago-total">
+        <div class="pago-total-label">PRECIO TOTAL</div>
+        <div class="pago-total-monto">${d.precio > 0 ? fmtPeso(d.precio) : linea(140)}</div>
+        <div class="son-pesos">Son pesos: ${d.precio > 0 ? `<b>${numeroAPesosEnLetras_(d.precio)}</b>` : linea(150)}</div>
+      </div>
+      <div class="pago-detalle">
+        <div class="pago-detalle-label">DETALLE DEL PAGO</div>
+        ${filasPago}
+        <div class="pago-fila pago-comprobante">N° comprobante: ${linea(200)}</div>
+      </div>
+    </div>
+
+    <div class="firmas">
+      <div class="firma-col">
+        <img class="firma-img" src="data:image/png;base64,${RECIBO_FIRMA_TITULAR_BASE64}" alt="Firma">
+        <div class="firma-linea"></div>
+        <div class="firma-label">${esc(neg.nombre)} / ${esc(neg.titular)} — DNI ${esc(neg.dniTitular)}</div>
+      </div>
+      <div class="firma-col">
+        <div class="firma-linea"></div>
+        <div class="firma-label">Cliente — Aclaración y DNI</div>
+      </div>
+    </div>
+
+    <div class="pie-separador"></div>
+    <div class="pie">${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ingreso Reparación ${esc(d.numero)}</title>
+<style>
+  ${_cssBaseTicketReparacion_(`
+  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
+  .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
+  .direccion { font-size: 10.5px; color: var(--gris-texto); margin-top: 3px; }
+  .encabezado-der { text-align: right; }
+  .titulo-recibo { font-size: 20px; font-weight: bold; color: var(--naranja); letter-spacing: .5px; margin-bottom: 6px; }
+  .dato-header { font-size: 11.5px; margin-top: 2px; }
+  `)}
+</style>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+}
+
+/** Texto legal de garantía del ticket de ingreso (distinto y mucho más breve que el de la garantía POST-venta de recibos.gs — este es el aviso que se firma AL DEJAR el equipo, no las condiciones completas de reparación bajo garantía). */
+const RECIBO_TEXTO_GARANTIA_INGRESO =
+  "La garantía cubre fallas técnicas de origen no provocadas por el cliente. NO cubre: pantallas rotas, golpes, daño por líquido, equipos " +
+  "abiertos o reparados por terceros, daños eléctricos, bloqueos de cuenta. Si se detecta daño físico o manipulación externa, la garantía " +
+  "queda automáticamente sin efecto. GreatPhones no se responsabiliza por información personal almacenada en el dispositivo.";
+
+/** Ticket de Ingreso por Garantía — sin precio, con el aviso legal de condiciones y banner negro+naranja (igual al recibo de referencia). */
+function _armarHtmlReciboGarantia_(d) {
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const neg = RECIBO_NEGOCIO;
+  const linea = (ancho) => `<span class="linea" style="width:${ancho || 160}px"></span>`;
+  const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
+
+  const html = `
+  <div class="hoja">
+    <div class="encabezado">
+      <div class="banda-negra"><div class="logo">${esc(neg.nombre)}</div></div>
+      <div class="banda-naranja"><div class="titulo-recibo">INGRESO POR GARANTÍA</div></div>
+    </div>
+    <div class="direccion-fila">${esc(neg.direccion)} · ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+    <div class="dato-header-fila">
+      <span>Ticket N°: <b>${esc(d.numero)}</b></span>
+      <span>Fecha: <b>${esc(d.fecha)}</b></span>
+    </div>
+
+    ${_bloqueDispositivoYClienteReparacion_(d, linea, campo, esc)}
+
+    <div class="garantia-texto">${RECIBO_TEXTO_GARANTIA_INGRESO}</div>
+
+    <div class="firmas">
+      <div class="firma-col">
+        <img class="firma-img" src="data:image/png;base64,${RECIBO_FIRMA_TITULAR_BASE64}" alt="Firma">
+        <div class="firma-linea"></div>
+        <div class="firma-label">${esc(neg.nombre)} / ${esc(neg.titular)} — DNI ${esc(neg.dniTitular)}</div>
+      </div>
+      <div class="firma-col">
+        <div class="firma-linea"></div>
+        <div class="firma-label">Cliente — Aclaración y DNI</div>
+      </div>
+    </div>
+
+    <div class="pie-separador"></div>
+    <div class="pie">El cliente declara entregar el equipo en el estado descripto. ${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Ingreso Garantía ${esc(d.numero)}</title>
+<style>
+  ${_cssBaseTicketReparacion_(`
+  .encabezado { display: flex; }
+  .banda-negra { background: #1a1a1a; color: #fff; padding: 10px 16px; display: flex; align-items: center; }
+  .banda-negra .logo { font-size: 20px; font-weight: bold; color: var(--naranja); }
+  .banda-naranja { background: var(--naranja); color: #fff; padding: 10px 16px; flex: 1; display: flex; align-items: center; justify-content: center; }
+  .banda-naranja .titulo-recibo { font-size: 18px; font-weight: bold; letter-spacing: .5px; }
+  .direccion-fila { font-size: 10px; color: var(--gris-texto); margin: 4px 0 0 2px; }
+  `)}
+</style>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+}

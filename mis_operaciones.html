@@ -217,7 +217,8 @@
       var acciones =
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto' onclick=\"misOperacionesVer('" + op.numero + "')\">Ver</button> " +
         (op.tipo === "Reparación"
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> "
           : "") +
         (op.tipo === "Venta"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> "

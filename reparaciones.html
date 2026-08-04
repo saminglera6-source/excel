@@ -39,6 +39,16 @@
           <input type="text" id="r_tel" placeholder="Ej: 2914123456"/>
         </div>
       </div>
+      <div class="fila2">
+        <div>
+          <label>DNI cliente (opcional):</label>
+          <input type="text" id="r_dni" placeholder="Para el ticket de ingreso"/>
+        </div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="r_email" placeholder="Para el ticket de ingreso"/>
+        </div>
+      </div>
     </div>
 
     <div class="paso">
@@ -65,6 +75,16 @@
         <div>
           <label>PIN (opcional):</label>
           <input type="text" id="r_pin" placeholder="Ej: 1234"/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>Color (opcional):</label>
+          <input type="text" id="r_color" placeholder="Para el ticket de ingreso"/>
+        </div>
+        <div>
+          <label>Batería (opcional):</label>
+          <input type="text" id="r_bateria" placeholder="Ej: 87%"/>
         </div>
       </div>
     </div>
@@ -146,7 +166,8 @@
 
     <div id="r_etiquetaBox" style="display:none;margin-top:14px;padding:10px;background:#F4F6F9;border-radius:8px;text-align:center">
       <span id="r_etiquetaNumero" style="font-size:12.5px"></span><br>
-      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
+      <button class="btn" style="margin:8px 8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
+      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px;background:#117864" onclick="imprimirReciboReparacion(_ultimaReparacionNumero)">🖨 Imprimir ticket de ingreso</button>
     </div>
   </div>
 </div>
@@ -171,6 +192,29 @@
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .generarEtiquetaReparacion(numero);
+  }
+
+  /**
+   * Reutilizable desde Reparaciones (recién registrada) y desde Mis
+   * Operaciones (reimpresión). Mismo patrón que imprimirReciboVenta/
+   * imprimirReciboPreventa/imprimirReciboCesion: el click del operador
+   * abre la ventana en el momento, sin ningún hueco antes de pedirle el
+   * HTML al backend. generarReciboReparacion() (recibos.gs) elige sola la
+   * plantilla (con precio o de garantía) según el "Tipo" de la reparación
+   * — acá no hay que distinguir nada.
+   */
+  function imprimirReciboReparacion(numero){
+    if (!numero) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el ticket.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboReparacion(numero);
   }
 
   // ============================================================
@@ -360,9 +404,13 @@
     document.getElementById("r_tipo").value     = datos["Tipo"] || "Particular";
     document.getElementById("r_cliente").value  = datos["Cliente"] || "";
     document.getElementById("r_tel").value      = datos["Teléfono"] || "";
+    document.getElementById("r_dni").value      = datos["DNI Cliente"] || "";
+    document.getElementById("r_email").value    = datos["Email Cliente"] || "";
     document.getElementById("r_equipo").value   = datos["Equipo"] || "";
     document.getElementById("r_imei").value     = datos["IMEI"] || "";
     document.getElementById("r_pin").value      = datos["PIN"] || "";
+    document.getElementById("r_color").value    = datos["Color"] || "";
+    document.getElementById("r_bateria").value  = datos["Batería"] || "";
     document.getElementById("r_falla1").value   = datos["Falla 1"] || "";
     document.getElementById("r_falla2").value   = datos["Falla 2"] || "";
     document.getElementById("r_precioCob").value= datos["Precio Cobrado"] || 0;
@@ -379,9 +427,13 @@
       fecha: document.getElementById("r_fecha").value,
       cliente: document.getElementById("r_cliente").value.trim(),
       tel: document.getElementById("r_tel").value.trim(),
+      dni: document.getElementById("r_dni").value.trim(),
+      email: document.getElementById("r_email").value.trim(),
       equipo: document.getElementById("r_equipo").value.trim(),
       imei: document.getElementById("r_imei").value.trim(),
       pin: document.getElementById("r_pin").value.trim(),
+      color: document.getElementById("r_color").value.trim(),
+      bateria: document.getElementById("r_bateria").value.trim(),
       falla1: document.getElementById("r_falla1").value.trim(),
       falla2: document.getElementById("r_falla2").value.trim(),
       precioCob: parseFloat(document.getElementById("r_precioCob").value) || 0,

@@ -1259,6 +1259,12 @@ function procesarReparacion(d) {
   // Evolución del flujo (auditoría comercial + presupuesto de diagnóstico):
   const cDIF    = asegurarColumnaGenerica_(sheet, fE, "Diferencia")            - 1;
   const cPRESD  = asegurarColumnaGenerica_(sheet, fE, "PRESUPUESTO_DIAGNOSTICO") - 1;
+  // Datos opcionales para el ticket de ingreso imprimible (recibos.gs) —
+  // no se usan en ningún cálculo, solo para completar el recibo.
+  const cDNI  = asegurarColumnaGenerica_(sheet, fE, "DNI Cliente")   - 1;
+  const cEML  = asegurarColumnaGenerica_(sheet, fE, "Email Cliente") - 1;
+  const cCOL  = asegurarColumnaGenerica_(sheet, fE, "Color")         - 1;
+  const cBAT  = asegurarColumnaGenerica_(sheet, fE, "Batería")       - 1;
 
   const cNR1based = cNR + 1;
   const nRep  = genCorrelativo(sheet, cNR1based, cfg.PREFIJO_REP || "REP", fE + 1);
@@ -1274,9 +1280,13 @@ function procesarReparacion(d) {
   filaData[cTI] = d.tipo;
   filaData[cCL] = d.cliente;
   filaData[cTE] = d.tel;
+  filaData[cDNI] = d.dni || "";
+  filaData[cEML] = d.email || "";
   filaData[cEQ] = d.equipo;
   filaData[cIM] = d.imei;
   filaData[cPI] = d.pin;
+  filaData[cCOL] = d.color || "";
+  filaData[cBAT] = d.bateria || "";
   filaData[cF1] = d.falla1;
   filaData[cF2] = d.falla2;
   filaData[cPC] = d.precioCob;
