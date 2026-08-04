@@ -520,10 +520,15 @@ function procesarCompra(d) {
   if (!sheet) throw new Error("❌ Hoja 'Compras' no encontrada.");
 
   const filaEnc = 2;
-  // CUIL/CUIT del proveedor: columna nueva, autocreada si la hoja todavía no
-  // la tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
-  // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // CUIL/CUIT/Domicilio/Localidad/Email del proveedor: columnas nuevas,
+  // autocreadas si la hoja todavía no las tiene (mismo mecanismo que
+  // asegurarColumnaGenerica_() usa para OPERADOR en operadores.gs) para no
+  // exigir que alguien edite la planilla a mano. Domicilio/Localidad/Email
+  // son opcionales — solo alimentan la Cesión de Titularidad (recibos.gs).
   asegurarColumnaGenerica_(sheet, filaEnc, "CUIL/CUIT Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Domicilio Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Localidad Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Email Proveedor");
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 14 llamadas a
   // getCol() (cada una hacía su propio roundtrip getRange().getValues()).
   const headers = sheet.getRange(filaEnc, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -537,6 +542,9 @@ function procesarCompra(d) {
   const colTipo = idxDe("Tipo Ingreso");
   const colProv = idxDe("Proveedor / Origen");
   const colCuil = idxDe("CUIL/CUIT Proveedor");
+  const colDom  = idxDe("Domicilio Proveedor");
+  const colLoc  = idxDe("Localidad Proveedor");
+  const colEmlP = idxDe("Email Proveedor");
   const colMod  = idxDe("Equipo / Modelo");
   const colIMEI = idxDe("IMEI");
   const colCol  = idxDe("Color");
@@ -583,6 +591,9 @@ function procesarCompra(d) {
   fila2D[colTipo]   = d.tipo;
   fila2D[colProv]   = d.proveedor;
   fila2D[colCuil]   = d.cuil || "";
+  fila2D[colDom]    = d.domicilio || "";
+  fila2D[colLoc]    = d.localidad || "";
+  fila2D[colEmlP]   = d.email || "";
   fila2D[colMod]    = d.modelo;
   fila2D[colIMEI]   = d.imei;
   fila2D[colCol]    = d.color;

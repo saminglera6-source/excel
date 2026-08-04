@@ -38,7 +38,20 @@
 
       <label>CUIL/CUIT proveedor (opcional):</label>
       <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9"/>
-      <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
+      <div class="hint">Completalo solo si necesitás facturar esta compra. El DNI de la cesión de titularidad se calcula solo a partir de este dato.</div>
+
+      <div class="fila2">
+        <div>
+          <label>Domicilio proveedor (opcional):</label>
+          <input type="text" id="c_domicilio" placeholder="Para la cesión de titularidad"/>
+        </div>
+        <div>
+          <label>Localidad proveedor (opcional):</label>
+          <input type="text" id="c_localidad" placeholder="Ej: Bahía Blanca"/>
+        </div>
+      </div>
+      <label>Email/Gmail proveedor (opcional):</label>
+      <input type="text" id="c_email" placeholder="Para la cesión de titularidad"/>
 
       <div class="fila2">
         <div>
@@ -381,6 +394,9 @@
     document.getElementById("c_tipo").value          = datos["Tipo Ingreso"] || "COMPRA";
     document.getElementById("c_proveedor").value     = datos["Proveedor / Origen"] || "";
     document.getElementById("c_cuil").value          = datos["CUIL/CUIT Proveedor"] || "";
+    document.getElementById("c_domicilio").value     = datos["Domicilio Proveedor"] || "";
+    document.getElementById("c_localidad").value     = datos["Localidad Proveedor"] || "";
+    document.getElementById("c_email").value         = datos["Email Proveedor"] || "";
     _selectorModeloCompras.setValor(datos["Equipo / Modelo"] || "");
     document.getElementById("c_imei").value          = datos["IMEI"] || "";
     document.getElementById("c_color").value         = datos["Color"] || "";
@@ -401,6 +417,9 @@
       fecha: document.getElementById("c_fecha").value,
       proveedor: document.getElementById("c_proveedor").value.trim(),
       cuil: document.getElementById("c_cuil").value.trim(),
+      domicilio: document.getElementById("c_domicilio").value.trim(),
+      localidad: document.getElementById("c_localidad").value.trim(),
+      email: document.getElementById("c_email").value.trim(),
       modelo: document.getElementById("c_modelo").value.trim(),
       imei: document.getElementById("c_imei").value.trim(),
       color: document.getElementById("c_color").value.trim(),
@@ -432,8 +451,40 @@
         mostrarToastOperacion(msg);
         cargarDashboard();
         comprasLimpiarForm();
+        // Cesión de titularidad: SOLO corresponde en una COMPRA real (en
+        // consignación el equipo sigue siendo del dueño original, no hay
+        // transferencia de titularidad que firmar). Toast aparte del de
+        // "Operación realizada" (mostrarToastOperacion) porque este botón
+        // es específico de Compras — no tiene sentido en el genérico de
+        // index.html, que también atiende Ventas/Preventas/Reparaciones/etc.
+        if (d.tipo === "COMPRA") {
+          var m = String(msg || "").match(/\bCMP-\S+/);
+          if (m) {
+            var numero = m[0].replace(/[.,;:]+$/, "");
+            mostrarToast("📄 ¿Imprimir la cesión de titularidad?", "info", {
+              persistente: true,
+              accionTexto: "🖨 Cesión",
+              accionFn: function(){ imprimirReciboCesion(numero); }
+            });
+          }
+        }
       });
     });
+  }
+
+  /** Reutilizable desde el botón "🖨 Cesión" (Compras, ver arriba) y desde Mis Operaciones (reimpresión). Mismo patrón que imprimirReciboVenta/imprimirReciboPreventa: el click del operador abre la ventana en el momento, sin ningún hueco antes de pedirle el HTML al backend. */
+  function imprimirReciboCesion(numeroCompra){
+    if (!numeroCompra) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir la cesión.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboCesion(numeroCompra);
   }
 
   /** Deja "Registrar Compra" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una compra normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */

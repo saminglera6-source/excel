@@ -18,13 +18,19 @@
 // ============================================================
 
 const RECIBO_NEGOCIO = {
-  nombre:      "GreatPhones",
-  direccion:   "Zelarrayan 179",
-  ciudad:      "Bahía Blanca",
-  telefono:    "2914727351",
-  titular:     "Martín de Mendonça",
-  dniTitular:  "45821618",
-  garantiaMeses: 12
+  nombre:          "GreatPhones",
+  direccion:       "Zelarrayan 179",
+  ciudad:          "Bahía Blanca",
+  telefono:        "2914727351",
+  titular:         "Martín de Mendonça",
+  dniTitular:      "45821618",
+  // Usados solo por la Cesión de Titularidad (nombre completo con apellido
+  // materno y CUIL, tal como figuran en ese documento legal específico) —
+  // no se tocan "titular"/"dniTitular" de arriba para no alterar los
+  // recibos de Venta/Preventa ya aprobados.
+  titularCompleto: "Martín de Mendonça Acevedo",
+  cuilTitular:     "20-45821618-6",
+  garantiaMeses:   12
 };
 
 /**
@@ -800,6 +806,250 @@ function _armarHtmlReciboPreventa_(d) {
   .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 95px; width: auto; }
 
   .pie-separador { border-top: 1px solid var(--gris); margin-top: 8px; }
+  .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
+
+  @page { size: A4; margin: 4mm 8mm; }
+  @media print { .hoja { width: 100%; } }
+</style>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+}
+
+// ============================================================
+//  Recibo de Compraventa y Cesión de Titularidad — solo para compras de
+//  equipo a un particular (Tipo Ingreso = "COMPRA"; una consignación NO
+//  transfiere titularidad, el equipo sigue siendo del dueño original, así
+//  que ese caso no genera este documento). Mismo patrón autocontenido que
+//  el resto de recibos.gs — solo lectura sobre "Compras", sin registrar
+//  ni modificar nada.
+// ============================================================
+
+/**
+ * separarModeloYCapacidad_(modeloCompleto)
+ *
+ * El campo "Equipo / Modelo" de Compras guarda el modelo y la capacidad
+ * juntos en el mismo texto (ej. "iPhone 15 Pro 256GB", "MacBook Air M2
+ * 8GB/256GB" — así los arma crearSelectorModelos() en toda la app). La
+ * Cesión de Titularidad los muestra en líneas separadas ("Marca/Modelo" y
+ * "Capacidad"), así que acá se separan con una expresión regular sobre el
+ * patrón de almacenamiento más común (ej. "256GB", "8GB/256GB", "1TB").
+ * Si no matchea (equipo cargado con texto libre), Capacidad queda vacía y
+ * todo el texto se muestra tal cual en Marca/Modelo — no se inventa nada.
+ */
+function separarModeloYCapacidad_(modeloCompleto) {
+  const texto = String(modeloCompleto || "").trim();
+  const m = texto.match(/^(.*?)\s+((?:\d+\s?(?:GB|TB)\/)?\d+\s?(?:GB|TB))$/i);
+  if (!m) return { modelo: texto, capacidad: "" };
+  return { modelo: m[1].trim(), capacidad: m[2].trim() };
+}
+
+/**
+ * generarReciboCesion(numeroCompra)
+ *
+ * Busca la compra por su N° OP en "Compras" y arma el recibo imprimible
+ * (una hoja A4) de compraventa y cesión de titularidad. Si la operación es
+ * una CONSIGNACION (no transfiere titularidad), tira error explícito en
+ * vez de generar un documento que no corresponde.
+ */
+function generarReciboCesion(numeroCompra) {
+  const numero = String(numeroCompra || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de compra.");
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Compras");
+  if (!sheet) throw new Error("❌ Hoja 'Compras' no encontrada.");
+
+  const fE = 2;
+  const cOP  = getCol(sheet, "N° OP",                 fE);
+  const cFec = getCol(sheet, "Fecha Ingreso",          fE);
+  const cTip = getCol(sheet, "Tipo Ingreso",           fE);
+  const cPrv = getCol(sheet, "Proveedor / Origen",     fE);
+  const cMod = getCol(sheet, "Equipo / Modelo",        fE);
+  const cIme = getCol(sheet, "IMEI",                   fE);
+  const cCol = getCol(sheet, "Color",                  fE);
+  const cEst = getCol(sheet, "Estado Físico",          fE);
+  const cPC  = getCol(sheet, "Precio Compra",          fE);
+  const cFP  = getCol(sheet, "Forma de Pago Compra",   fE);
+  let cCuil = -1, cDom = -1, cLoc = -1, cEml = -1;
+  try { cCuil = getCol(sheet, "CUIL/CUIT Proveedor", fE); } catch (e) { /* opcional */ }
+  try { cDom  = getCol(sheet, "Domicilio Proveedor", fE); } catch (e) { /* opcional */ }
+  try { cLoc  = getCol(sheet, "Localidad Proveedor", fE); } catch (e) { /* opcional */ }
+  try { cEml  = getCol(sheet, "Email Proveedor",     fE); } catch (e) { /* opcional */ }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Compras".`);
+  const datosC = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datosC.find(r => String(r[cOP - 1]).trim() === numero);
+  if (!fila) throw new Error(`❌ "${numero}" no encontrado en "Compras".`);
+
+  const tipoIngreso = String(fila[cTip - 1] || "").trim();
+  if (tipoIngreso !== "COMPRA") {
+    throw new Error(`❌ "${numero}" es una ${tipoIngreso || "operación"}, no una COMPRA — la cesión de titularidad no corresponde (el equipo sigue siendo del dueño original hasta que se venda).`);
+  }
+
+  const tz = Session.getScriptTimeZone();
+  const fechaRaw = fila[cFec - 1];
+  const fecha = fechaRaw instanceof Date ? Utilities.formatDate(fechaRaw, tz, "dd/MM/yyyy") : String(fechaRaw || "");
+
+  const { modelo, capacidad } = separarModeloYCapacidad_(fila[cMod - 1]);
+  const cuil = cCuil > 0 ? String(fila[cCuil - 1] || "") : "";
+
+  const datos = {
+    numero:      numero,
+    fecha:       fecha,
+    modelo:      modelo,
+    capacidad:   capacidad,
+    imei:        String(fila[cIme - 1] || ""),
+    color:       String(fila[cCol - 1] || ""),
+    estado:      String(fila[cEst - 1] || ""),
+    vendedor:    String(fila[cPrv - 1] || ""),
+    cuil:        cuil,
+    dni:         extraerDniDeCuil_(cuil),
+    domicilio:   cDom > 0 ? String(fila[cDom - 1] || "") : "",
+    localidad:   cLoc > 0 ? String(fila[cLoc - 1] || "") : "",
+    email:       cEml > 0 ? String(fila[cEml - 1] || "") : "",
+    precio:      Number(fila[cPC - 1]) || 0,
+    formaPago:   String(fila[cFP - 1] || "")
+  };
+
+  return _armarHtmlReciboCesion_(datos);
+}
+
+/** Arma el documento HTML de la Cesión de Titularidad. SOLO diseño — mismo sistema (1 hoja A4, firma estampada) que los demás recibos de recibos.gs, con la distribución propia de este documento (banner naranja único, todo a una columna, comprador/cesionario fijo = GreatPhones). */
+function _armarHtmlReciboCesion_(d) {
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const neg = RECIBO_NEGOCIO;
+  const linea = (ancho) => `<span class="linea" style="width:${ancho || 160}px"></span>`;
+
+  const campo = (etiqueta, valor) => `<div class="campo-fila"><span class="etiqueta">${etiqueta}:</span> ${valor}</div>`;
+
+  const pagoEfectivo = /efectivo/i.test(d.formaPago);
+  const pagoTransf    = /transfer/i.test(d.formaPago);
+  const chk = (marcado, texto) => `<span class="chk"><span class="chk-box">${marcado ? "☑" : "☐"}</span> ${texto}</span>`;
+
+  const html = `
+  <div class="hoja">
+    <div class="banner">
+      <div class="banner-logo">${esc(neg.nombre)}</div>
+      <div class="banner-titulo">RECIBO DE COMPRAVENTA Y CESIÓN DE TITULARIDAD — TELÉFONO CELULAR</div>
+    </div>
+    <div class="dato-header-fila">
+      <span>N° OP: <b>${esc(d.numero)}</b></span>
+      <span>Fecha: <b>${esc(d.fecha)}</b></span>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL DISPOSITIVO</div>
+    ${campo("Marca / Modelo", `<b>${esc(d.modelo) || "—"}</b>`)}
+    ${campo("N° IMEI", `<b>${esc(d.imei) || linea(220)}</b>`)}
+    ${campo("N° de Serie", linea(220))}
+    ${campo("Color", `<b>${esc(d.color) || linea(200)}</b>`)}
+    ${campo("Capacidad", `<b>${esc(d.capacidad) || linea(140)}</b>`)}
+    ${campo("Estado", `<b>${esc(d.estado) || linea(200)}</b>`)}
+
+    <div class="seccion-titulo">DATOS DEL VENDEDOR (CEDENTE)</div>
+    ${campo("Apellido y Nombre", `<b>${esc(d.vendedor) || linea(260)}</b>`)}
+    ${campo("DNI N°", `<b>${esc(d.dni) || linea(160)}</b>`)}
+    ${campo("CUIL", `<b>${esc(d.cuil) || linea(160)}</b>`)}
+    ${campo("Domicilio", `<b>${esc(d.domicilio) || linea(260)}</b>`)}
+    ${campo("Localidad", `<b>${esc(d.localidad) || linea(200)}</b>`)}
+    ${campo("Gmail", `<b>${esc(d.email) || linea(220)}</b>`)}
+
+    <div class="valor-box">
+      <div class="valor-fila"><span class="valor-label">VALOR DECLARADO:</span> <span class="valor-monto">${fmtPeso(d.precio)}</span> <span class="valor-pesos">(pesos)</span></div>
+      <div class="valor-pago">
+        ${chk(pagoEfectivo, "Efectivo (en mano)")}
+        ${chk(pagoTransf, "Transferencia bancaria")}
+        <span>N° ref / comprobante: ${linea(180)}</span>
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL COMPRADOR / NUEVO TITULAR (CESIONARIO)</div>
+    ${campo("Apellido y Nombre", `<b>${esc(neg.titularCompleto)}</b>`)}
+    ${campo("CUIL / Razón social", `<b>${esc(neg.cuilTitular)} — ${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · Tel: ${esc(neg.telefono)}</b>`)}
+
+    <div class="seccion-titulo">DECLARACIÓN DE CESIÓN DE TITULARIDAD</div>
+    <div class="declaracion">
+      Declaro ser legítimo/a propietario/a del dispositivo detallado, libre de deudas, gravámenes y denuncias por robo/hurto, y <b>CEDO,
+      TRANSFIERO Y TRASPASO</b> en forma definitiva e irrevocable la plena titularidad a favor de ${esc(neg.titularCompleto)} (CUIL
+      ${esc(neg.cuilTitular)}), propietario de ${esc(neg.nombre)}, haciéndome responsable de cualquier reclamo de terceros derivado de mi
+      tenencia anterior y declarando haber recibido el valor consignado en pesos argentinos a mi entera satisfacción.
+    </div>
+
+    <div class="lugar-fecha">Lugar y fecha: <b>${esc(neg.ciudad)}, ${esc(d.fecha)}</b></div>
+
+    <div class="firmas-cesion">
+      <div class="firma-col">
+        <div class="firma-linea"></div>
+        <div class="firma-label">Aclaración y DNI — Vendedor</div>
+      </div>
+      <div class="firma-col">
+        <img class="firma-img" src="data:image/png;base64,${RECIBO_FIRMA_TITULAR_BASE64}" alt="Firma">
+        <div class="firma-linea"></div>
+        <div class="firma-label">${esc(neg.titularCompleto)} — DNI ${esc(neg.dniTitular)}<br>Firma del Comprador</div>
+      </div>
+    </div>
+
+    <div class="pie-separador"></div>
+    <div class="pie">Este documento acredita la transferencia de titularidad del dispositivo. ${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · Tel: ${esc(neg.telefono)}</div>
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cesión de Titularidad ${esc(d.numero)}</title>
+<style>
+  :root { --naranja: #E07B1E; --gris: #D9D9D9; --gris-texto: #6B6B6B; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 11.5px; }
+
+  .hoja { width: 190mm; padding: 4mm 12mm; margin: 0 auto; }
+
+  .banner { background: #FDF1E6; border: 1px solid var(--naranja); border-radius: 4px; padding: 10px 14px; text-align: center; }
+  .banner-logo { font-size: 16px; font-weight: bold; }
+  .banner-titulo { font-size: 11.5px; font-weight: bold; margin-top: 3px; letter-spacing: .2px; }
+  .dato-header-fila { display: flex; justify-content: flex-end; gap: 24px; font-size: 11px; margin: 6px 0 2px; }
+
+  .seccion-titulo {
+    font-weight: bold; font-size: 12px; text-transform: uppercase; letter-spacing: .4px;
+    margin: 12px 0 7px; padding-bottom: 4px; border-bottom: 3px solid var(--naranja);
+  }
+
+  .campo-fila { display: flex; gap: 10px; font-size: 11.5px; margin-bottom: 6px; align-items: baseline; }
+  .campo-fila .etiqueta { font-weight: bold; flex: 0 0 150px; }
+
+  .linea { display: inline-block; border-bottom: 1px solid #1a1a1a; height: 12px; vertical-align: bottom; margin: 0 2px; }
+
+  .valor-box { border: 2px solid var(--naranja); border-radius: 4px; padding: 10px 16px; margin: 10px 0 4px; }
+  .valor-fila { display: flex; align-items: baseline; gap: 8px; }
+  .valor-label { font-weight: bold; font-size: 12px; }
+  .valor-monto { font-size: 19px; font-weight: bold; }
+  .valor-pesos { font-size: 10px; color: var(--gris-texto); font-style: italic; }
+  .valor-pago { display: flex; flex-wrap: wrap; gap: 22px; font-size: 10.5px; margin-top: 8px; }
+  .chk-box { font-size: 13px; position: relative; top: 1px; }
+
+  .declaracion { font-size: 9.5px; line-height: 1.5; text-align: justify; color: #2b2b2b; margin-top: 2px; }
+
+  .lugar-fecha { font-size: 11px; margin-top: 14px; }
+
+  .firmas-cesion { display: flex; gap: 50px; margin-top: 60px; }
+  .firma-col { flex: 1; text-align: center; position: relative; }
+  .firma-linea { border-top: 1px solid #1a1a1a; margin-bottom: 6px; margin-top: 78px; }
+  .firma-label { font-size: 10px; font-weight: bold; }
+  .firma-img { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); height: 88px; width: auto; }
+
+  .pie-separador { border-top: 1px solid var(--gris); margin-top: 10px; }
   .pie { text-align: center; font-size: 8.5px; color: var(--gris-texto); margin-top: 4px; }
 
   @page { size: A4; margin: 4mm 8mm; }

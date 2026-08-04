@@ -225,6 +225,9 @@
         (op.tipo === "Preventa"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboPreventa('" + op.numero + "')\">🖨 Recibo</button> "
           : "") +
+        (op.tipo === "Compra"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboCesion('" + op.numero + "')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📄 Cesión</button> "
+          : "") +
         _botonesEstadoReparacion(op) +
         _botonReparacionInternaCompra(op) +
         (puedeCorregir
