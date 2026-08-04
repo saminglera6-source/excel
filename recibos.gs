@@ -1389,3 +1389,201 @@ function _armarHtmlReciboGarantia_(d) {
 </body>
 </html>`;
 }
+
+// ============================================================
+//  Comprobante de Entrega — Reparación. Mismo patrón que el resto de
+//  recibos.gs (documento HTML autocontenido, solo lectura, window.print()
+//  al cargar). No hay referencia en papel para este — se diseña siguiendo
+//  la misma línea visual que los demás (banner con título naranja, caja
+//  de precio con bordes rectos, garantía propia de la reparación —
+//  90 días sobre el trabajo realizado, distinta de la garantía de 12
+//  meses de una venta — firma estampada del titular).
+// ============================================================
+
+/**
+ * generarReciboEntregaReparacion(numeroReparacion)
+ *
+ * Busca la reparación por su N° Rep en "Reparaciones" — debe estar en
+ * estado "✅ Retirado" (ya entregada, ver entregarReparacion() en
+ * entrega_reparaciones.gs) — y arma el comprobante imprimible (una hoja
+ * A4) con el total cobrado acumulado (ingreso + cobro final de la entrega).
+ */
+function generarReciboEntregaReparacion(numeroReparacion) {
+  const numero = String(numeroReparacion || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de reparación.");
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Reparaciones");
+  if (!sheet) throw new Error("❌ Hoja 'Reparaciones' no encontrada.");
+
+  const fE = 2;
+  const cNR  = getCol(sheet, "N° Rep",         fE);
+  const cFE2 = getCol(sheet, "Fecha Egreso",   fE);
+  const cCL  = getCol(sheet, "Cliente",        fE);
+  const cTE  = getCol(sheet, "Teléfono",       fE);
+  const cEQ  = getCol(sheet, "Equipo",         fE);
+  const cIM  = getCol(sheet, "IMEI",           fE);
+  const cF1  = getCol(sheet, "Falla 1",        fE);
+  const cF2  = getCol(sheet, "Falla 2",        fE);
+  const cPC  = getCol(sheet, "Precio Cobrado", fE);
+  const cEF  = getCol(sheet, "Cobrado Efectivo",      fE);
+  const cTR  = getCol(sheet, "Cobrado Transferencia", fE);
+  const cES  = getCol(sheet, "Estado",         fE);
+  let cDNI = -1, cEML = -1, cCOL = -1, cTRAB = -1;
+  try { cDNI  = getCol(sheet, "DNI Cliente",         fE); } catch (e) { /* opcional */ }
+  try { cEML  = getCol(sheet, "Email Cliente",       fE); } catch (e) { /* opcional */ }
+  try { cCOL  = getCol(sheet, "Color",               fE); } catch (e) { /* opcional */ }
+  try { cTRAB = getCol(sheet, "Trabajos Reparación", fE); } catch (e) { /* opcional */ }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Reparaciones".`);
+  const datosR = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datosR.find(r => String(r[cNR - 1]).trim() === numero);
+  if (!fila) throw new Error(`❌ "${numero}" no encontrado en "Reparaciones".`);
+
+  const estado = String(fila[cES - 1] || "").trim();
+  if (estado !== "✅ Retirado") {
+    throw new Error(`❌ "${numero}" todavía no fue entregada (estado actual: "${estado || "—"}") — el comprobante de entrega solo corresponde una vez retirada.`);
+  }
+
+  const tz = Session.getScriptTimeZone();
+  const fechaRaw = fila[cFE2 - 1];
+  const fecha = fechaRaw instanceof Date ? Utilities.formatDate(fechaRaw, tz, "dd/MM/yyyy") : String(fechaRaw || "");
+
+  let falla = String(fila[cF1 - 1] || "");
+  if (fila[cF2 - 1]) falla += (falla ? " / " : "") + fila[cF2 - 1];
+
+  const datos = {
+    numero:    numero,
+    fecha:     fecha,
+    cliente:   String(fila[cCL - 1] || ""),
+    tel:       String(fila[cTE - 1] || ""),
+    dni:       cDNI > 0 ? String(fila[cDNI - 1] || "") : "",
+    email:     cEML > 0 ? String(fila[cEML - 1] || "") : "",
+    equipo:    String(fila[cEQ - 1] || ""),
+    imei:      String(fila[cIM - 1] || ""),
+    color:     cCOL > 0 ? String(fila[cCOL - 1] || "") : "",
+    falla:     falla,
+    trabajos:  cTRAB > 0 ? String(fila[cTRAB - 1] || "") : "",
+    precio:    Number(fila[cPC - 1]) || 0,
+    cobradoEf: Number(fila[cEF - 1]) || 0,
+    cobradoTr: Number(fila[cTR - 1]) || 0
+  };
+
+  return _armarHtmlReciboEntregaReparacion_(datos);
+}
+
+/** Arma el HTML del comprobante de entrega. SOLO diseño — mismo sistema (1 hoja A4, firma estampada) que los demás recibos de recibos.gs. */
+function _armarHtmlReciboEntregaReparacion_(d) {
+  const esc = (s) => String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const neg = RECIBO_NEGOCIO;
+  const linea = (ancho) => `<span class="linea" style="width:${ancho || 160}px"></span>`;
+  const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
+
+  const filaPago = (etiqueta, monto) =>
+    `<div class="pago-fila"><span class="chk-box">${monto > 0 ? "☑" : "☐"}</span> <span class="pago-etiqueta">${etiqueta}:</span> ${monto > 0 ? `<b>${fmtPeso(monto)}</b>` : linea(150)}</div>`;
+
+  const html = `
+  <div class="hoja">
+    <div class="encabezado">
+      <div class="encabezado-izq">
+        <div class="logo">${esc(neg.nombre)}</div>
+        <div class="direccion">${esc(neg.direccion)} · ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+      </div>
+      <div class="encabezado-der">
+        <div class="titulo-recibo">COMPROBANTE DE ENTREGA</div>
+        <div class="dato-header">Ticket N°: <b>${esc(d.numero)}</b></div>
+        <div class="dato-header">Fecha de entrega: <b>${esc(d.fecha)}</b></div>
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL DISPOSITIVO</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Marca/Modelo", `<b>${esc(d.equipo) || "—"}</b>`)}
+        ${campo("Color", `<b>${esc(d.color) || linea(160)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("IMEI", `<b>${esc(d.imei) || linea(180)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">DATOS DEL CLIENTE</div>
+    <div class="dos-columnas">
+      <div class="columna">
+        ${campo("Apellido y Nombre", `<b>${esc(d.cliente) || linea(200)}</b>`)}
+        ${campo("DNI", `<b>${esc(d.dni) || linea(160)}</b>`)}
+      </div>
+      <div class="columna">
+        ${campo("Tel", `<b>${esc(d.tel) || linea(160)}</b>`)}
+        ${campo("Email", `<b>${esc(d.email) || linea(180)}</b>`)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">FALLA REPARADA</div>
+    <div class="falla-box">${esc(d.falla) || "—"}${d.trabajos ? `<br><span style="color:var(--gris-texto);font-size:10.5px">Trabajos realizados: ${esc(d.trabajos)}</span>` : ""}</div>
+
+    <div class="seccion-titulo">PRECIO Y COBRO TOTAL</div>
+    <div class="pago-box">
+      <div class="pago-total">
+        <div class="pago-total-label">PRECIO TOTAL</div>
+        <div class="pago-total-monto">${fmtPeso(d.precio)}</div>
+        <div class="son-pesos">Son pesos: <b>${numeroAPesosEnLetras_(d.precio)}</b></div>
+      </div>
+      <div class="pago-detalle">
+        <div class="pago-detalle-label">DETALLE DEL COBRO TOTAL (acumulado)</div>
+        ${filaPago("Efectivo", d.cobradoEf)}
+        ${filaPago("Transferencia", d.cobradoTr)}
+      </div>
+    </div>
+
+    <div class="seccion-titulo">GARANTÍA DE LA REPARACIÓN</div>
+    <div class="garantia-texto" style="font-style:normal">
+      El trabajo realizado (mano de obra y repuestos utilizados) cuenta con una garantía de <b>90 (noventa) días</b> desde la fecha de esta entrega,
+      exclusivamente sobre la falla reparada. La garantía NO cubre daños nuevos, golpes, líquido, ni manipulación posterior por parte de terceros.
+      El cliente declara retirar el equipo reparado y conforme con el trabajo realizado.
+    </div>
+
+    <div class="firmas">
+      <div class="firma-col">
+        <img class="firma-img" src="data:image/png;base64,${RECIBO_FIRMA_TITULAR_BASE64}" alt="Firma">
+        <div class="firma-linea"></div>
+        <div class="firma-label">${esc(neg.nombre)} / ${esc(neg.titular)} — DNI ${esc(neg.dniTitular)}</div>
+      </div>
+      <div class="firma-col">
+        <div class="firma-linea"></div>
+        <div class="firma-label">Cliente — Aclaración y DNI</div>
+      </div>
+    </div>
+
+    <div class="pie-separador"></div>
+    <div class="pie">${esc(neg.nombre)} · ${esc(neg.direccion)}, ${esc(neg.ciudad)} · ${esc(neg.telefono)}</div>
+  </div>`;
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Entrega Reparación ${esc(d.numero)}</title>
+<style>
+  ${_cssBaseTicketReparacion_(`
+  .encabezado { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 8px; }
+  .logo { font-size: 26px; font-weight: bold; letter-spacing: .3px; }
+  .direccion { font-size: 10.5px; color: var(--gris-texto); margin-top: 3px; }
+  .encabezado-der { text-align: right; }
+  .titulo-recibo { font-size: 20px; font-weight: bold; color: var(--naranja); letter-spacing: .5px; margin-bottom: 6px; }
+  .dato-header { font-size: 11.5px; margin-top: 2px; }
+  `)}
+</style>
+</head>
+<body>
+  ${html}
+  <script>
+    window.onload = function () {
+      window.print();
+    };
+  </script>
+</body>
+</html>`;
+}

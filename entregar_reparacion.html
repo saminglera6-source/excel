@@ -1,0 +1,234 @@
+<div id="view-entregar_reparacion" class="view">
+  <div class="panel" style="max-width:100%">
+    <h3>🔧 Estado de Reparaciones</h3>
+    <div class="hint">Todas las reparaciones abiertas (no retiradas), agrupadas por estado. Filtrá para ver solo un grupo.</div>
+
+    <div class="cards" style="margin-top:14px">
+      <div class="card c-rep" onclick="entregaRepSetFiltro('paraReparar')">
+        <div class="ico">🔴</div>
+        <div class="valor" id="er_cant_paraReparar">…</div>
+        <div class="label">Para reparar</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('enProceso')">
+        <div class="ico">🟡</div>
+        <div class="valor" id="er_cant_enProceso">…</div>
+        <div class="label">Reparándose</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('listas')">
+        <div class="ico">🟢</div>
+        <div class="valor" id="er_cant_listas">…</div>
+        <div class="label">Reparadas — para entregar</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px" id="er_filtros"></div>
+
+    <div style="overflow:auto;max-height:340px;border:1px solid var(--borde);border-radius:var(--radio-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">N° Rep</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Ingreso</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Cliente</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Equipo</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Falla</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="er_tbody">
+          <tr><td colspan="6" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:720px;margin-top:18px">
+    <h3>✅ Registrar Entrega</h3>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién entrega y qué reparación?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="er_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <label>Reparación lista para entregar: <span class="req">*</span></label>
+      <select id="er_nRep" onchange="entregaRepActualizarInfo()"><option value="">Cargando reparaciones listas...</option></select>
+
+      <div class="box box-info" id="er_infoDiv" style="margin-top:10px;display:none"></div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Cobro final (solo si queda saldo pendiente)</p>
+      <div class="fila2">
+        <div><label style="font-size:11px">Efectivo</label><input type="number" id="er_efec" value="0" min="0" oninput="entregaRepCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="number" id="er_transf" value="0" min="0" oninput="entregaRepCalcTotal()"/></div>
+      </div>
+      <div class="total" id="er_totalDiv">Cobro en esta entrega: $0</div>
+      <div class="hint">Dejalo en $0 si ya estaba todo cobrado al ingresar el equipo.</div>
+    </div>
+
+    <label>Observaciones de la entrega (opcional):</label>
+    <input type="text" id="er_obs" placeholder="Opcional"/>
+
+    <button type="button" class="btn" onclick="entregaRepEnviar()">✅ Confirmar entrega</button>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Entregar Reparación — ver también entrega_reparaciones.gs
+  //  (obtenerReparacionesParaEntrega/entregarReparacion). El listado de
+  //  arriba es informativo (para reparar/reparándose/listas); el
+  //  desplegable de "Reparación lista para entregar" solo muestra las que
+  //  están "🟢 Listo" — es lo único que entregarReparacion() acepta.
+  // ============================================================
+
+  var _erData = { paraReparar: [], enProceso: [], listas: [] };
+  var _erFiltroActivo = "todas";
+  var ER_FILTROS = [
+    { key: "todas",       label: "Todas" },
+    { key: "paraReparar", label: "🔴 Para reparar" },
+    { key: "enProceso",   label: "🟡 Reparándose" },
+    { key: "listas",      label: "🟢 Reparadas" }
+  ];
+  var ER_BADGE = {
+    "🟡 En Proceso": "background:#FEF3E2;color:#D97706",
+    "🟢 Listo":      "background:#E7F8EF;color:#0F9D58",
+    "PARA REPARAR":       "background:#FDEAEA;color:#DC2626",
+    "PARA DIAGNOSTICAR":  "background:#F1E9FE;color:#7C3AED"
+  };
+
+  function entregaRepInit(){
+    document.getElementById("er_filtros").innerHTML = ER_FILTROS.map(function(f){
+      return "<button class='btn' style='margin:0;width:auto;padding:6px 12px;font-size:12px;" + (f.key === _erFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='entregaRepSetFiltro(" + JSON.stringify(f.key) + ")'>" + f.label + "</button>";
+    }).join("");
+
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _erData = datos || { paraReparar: [], enProceso: [], listas: [] };
+        document.getElementById("er_cant_paraReparar").textContent = _erData.paraReparar.length;
+        document.getElementById("er_cant_enProceso").textContent   = _erData.enProceso.length;
+        document.getElementById("er_cant_listas").textContent      = _erData.listas.length;
+        entregaRepRenderizarTabla();
+        entregaRepPoblarSelect();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerReparacionesParaEntrega();
+  }
+
+  function entregaRepSetFiltro(key){
+    _erFiltroActivo = key;
+    document.querySelectorAll("#er_filtros button").forEach(function(b, i){
+      b.style.background = (ER_FILTROS[i].key === key) ? "" : "#B8C4CE";
+    });
+    entregaRepRenderizarTabla();
+  }
+
+  function entregaRepTodasLasFilas(){
+    return _erData.paraReparar.concat(_erData.enProceso).concat(_erData.listas);
+  }
+
+  function entregaRepRenderizarTabla(){
+    var filas = (_erFiltroActivo === "todas") ? entregaRepTodasLasFilas() : (_erData[_erFiltroActivo] || []);
+    var tbody = document.getElementById("er_tbody");
+    if (filas.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='6' style='padding:16px;text-align:center;color:#889'>Sin reparaciones para este filtro.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = filas.map(function(r){
+      var estilo = ER_BADGE[r.estado] || "background:#F0F1F6;color:#556";
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='padding:8px 10px;font-weight:600;color:var(--azul)'>" + r.numero + "</td>" +
+        "<td style='padding:8px 10px;white-space:nowrap;color:#667'>" + r.fecha + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.cliente || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.equipo || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.falla || "—") + "</td>" +
+        "<td style='padding:8px 10px'><span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + estilo + "'>" + r.estado + "</span></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function entregaRepPoblarSelect(){
+    var sel = document.getElementById("er_nRep");
+    if (_erData.listas.length === 0) {
+      sel.innerHTML = "<option value=''>— No hay reparaciones listas para entregar —</option>";
+      return;
+    }
+    sel.innerHTML = "<option value=''>Seleccionar...</option>" + _erData.listas.map(function(r){
+      return "<option value='" + r.numero + "'>" + r.numero + " — " + r.equipo + " (" + r.cliente + ")</option>";
+    }).join("");
+  }
+
+  function entregaRepActualizarInfo(){
+    var numero = document.getElementById("er_nRep").value;
+    var info = document.getElementById("er_infoDiv");
+    var r = _erData.listas.find(function(x){ return x.numero === numero; });
+    if (!r) { info.style.display = "none"; return; }
+    info.style.display = "block";
+    info.innerHTML =
+      "<b>Cliente:</b> " + (r.cliente || "—") + " — " + (r.tel || "sin teléfono") + "<br>" +
+      "<b>Equipo:</b> " + (r.equipo || "—") + "<br>" +
+      "<b>Falla:</b> " + (r.falla || "—") + "<br>" +
+      "<b>Cobrado hasta ahora:</b> " + fmtP(r.precioCobrado);
+  }
+
+  function entregaRepCalcTotal(){
+    var ef = parseFloat(document.getElementById("er_efec").value) || 0;
+    var tr = parseFloat(document.getElementById("er_transf").value) || 0;
+    document.getElementById("er_totalDiv").textContent = "Cobro en esta entrega: " + fmtP(ef + tr);
+  }
+
+  function entregaRepEnviar(){
+    var numero = document.getElementById("er_nRep").value;
+    var operador = document.getElementById("er_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!numero) { mostrarToast("Seleccioná qué reparación vas a entregar.", "error"); return; }
+
+    var d = {
+      numero: numero,
+      operador: operador,
+      efec: parseFloat(document.getElementById("er_efec").value) || 0,
+      transf: parseFloat(document.getElementById("er_transf").value) || 0,
+      obs: document.getElementById("er_obs").value.trim()
+    };
+
+    confirmarAccion("¿Confirmás la entrega de " + numero + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("entregarReparacion", d, function(msg){
+        mostrarToast(msg, "exito", {
+          persistente: true,
+          accionTexto: "🖨 Recibo de Entrega",
+          accionFn: function(){ imprimirReciboEntregaReparacion(numero); }
+        });
+        cargarDashboard();
+        entregaRepLimpiarForm();
+        entregaRepInit();
+      });
+    });
+  }
+
+  function entregaRepLimpiarForm(){
+    document.getElementById("er_efec").value = 0;
+    document.getElementById("er_transf").value = 0;
+    document.getElementById("er_obs").value = "";
+    document.getElementById("er_infoDiv").style.display = "none";
+    entregaRepCalcTotal();
+  }
+
+  /** Reutilizable desde acá y desde Mis Operaciones (reimpresión). Mismo patrón que los demás imprimirRecibo*: el click del operador abre la ventana en el momento, sin ningún hueco antes de pedirle el HTML al backend. */
+  function imprimirReciboEntregaReparacion(numero){
+    if (!numero) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboEntregaReparacion(numero);
+  }
+</script>

@@ -328,6 +328,7 @@
 
     <div class="nav-group-title">Taller y gastos</div>
     <div class="nav-btn" data-vista="reparaciones" onclick="cargarVista('reparaciones')">🔧 Registrar Reparación</div>
+    <div class="nav-btn" data-vista="entregar_reparacion" onclick="cargarVista('entregar_reparacion')">📦 Entregar Reparación</div>
     <div class="nav-btn" data-vista="tarifario_reparaciones" onclick="cargarVista('tarifario_reparaciones')">🔧 Tarifario Reparaciones</div>
     <div class="nav-btn" data-vista="gastos" onclick="cargarVista('gastos')">💸 Registrar Gasto</div>
 
@@ -381,6 +382,7 @@
       <?!= include('preventas'); ?>
       <?!= include('entregar_preventa'); ?>
       <?!= include('reparaciones'); ?>
+      <?!= include('entregar_reparacion'); ?>
       <?!= include('tarifario_reparaciones'); ?>
       <?!= include('gastos'); ?>
       <?!= include('reportes'); ?>
@@ -477,7 +479,7 @@
       preventas:"🟡 Registrar Preventa", entregar_preventa:"📦 Entregar Preventa",
       precios:"💰 Lista de Precios", precios_mac_ipad:"💻 Precios Mac / iPad", toma_precios:"🔄 Precios de Toma", calculadora_toma:"🧮 Calculadora de Toma",
       calculadora_cuotas:"💳 Calculadora de Cuotas",
-      reparaciones:"🔧 Registrar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
+      reparaciones:"🔧 Registrar Reparación", entregar_reparacion:"📦 Entregar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
       gastos:"💸 Registrar Gasto", reportes:"💰 Caja",
       stock_accesorios:"📦 Stock Accesorios", stock_general:"📋 Stock General",
       mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones"
@@ -502,6 +504,7 @@
     if (nombre === "calculadora_cuotas") calculadoraCuotasInit();
     if (nombre === "ventas") ventasInit();
     if (nombre === "reparaciones") reparacionesInit();
+    if (nombre === "entregar_reparacion") entregaRepInit();
     if (nombre === "tarifario_reparaciones") tarifarioReparacionesInit();
     if (nombre === "entregar_preventa") entregaInit();
     if (nombre === "reportes") reportesInit();

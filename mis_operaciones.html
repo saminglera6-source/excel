@@ -220,6 +220,9 @@
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
             "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> "
           : "") +
+        (op.tipo === "Reparación" && String(op.estado || "").indexOf("Retirado") !== -1
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaReparacion('" + op.numero + "')\">🖨 Entrega</button> "
+          : "") +
         (op.tipo === "Venta"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> "
           : "") +
