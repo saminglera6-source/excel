@@ -11,7 +11,7 @@
     <div class="fila4">
       <div>
         <label style="font-size:11px">Operador</label>
-        <select id="mo_operador" onchange="misOperacionesFiltrar()">
+        <select id="mo_operador" onchange="misOperacionesOnFiltroManual()">
           <option value="">Todos</option>
           <option value="Martin">Martin</option>
           <option value="Maca">Maca</option>
@@ -22,7 +22,7 @@
       </div>
       <div>
         <label style="font-size:11px">Tipo</label>
-        <select id="mo_tipo" onchange="misOperacionesFiltrar()">
+        <select id="mo_tipo" onchange="misOperacionesOnFiltroManual()">
           <option value="">Todos</option>
           <option value="Compra">Compra</option>
           <option value="Venta">Venta</option>
@@ -36,30 +36,45 @@
         </select>
       </div>
       <div>
-        <label style="font-size:11px">Fecha</label>
-        <input type="date" id="mo_fecha" onchange="misOperacionesFiltrar()"/>
+        <label style="font-size:11px">Estado</label>
+        <select id="mo_estado" onchange="misOperacionesOnFiltroManual()">
+          <option value="">Todos</option>
+        </select>
       </div>
       <div>
-        <label style="font-size:11px">Buscar N°</label>
-        <input type="text" id="mo_busqueda" placeholder="Ej: VTA-004" oninput="misOperacionesFiltrar()"/>
+        <label style="font-size:11px">Fecha</label>
+        <input type="date" id="mo_fecha" onchange="misOperacionesOnFiltroManual()"/>
+      </div>
+    </div>
+    <div class="fila4" style="margin-top:8px">
+      <div style="grid-column:span 2">
+        <label style="font-size:11px">Buscar (N°, cliente o equipo)</label>
+        <input type="text" id="mo_busqueda" placeholder="Ej: VTA-004, Juan Pérez, iPhone 13" oninput="misOperacionesFiltrar()"/>
       </div>
     </div>
 
-    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Usá el filtro "Operador" para ver solo las de uno en particular. Cualquier operación puede anularse o corregirse en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px">
+      <button class="btn" id="mo_chip_prevEntrega" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#B8C4CE" onclick="misOperacionesFiltroRapido('PRE_ENTREGA')">📦 Entregas de Preventa</button>
+      <button class="btn" id="mo_chip_repEntrega" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#B8C4CE" onclick="misOperacionesFiltroRapido('REP_ENTREGA')">📦 Entregas de Reparación</button>
+      <button class="btn" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#5D6D7E" onclick="misOperacionesLimpiarFiltros()">✖ Limpiar filtros</button>
+    </div>
 
-    <div style="overflow-x:auto;margin-top:14px">
+    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Cualquier operación puede anularse, corregirse o editarse rápido en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+    <div id="mo_contador" style="font-size:11.5px;color:#667;margin-top:6px"></div>
+
+    <div style="overflow:auto;max-height:520px;margin-top:10px;border:1px solid #E1E5EA;border-radius:8px">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead>
-          <tr style="background:#F4F6F9;text-align:left">
-            <th style="padding:8px">Fecha</th>
-            <th style="padding:8px">Tipo</th>
-            <th style="padding:8px">Número</th>
-            <th style="padding:8px">Equipo</th>
-            <th style="padding:8px">Cliente</th>
-            <th style="padding:8px;text-align:right">Importe</th>
-            <th style="padding:8px">Operador</th>
-            <th style="padding:8px">Estado</th>
-            <th style="padding:8px">Acciones</th>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Fecha</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Tipo</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Número</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Equipo</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Cliente</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA;text-align:right">Importe</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Operador</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Estado</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Acciones</th>
           </tr>
         </thead>
         <tbody id="mo_tbody">
@@ -97,6 +112,18 @@
     <h3 id="ver-titulo" style="margin:0 0 12px;color:#1A5276"></h3>
     <div id="ver-contenido" style="font-size:13px;line-height:1.7"></div>
     <button class="btn" onclick="document.getElementById('ver-overlay').style.display='none'">Cerrar</button>
+  </div>
+</div>
+
+<div id="mo_editar-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.5);display:none;align-items:center;justify-content:center;z-index:9999">
+  <div style="background:#fff;border-radius:12px;padding:22px;max-width:420px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.25)">
+    <h3 id="mo_editar_titulo" style="margin:0 0 4px;color:#1A5276"></h3>
+    <div class="hint" style="margin-bottom:12px">Para arreglar un dato de contacto mal cargado y que el próximo recibo salga bien — no crea una operación nueva ni pide motivo (a diferencia de "Corregir"). El cambio queda igual en Auditoría.</div>
+    <div id="mo_editar_contenido" style="display:flex;flex-direction:column"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn" style="margin:0;background:#1E8449" onclick="misOperacionesGuardarEdicionRapida()">💾 Guardar</button>
+      <button class="btn" style="margin:0;background:#888" onclick="document.getElementById('mo_editar-overlay').style.display='none'">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -182,40 +209,119 @@
     google.script.run
       .withSuccessHandler(function(datos){
         _misOperacionesData = datos || [];
+        _misOperacionesPoblarEstados();
         misOperacionesFiltrar();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerOperacionesRecientes();
   }
 
+  /** Repuebla el filtro "Estado" con los estados que realmente existen en los datos cargados (no un listado fijo — cada tipo de operación tiene los suyos), preservando la selección actual si sigue siendo válida. */
+  function _misOperacionesPoblarEstados(){
+    var sel = document.getElementById("mo_estado");
+    var actual = sel.value;
+    var estados = {};
+    _misOperacionesData.forEach(function(op){ if (op.estado) estados[op.estado] = true; });
+    var lista = Object.keys(estados).sort();
+    sel.innerHTML = "<option value=''>Todos</option>" + lista.map(function(e){
+      return "<option value=\"" + e.replace(/"/g, "&quot;") + "\">" + e + "</option>";
+    }).join("");
+    if (lista.indexOf(actual) !== -1) sel.value = actual;
+  }
+
+  // Filtros rápidos de un clic para lo que antes no se podía filtrar:
+  // entregas de preventa/reparación. No son "tipos" nuevos en la planilla
+  // (la entrega actualiza el estado de la Preventa/Reparación existente,
+  // no crea una fila nueva) — acá se resuelven como un predicado extra
+  // sobre tipo+estado, sin inventar un tipo de operación que no existe.
+  var _moFiltroRapido = null; // null | "PRE_ENTREGA" | "REP_ENTREGA"
+
+  function misOperacionesFiltroRapido(clave){
+    _moFiltroRapido = (_moFiltroRapido === clave) ? null : clave;
+    document.getElementById("mo_tipo").value = "";
+    document.getElementById("mo_estado").value = "";
+    _misOperacionesActualizarChips();
+    misOperacionesFiltrar();
+  }
+
+  function _misOperacionesActualizarChips(){
+    document.getElementById("mo_chip_prevEntrega").style.background = (_moFiltroRapido === "PRE_ENTREGA") ? "#117864" : "#B8C4CE";
+    document.getElementById("mo_chip_repEntrega").style.background  = (_moFiltroRapido === "REP_ENTREGA") ? "#117864" : "#B8C4CE";
+  }
+
+  /** Cualquier cambio manual en Operador/Tipo/Estado/Fecha desactiva el filtro rápido activo, para que no queden combinaciones confusas (ej: Tipo=Compra + chip "Entregas de Preventa" a la vez). */
+  function misOperacionesOnFiltroManual(){
+    _moFiltroRapido = null;
+    _misOperacionesActualizarChips();
+    misOperacionesFiltrar();
+  }
+
+  function misOperacionesLimpiarFiltros(){
+    document.getElementById("mo_operador").value = "";
+    document.getElementById("mo_tipo").value = "";
+    document.getElementById("mo_estado").value = "";
+    document.getElementById("mo_fecha").value = "";
+    document.getElementById("mo_busqueda").value = "";
+    _moFiltroRapido = null;
+    _misOperacionesActualizarChips();
+    misOperacionesFiltrar();
+  }
+
+  /** Colores de estado agrupados por familia — reconocidos por substring así cubren los estados de todos los tipos sin tener que listarlos uno por uno. */
+  function _moColorEstado(estado){
+    var e = String(estado || "");
+    if (e.indexOf("Retirado") !== -1 || e.indexOf("Entregado") !== -1 || e.indexOf("Vendido") !== -1 || e === "PROCESADA") return "background:#E7F8EF;color:#0F9D58";
+    if (e.indexOf("Listo") !== -1) return "background:#E7F8EF;color:#0F9D58";
+    if (e.indexOf("Proceso") !== -1 || e.indexOf("con saldo") !== -1) return "background:#FEF3E2;color:#D97706";
+    if (e.indexOf("PARA REPARAR") !== -1 || e.indexOf("DIAGNOSTICAR") !== -1 || e.indexOf("Reparación") !== -1) return "background:#FDEAEA;color:#DC2626";
+    if (e.indexOf("Stock") !== -1 || e.indexOf("Reservado") !== -1) return "background:#EAF1FB;color:#1A5276";
+    return "background:#F0F1F6;color:#556";
+  }
+
   function misOperacionesFiltrar(){
     var fOperador = document.getElementById("mo_operador").value;
     var fTipo     = document.getElementById("mo_tipo").value;
+    var fEstado   = document.getElementById("mo_estado").value;
     var fFecha    = document.getElementById("mo_fecha").value;
     var fBusqueda = document.getElementById("mo_busqueda").value.trim().toLowerCase();
 
     var filtradas = _misOperacionesData.filter(function(op){
       if (fOperador && op.operador !== fOperador) return false;
       if (fTipo && op.tipo !== fTipo) return false;
+      if (fEstado && op.estado !== fEstado) return false;
       if (fFecha && op.fechaISO !== fFecha) return false;
-      if (fBusqueda && op.numero.toLowerCase().indexOf(fBusqueda) === -1) return false;
+      if (_moFiltroRapido === "PRE_ENTREGA" && !(op.tipo === "Preventa" && String(op.estado || "").indexOf("Entregado") !== -1)) return false;
+      if (_moFiltroRapido === "REP_ENTREGA" && !(op.tipo === "Reparación" && String(op.estado || "").indexOf("Retirado") !== -1)) return false;
+      if (fBusqueda) {
+        var enNumero  = op.numero.toLowerCase().indexOf(fBusqueda) !== -1;
+        var enCliente = String(op.cliente || "").toLowerCase().indexOf(fBusqueda) !== -1;
+        var enEquipo  = String(op.equipo  || "").toLowerCase().indexOf(fBusqueda) !== -1;
+        if (!enNumero && !enCliente && !enEquipo) return false;
+      }
       return true;
     });
+
+    document.getElementById("mo_contador").textContent =
+      "Mostrando " + filtradas.length + " de " + _misOperacionesData.length + " operaciones.";
 
     var tbody = document.getElementById("mo_tbody");
     if (filtradas.length === 0) {
       tbody.innerHTML = "<tr><td colspan='9' style='padding:14px;text-align:center;color:#889'>Sin operaciones para este filtro.</td></tr>";
       return;
     }
-    tbody.innerHTML = filtradas.map(function(op){
+    tbody.innerHTML = filtradas.map(function(op, i){
       var numeroCelda = op.numero;
       if (op.operacionOrigen) numeroCelda += "<br><small style='color:#889'>↳ corrige " + op.operacionOrigen + "</small>";
       if (op.operacionCorregida) numeroCelda += "<br><small style='color:#889'>↳ corregida en " + op.operacionCorregida + "</small>";
 
       var puedeCorregir = !op.operacionCorregida; // si ya fue corregida, la acción corresponde a la operación nueva
       var tieneHistorial = op.operacionOrigen || op.operacionCorregida;
+      var puedeEditarRapido = !!CAMPOS_EDITABLES_UI[op.tipo];
       var acciones =
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto' onclick=\"misOperacionesVer('" + op.numero + "')\">Ver</button> " +
+        (puedeEditarRapido
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#8E44AD' onclick=\"misOperacionesEditarRapido('" + op.numero + "','" + op.tipo + "')\" title=\"Corregir un dato de contacto sin crear una operación nueva\">✏️ Editar</button> "
+          : "") +
         (op.tipo === "Reparación"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
             "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> "
@@ -245,18 +351,93 @@
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1A5276' onclick=\"misOperacionesHistorial('" + op.numero + "')\">Historial</button>"
           : "");
 
-      return "<tr style='border-top:1px solid #E1E5EA'>" +
-        "<td style='padding:8px'>" + op.fecha + "</td>" +
+      return "<tr style='border-top:1px solid #E1E5EA;background:" + (i % 2 === 1 ? "#FAFBFC" : "#fff") + "'>" +
+        "<td style='padding:8px;white-space:nowrap'>" + op.fecha + "</td>" +
         "<td style='padding:8px'>" + op.tipo + "</td>" +
         "<td style='padding:8px'>" + numeroCelda + "</td>" +
         "<td style='padding:8px'>" + (op.equipo || "—") + "</td>" +
         "<td style='padding:8px'>" + (op.cliente || "—") + "</td>" +
-        "<td style='padding:8px;text-align:right'>" + fmtP(op.importe) + "</td>" +
+        "<td style='padding:8px;text-align:right;white-space:nowrap'>" + fmtP(op.importe) + "</td>" +
         "<td style='padding:8px'>" + (op.operador || "—") + "</td>" +
-        "<td style='padding:8px'>" + (op.estado || "—") + "</td>" +
+        "<td style='padding:8px'>" + (op.estado ? "<span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + _moColorEstado(op.estado) + "'>" + op.estado + "</span>" : "—") + "</td>" +
         "<td style='padding:8px;white-space:nowrap'>" + acciones + "</td>" +
       "</tr>";
     }).join("");
+  }
+
+  // ---------- EDITAR RÁPIDO (datos de contacto, sin crear operación nueva) ----------
+  var CAMPOS_EDITABLES_UI = {
+    "Venta": [
+      { campo: "Cliente",          label: "Cliente"  },
+      { campo: "CUIL Cliente",     label: "CUIL",     cuil: true },
+      { campo: "Teléfono Cliente", label: "Teléfono"  },
+      { campo: "Domicilio Cliente",label: "Domicilio" },
+      { campo: "Email Cliente",    label: "Email"     }
+    ],
+    "Preventa": [
+      { campo: "Cliente",           label: "Cliente"  },
+      { campo: "CUIL Cliente",      label: "CUIL",     cuil: true },
+      { campo: "Teléfono",          label: "Teléfono" },
+      { campo: "Domicilio Cliente", label: "Domicilio" },
+      { campo: "Email Cliente",     label: "Email"     }
+    ],
+    "Compra": [
+      { campo: "Proveedor / Origen",  label: "Proveedor" },
+      { campo: "CUIL/CUIT Proveedor", label: "CUIL/CUIT", cuil: true },
+      { campo: "Domicilio Proveedor", label: "Domicilio" },
+      { campo: "Localidad Proveedor", label: "Localidad" },
+      { campo: "Email Proveedor",     label: "Email"     }
+    ],
+    "Reparación": [
+      { campo: "Cliente",     label: "Cliente"  },
+      { campo: "Teléfono",    label: "Teléfono" },
+      { campo: "DNI Cliente", label: "DNI"      },
+      { campo: "Email Cliente", label: "Email"  },
+      { campo: "Color",       label: "Color"    },
+      { campo: "Batería",     label: "Batería (%)" }
+    ]
+  };
+
+  function misOperacionesEditarRapido(numero, tipo){
+    var campos = CAMPOS_EDITABLES_UI[tipo];
+    if (!campos) { mostrarToast("La edición rápida no está disponible para este tipo de operación.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(op){
+        document.getElementById("mo_editar_titulo").textContent = "✏️ Editar datos — " + numero;
+        document.getElementById("mo_editar_contenido").innerHTML = campos.map(function(c){
+          var valorActual = op.datos[c.campo] || "";
+          var idInput = "mo_edit_" + c.campo.replace(/[^a-zA-Z0-9]/g, "_");
+          var oninput = c.cuil ? " oninput=\"formatearInputCUIL(this)\"" : "";
+          return "<label style='font-size:11px;margin-top:8px'>" + c.label + "</label>" +
+            "<input type='text' id='" + idInput + "' value=\"" + String(valorActual).replace(/"/g, "&quot;") + "\"" + oninput + "/>";
+        }).join("");
+        var overlay = document.getElementById("mo_editar-overlay");
+        overlay.dataset.numero = numero;
+        overlay.dataset.tipo = tipo;
+        overlay.style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerOperacionCompletaWeb(numero);
+  }
+
+  function misOperacionesGuardarEdicionRapida(){
+    var overlay = document.getElementById("mo_editar-overlay");
+    var numero = overlay.dataset.numero;
+    var tipo = overlay.dataset.tipo;
+    var campos = CAMPOS_EDITABLES_UI[tipo];
+    var datos = {};
+    campos.forEach(function(c){
+      var idInput = "mo_edit_" + c.campo.replace(/[^a-zA-Z0-9]/g, "_");
+      datos[c.campo] = document.getElementById(idInput).value.trim();
+    });
+    pedirOperador("¿Quién está corrigiendo estos datos de " + numero + "?").then(function(operador){
+      if (!operador) return;
+      llamarBackend("editarDatosContactoOperacion", { numero: numero, operador: operador, campos: datos }, function(msg){
+        mostrarToast(msg, "exito");
+        overlay.style.display = "none";
+        misOperacionesInit();
+      });
+    });
   }
 
   // ---------- VER ----------
