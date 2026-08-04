@@ -1,48 +1,5 @@
 <div id="view-entregar_reparacion" class="view">
-  <div class="panel" style="max-width:100%">
-    <h3>🔧 Estado de Reparaciones</h3>
-    <div class="hint">Todas las reparaciones abiertas (no retiradas), agrupadas por estado. Filtrá para ver solo un grupo.</div>
-
-    <div class="cards" style="margin-top:14px">
-      <div class="card c-rep" onclick="entregaRepSetFiltro('paraReparar')">
-        <div class="ico">🔴</div>
-        <div class="valor" id="er_cant_paraReparar">…</div>
-        <div class="label">Para reparar</div>
-      </div>
-      <div class="card c-rep" onclick="entregaRepSetFiltro('enProceso')">
-        <div class="ico">🟡</div>
-        <div class="valor" id="er_cant_enProceso">…</div>
-        <div class="label">Reparándose</div>
-      </div>
-      <div class="card c-rep" onclick="entregaRepSetFiltro('listas')">
-        <div class="ico">🟢</div>
-        <div class="valor" id="er_cant_listas">…</div>
-        <div class="label">Reparadas — para entregar</div>
-      </div>
-    </div>
-
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px" id="er_filtros"></div>
-
-    <div style="overflow:auto;max-height:340px;border:1px solid var(--borde);border-radius:var(--radio-sm)">
-      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
-        <thead>
-          <tr style="text-align:left">
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">N° Rep</th>
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Ingreso</th>
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Cliente</th>
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Equipo</th>
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Falla</th>
-            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Estado</th>
-          </tr>
-        </thead>
-        <tbody id="er_tbody">
-          <tr><td colspan="6" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="panel" style="max-width:720px;margin-top:18px">
+  <div class="panel" style="max-width:720px">
     <h3>✅ Registrar Entrega</h3>
 
     <div class="paso">
@@ -73,6 +30,50 @@
     <input type="text" id="er_obs" placeholder="Opcional"/>
 
     <button type="button" class="btn" onclick="entregaRepEnviar()">✅ Confirmar entrega</button>
+  </div>
+
+  <div class="panel" style="max-width:100%;margin-top:18px">
+    <h3>🔧 Estado de Reparaciones</h3>
+    <div class="hint">Todas las reparaciones abiertas (no retiradas), agrupadas por estado. Filtrá para ver solo un grupo, cambiá el estado o mirá el detalle completo sin salir de este módulo.</div>
+
+    <div class="cards" style="margin-top:14px">
+      <div class="card c-rep" onclick="entregaRepSetFiltro('paraReparar')">
+        <div class="ico">🔴</div>
+        <div class="valor" id="er_cant_paraReparar">…</div>
+        <div class="label">Para reparar</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('enProceso')">
+        <div class="ico">🟡</div>
+        <div class="valor" id="er_cant_enProceso">…</div>
+        <div class="label">Reparándose</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('listas')">
+        <div class="ico">🟢</div>
+        <div class="valor" id="er_cant_listas">…</div>
+        <div class="label">Reparadas — para entregar</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px" id="er_filtros"></div>
+
+    <div style="overflow:auto;max-height:440px;border:1px solid var(--borde);border-radius:var(--radio-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">N° Rep</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Ingreso</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Cliente</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Equipo</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Falla</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Estado</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="er_tbody">
+          <tr><td colspan="7" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -130,15 +131,25 @@
     return _erData.paraReparar.concat(_erData.enProceso).concat(_erData.listas);
   }
 
+  // Transiciones de estado disponibles desde este módulo — coincide con
+  // ESTADOS_REPARACION_WEB_VALIDOS (operadores.gs) menos "✅ Retirado" (esa
+  // sí requiere cobro final y pasa por entregarReparacion(), no por acá) y
+  // "🔄 Garantía" (es un reingreso, no un avance normal del flujo).
+  var ER_ESTADOS_DISPONIBLES = ["🟡 En Proceso", "🟢 Listo"];
+
   function entregaRepRenderizarTabla(){
     var filas = (_erFiltroActivo === "todas") ? entregaRepTodasLasFilas() : (_erData[_erFiltroActivo] || []);
     var tbody = document.getElementById("er_tbody");
     if (filas.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='6' style='padding:16px;text-align:center;color:#889'>Sin reparaciones para este filtro.</td></tr>";
+      tbody.innerHTML = "<tr><td colspan='7' style='padding:16px;text-align:center;color:#889'>Sin reparaciones para este filtro.</td></tr>";
       return;
     }
-    tbody.innerHTML = filas.map(function(r){
+    tbody.innerHTML = filas.map(function(r, i){
       var estilo = ER_BADGE[r.estado] || "background:#F0F1F6;color:#556";
+      var selId = "er_estsel_" + i;
+      var opciones = ER_ESTADOS_DISPONIBLES.map(function(e){
+        return "<option value='" + e + "'" + (e === r.estado ? " selected" : "") + ">" + e + "</option>";
+      }).join("");
       return "<tr style='border-top:1px solid var(--borde)'>" +
         "<td style='padding:8px 10px;font-weight:600;color:var(--azul)'>" + r.numero + "</td>" +
         "<td style='padding:8px 10px;white-space:nowrap;color:#667'>" + r.fecha + "</td>" +
@@ -146,8 +157,24 @@
         "<td style='padding:8px 10px'>" + (r.equipo || "—") + "</td>" +
         "<td style='padding:8px 10px'>" + (r.falla || "—") + "</td>" +
         "<td style='padding:8px 10px'><span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + estilo + "'>" + r.estado + "</span></td>" +
+        "<td style='padding:8px 10px;white-space:nowrap'>" +
+          "<button class='btn' style='margin:0 4px 4px 0;width:auto;padding:4px 8px;font-size:11px;background:#5D6D7E' onclick=\"misOperacionesVer(" + JSON.stringify(r.numero) + ")\">👁 Detalle</button>" +
+          "<select id='" + selId + "' style='width:auto;padding:4px 6px;font-size:11px;margin:0 4px 4px 0'>" + opciones + "</select>" +
+          "<button class='btn' style='margin:0;width:auto;padding:4px 8px;font-size:11px;background:#117864' onclick=\"entregaRepCambiarEstado(" + JSON.stringify(r.numero) + ", '" + selId + "')\">Guardar</button>" +
+        "</td>" +
       "</tr>";
     }).join("");
+  }
+
+  function entregaRepCambiarEstado(numero, selectId){
+    var nuevo = document.getElementById(selectId).value;
+    pedirOperador("¿Quién está actualizando el estado de " + numero + "?").then(function(operador){
+      if (!operador) return;
+      llamarBackend("actualizarEstadoReparacionWeb", { numero: numero, estado: nuevo, operador: operador }, function(msg){
+        mostrarToast(msg, "exito");
+        entregaRepInit();
+      });
+    });
   }
 
   function entregaRepPoblarSelect(){

@@ -1717,6 +1717,42 @@ function generarReciboEntregaPreventa(numeroPreventa) {
     }
   }
 
+  // Accesorios de la entrega: comprados por el cliente (cobrados junto con
+  // el saldo, ver procesarEntregaPreventa/registrarAccesorioAsociado_) y
+  // regalos automáticos (cable/funda — entregarRegalosAutomaticos_(),
+  // operadores.gs: se entregan recién en la ENTREGA, no en la preventa).
+  // Ambos quedan en "Venta Accesorios" ligados a la Venta generada por esta
+  // entrega, así que se leen de ahí — solo lectura, no participa de ningún
+  // cálculo de caja.
+  datos.comprados = [];
+  datos.regalos = [];
+  if (nVta) {
+    const accSheet = ss.getSheetByName("Venta Accesorios");
+    if (accSheet) {
+      const fEA = 2;
+      let cNVC = -1, cCAT = -1, cPRD = -1, cTCa = -1;
+      try { cNVC = getCol(accSheet, "N° Venta Celular Asociada", fEA); } catch (e) { /* opcional */ }
+      try { cCAT = getCol(accSheet, "Categoría",                 fEA); } catch (e) { /* opcional */ }
+      try { cPRD = getCol(accSheet, "Producto",                  fEA); } catch (e) { /* opcional */ }
+      try { cTCa = getCol(accSheet, "Total Cobrado",              fEA); } catch (e) { /* opcional */ }
+      const lastA = accSheet.getLastRow();
+      if (cNVC > 0 && cPRD > 0 && lastA > fEA) {
+        accSheet.getRange(fEA + 1, 1, lastA - fEA, accSheet.getLastColumn()).getValues()
+          .filter(r => String(r[cNVC - 1]).trim() === nVta)
+          .forEach(r => {
+            const producto = String(r[cPRD - 1] || "");
+            if (!producto) return;
+            const categoria = cCAT > 0 ? String(r[cCAT - 1] || "") : "";
+            if (categoria === "Regalo automático") {
+              datos.regalos.push(producto);
+            } else {
+              datos.comprados.push({ producto: producto, precio: cTCa > 0 ? (Number(r[cTCa - 1]) || 0) : 0 });
+            }
+          });
+      }
+    }
+  }
+
   return _armarHtmlReciboEntregaPreventa_(datos);
 }
 
@@ -1768,6 +1804,21 @@ function _armarHtmlReciboEntregaPreventa_(d) {
         ${campo("Email", `<b>${esc(d.email) || linea(140)}</b>`)}
       </div>
     </div>
+
+    ${(d.comprados.length > 0 || d.regalos.length > 0) ? `
+    <div class="seccion-titulo">ACCESORIOS Y REGALOS ENTREGADOS</div>
+    <div class="dos-columnas">
+      ${d.comprados.length > 0 ? `
+      <div class="columna">
+        <div class="campo"><span class="etiqueta">Comprados en esta entrega:</span></div>
+        ${d.comprados.map(a => `<div class="campo">• ${esc(a.producto)}${a.precio > 0 ? ` — <b>${fmtPeso(a.precio)}</b>` : ""}</div>`).join("")}
+      </div>` : ""}
+      ${d.regalos.length > 0 ? `
+      <div class="columna">
+        <div class="campo"><span class="etiqueta">Regalo/s incluido/s:</span></div>
+        ${d.regalos.map(r => `<div class="campo">🎁 ${esc(r)}</div>`).join("")}
+      </div>` : ""}
+    </div>` : ""}
 
     <div class="seccion-titulo">RESUMEN DE PAGO</div>
     <div class="pago-box">
