@@ -4042,10 +4042,17 @@ function procesarPreventa(d) {
   if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada. Creala con los encabezados indicados.");
 
   const fE   = 2;
-  // CUIL del cliente: columna nueva, autocreada si la hoja todavía no la
+  // CUIL/Domicilio/Email del cliente + IMEI/Color/Estado del equipo
+  // solicitado: columnas nuevas, autocreadas si la hoja todavía no las
   // tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
   // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // Todas opcionales — solo alimentan el recibo imprimible (recibos.gs).
   asegurarColumnaGenerica_(sheet, fE, "CUIL Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "Domicilio Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "Email Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "IMEI Solicitado");
+  asegurarColumnaGenerica_(sheet, fE, "Color Solicitado");
+  asegurarColumnaGenerica_(sheet, fE, "Estado Requerido");
   const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idx = (n, opcional) => {
     const i = hdrs.findIndex(h => String(h).trim() === n.trim());
@@ -4056,6 +4063,11 @@ function procesarPreventa(d) {
   const cFP  = idx("Fecha Preventa");
   const cCL  = idx("Cliente");
   const cCUIL = idx("CUIL Cliente");
+  const cDOM = idx("Domicilio Cliente");
+  const cEML = idx("Email Cliente");
+  const cIME = idx("IMEI Solicitado");
+  const cCOL = idx("Color Solicitado");
+  const cESR = idx("Estado Requerido");
   const cTL  = idx("Teléfono");
   const cMO  = idx("Modelo Solicitado");
   const cPV  = idx("Precio Venta Pactado");
@@ -4118,6 +4130,11 @@ function procesarPreventa(d) {
   filaData[cFP]  = parseDate(d.fecha);
   filaData[cCL]  = d.cliente;
   filaData[cCUIL] = d.cuil || "";
+  filaData[cDOM] = d.domicilio || "";
+  filaData[cEML] = d.email || "";
+  filaData[cIME] = d.imei || "";
+  filaData[cCOL] = d.color || "";
+  filaData[cESR] = d.estadoRequerido || "";
   filaData[cTL]  = d.tel;
   filaData[cMO]  = d.modelo;
   filaData[cPV]  = d.precioVenta;

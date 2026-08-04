@@ -578,10 +578,11 @@
   // mensaje de éxito ya devuelto por el backend y ofrece "Ver operación"
   // reutilizando el modal de Mis Operaciones. Si no encuentra un número
   // reconocible, se degrada a un toast normal con el mismo mensaje. Para
-  // ventas (VTA), agrega además el mismo botón "🖨 Recibo" que ya existe en
-  // Mis Operaciones (imprimirReciboVenta, ventas.html) — mismo patrón de
-  // abrir+pedir el HTML en el mismo click, sin el hueco de tiempo que hacía
-  // fallar el auto-abrir apenas se confirmaba la venta.
+  // ventas (VTA) y preventas (PRE), agrega además el mismo botón "🖨 Recibo"
+  // que ya existe en Mis Operaciones (imprimirReciboVenta/ventas.html,
+  // imprimirReciboPreventa/preventas.html) — mismo patrón de abrir+pedir el
+  // HTML en el mismo click, sin el hueco de tiempo que hacía fallar el
+  // auto-abrir apenas se confirmaba la operación.
   function mostrarToastOperacion(mensaje){
     var m = String(mensaje || "").match(/\b(CMP|VTA|PRE|REP|GST|ACC|CAC|CAM|AJC)-\S+/);
     if (!m) { mostrarToast(mensaje, "exito"); return; }
@@ -589,6 +590,8 @@
     var botones = [{ texto: "Ver operación", fn: function(){ misOperacionesVer(numero); } }];
     if (numero.indexOf("VTA-") === 0) {
       botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboVenta(numero); } });
+    } else if (numero.indexOf("PRE-") === 0) {
+      botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboPreventa(numero); } });
     }
     mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
       persistente: true,

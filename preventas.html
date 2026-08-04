@@ -39,12 +39,35 @@
         <div>
           <label>CUIL cliente (opcional):</label>
           <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9"/>
+          <div class="hint">El DNI del recibo se calcula solo a partir de este dato.</div>
         </div>
         <div>
           <label>Teléfono:</label>
           <input type="text" id="p_tel" placeholder="Ej: 2914123456"/>
         </div>
       </div>
+      <div class="fila2">
+        <div>
+          <label>Domicilio cliente (opcional):</label>
+          <input type="text" id="p_domicilio" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="p_email" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>IMEI (si se conoce, opcional):</label>
+          <input type="text" id="p_imei" placeholder="Si el equipo ya está identificado"/>
+        </div>
+        <div>
+          <label>Color pedido (opcional):</label>
+          <input type="text" id="p_color" placeholder="Ej: Negro"/>
+        </div>
+      </div>
+      <label>Estado requerido (opcional):</label>
+      <input type="text" id="p_estadoRequerido" placeholder="Ej: Como nuevo, sin marcas"/>
     </div>
 
     <div class="paso">
@@ -191,6 +214,11 @@
     _selectorModeloPreventas.setValor(datos["Modelo Solicitado"] || "");
     document.getElementById("p_cliente").value     = datos["Cliente"] || "";
     document.getElementById("p_cuil").value        = datos["CUIL Cliente"] || "";
+    document.getElementById("p_domicilio").value   = datos["Domicilio Cliente"] || "";
+    document.getElementById("p_email").value       = datos["Email Cliente"] || "";
+    document.getElementById("p_imei").value        = datos["IMEI Solicitado"] || "";
+    document.getElementById("p_color").value       = datos["Color Solicitado"] || "";
+    document.getElementById("p_estadoRequerido").value = datos["Estado Requerido"] || "";
     document.getElementById("p_vendedor").value    = datos["Vendedor"] || "Martin";
     document.getElementById("p_tel").value         = datos["Teléfono"] || "";
     _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
@@ -228,6 +256,11 @@
       cliente: document.getElementById("p_cliente").value.trim(),
       cuil: document.getElementById("p_cuil").value.trim(),
       tel: document.getElementById("p_tel").value.trim(),
+      domicilio: document.getElementById("p_domicilio").value.trim(),
+      email: document.getElementById("p_email").value.trim(),
+      imei: document.getElementById("p_imei").value.trim(),
+      color: document.getElementById("p_color").value.trim(),
+      estadoRequerido: document.getElementById("p_estadoRequerido").value.trim(),
       vendedor: document.getElementById("p_vendedor").value.trim(),
       precioVenta: pv,
       efec: ef, transf: tr, cuotas: cu, usd: us,
@@ -247,6 +280,21 @@
         preventasLimpiarForm();
       });
     });
+  }
+
+  /** Reutilizable desde el botón "🖨 Recibo" del toast de éxito (mostrarToastOperacion, index.html) y desde Mis Operaciones (reimpresión) — mismo patrón que imprimirReciboVenta (ventas.html): el click del operador abre la ventana en el momento, sin ningún hueco de por medio antes de pedirle el HTML al backend. */
+  function imprimirReciboPreventa(numeroPreventa){
+    if (!numeroPreventa) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboPreventa(numeroPreventa);
   }
 
   /** Deja "Registrar Preventa" en blanco y listo para la próxima carga. Reutilizada tanto tras una preventa normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
