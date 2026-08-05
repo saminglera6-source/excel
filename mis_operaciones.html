@@ -27,7 +27,9 @@
           <option value="Compra">Compra</option>
           <option value="Venta">Venta</option>
           <option value="Preventa">Preventa</option>
+          <option value="Preventa:ENTREGA">↳ Preventa — Entregas</option>
           <option value="Reparación">Reparación</option>
+          <option value="Reparación:ENTREGA">↳ Reparación — Entregas</option>
           <option value="Gasto">Gasto</option>
           <option value="Compra Accesorio">Compra Accesorio</option>
           <option value="Venta Accesorio">Venta Accesorio</option>
@@ -53,13 +55,11 @@
       </div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px">
-      <button class="btn" id="mo_chip_prevEntrega" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#B8C4CE" onclick="misOperacionesFiltroRapido('PRE_ENTREGA')">📦 Entregas de Preventa</button>
-      <button class="btn" id="mo_chip_repEntrega" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#B8C4CE" onclick="misOperacionesFiltroRapido('REP_ENTREGA')">📦 Entregas de Reparación</button>
+    <div style="margin-top:12px">
       <button class="btn" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#5D6D7E" onclick="misOperacionesLimpiarFiltros()">✖ Limpiar filtros</button>
     </div>
 
-    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Cualquier operación puede anularse, corregirse o editarse rápido en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Las opciones "↳ Entregas" del filtro Tipo muestran las preventas ya entregadas / reparaciones ya retiradas (la entrega no es una operación nueva, así que no tiene su propio número — actualiza el estado de la Preventa/Reparación original). Cualquier operación puede anularse, corregirse o editarse rápido en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
     <div id="mo_contador" style="font-size:11.5px;color:#667;margin-top:6px"></div>
 
     <div style="overflow:auto;max-height:520px;margin-top:10px;border:1px solid #E1E5EA;border-radius:8px">
@@ -187,7 +187,7 @@
         if (!ok) return;
         llamarBackend("marcarEquipoReparado", { nOp: nOp, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
@@ -201,15 +201,25 @@
         if (!ok) return;
         llamarBackend("actualizarEstadoReparacionWeb", { numero: numero, estado: estadoNuevo, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
     });
   }
 
+  /** Entrada "fresca" a la vista (nav lateral) — ahí sí tiene sentido arrancar sin ningún filtro puesto. */
   function misOperacionesInit(){
     document.getElementById("mo_operador").value = "";
+    document.getElementById("mo_tipo").value = "";
+    document.getElementById("mo_estado").value = "";
+    document.getElementById("mo_fecha").value = "";
+    document.getElementById("mo_busqueda").value = "";
+    misOperacionesRecargar();
+  }
+
+  /** Recarga los datos y vuelve a filtrar/renderizar SIN tocar ningún filtro — la usa cualquier acción (anular/editar/cambiar estado/etc.) para refrescar la tabla en el lugar donde estaba el operador, en vez de mandarlo de vuelta a "Todos" como pasaba antes. */
+  function misOperacionesRecargar(){
     google.script.run
       .withSuccessHandler(function(datos){
         _misOperacionesData = datos || [];
@@ -233,30 +243,8 @@
     if (lista.indexOf(actual) !== -1) sel.value = actual;
   }
 
-  // Filtros rápidos de un clic para lo que antes no se podía filtrar:
-  // entregas de preventa/reparación. No son "tipos" nuevos en la planilla
-  // (la entrega actualiza el estado de la Preventa/Reparación existente,
-  // no crea una fila nueva) — acá se resuelven como un predicado extra
-  // sobre tipo+estado, sin inventar un tipo de operación que no existe.
-  var _moFiltroRapido = null; // null | "PRE_ENTREGA" | "REP_ENTREGA"
-
-  function misOperacionesFiltroRapido(clave){
-    _moFiltroRapido = (_moFiltroRapido === clave) ? null : clave;
-    document.getElementById("mo_tipo").value = "";
-    document.getElementById("mo_estado").value = "";
-    _misOperacionesActualizarChips();
-    misOperacionesFiltrar();
-  }
-
-  function _misOperacionesActualizarChips(){
-    document.getElementById("mo_chip_prevEntrega").style.background = (_moFiltroRapido === "PRE_ENTREGA") ? "#117864" : "#B8C4CE";
-    document.getElementById("mo_chip_repEntrega").style.background  = (_moFiltroRapido === "REP_ENTREGA") ? "#117864" : "#B8C4CE";
-  }
-
-  /** Cualquier cambio manual en Operador/Tipo/Estado/Fecha desactiva el filtro rápido activo, para que no queden combinaciones confusas (ej: Tipo=Compra + chip "Entregas de Preventa" a la vez). */
+  /** Único punto donde cambia un filtro manual (Operador/Tipo/Estado/Fecha) — hoy no hace falta nada más que re-filtrar, pero queda separado de misOperacionesFiltrar() por si en el futuro un filtro depende de otro. */
   function misOperacionesOnFiltroManual(){
-    _moFiltroRapido = null;
-    _misOperacionesActualizarChips();
     misOperacionesFiltrar();
   }
 
@@ -266,8 +254,6 @@
     document.getElementById("mo_estado").value = "";
     document.getElementById("mo_fecha").value = "";
     document.getElementById("mo_busqueda").value = "";
-    _moFiltroRapido = null;
-    _misOperacionesActualizarChips();
     misOperacionesFiltrar();
   }
 
@@ -283,19 +269,30 @@
   }
 
   function misOperacionesFiltrar(){
-    var fOperador = document.getElementById("mo_operador").value;
-    var fTipo     = document.getElementById("mo_tipo").value;
-    var fEstado   = document.getElementById("mo_estado").value;
-    var fFecha    = document.getElementById("mo_fecha").value;
-    var fBusqueda = document.getElementById("mo_busqueda").value.trim().toLowerCase();
+    var fOperador  = document.getElementById("mo_operador").value;
+    var fTipoRaw   = document.getElementById("mo_tipo").value;
+    var fEstado    = document.getElementById("mo_estado").value;
+    var fFecha     = document.getElementById("mo_fecha").value;
+    var fBusqueda  = document.getElementById("mo_busqueda").value.trim().toLowerCase();
+
+    // Las opciones "↳ ... — Entregas" del dropdown Tipo no son tipos reales
+    // de la planilla (la entrega actualiza el estado de la Preventa/
+    // Reparación existente, no crea una fila nueva): "Preventa:ENTREGA" se
+    // resuelve como tipo=Preventa + estado que contenga "Entregado";
+    // "Reparación:ENTREGA" como tipo=Reparación + estado que contenga
+    // "Retirado".
+    var fTipo = fTipoRaw, fSoloEntregas = null;
+    if (fTipoRaw.indexOf(":ENTREGA") !== -1) {
+      fTipo = fTipoRaw.split(":")[0];
+      fSoloEntregas = fTipo === "Preventa" ? "Entregado" : "Retirado";
+    }
 
     var filtradas = _misOperacionesData.filter(function(op){
       if (fOperador && op.operador !== fOperador) return false;
       if (fTipo && op.tipo !== fTipo) return false;
+      if (fSoloEntregas && String(op.estado || "").indexOf(fSoloEntregas) === -1) return false;
       if (fEstado && op.estado !== fEstado) return false;
       if (fFecha && op.fechaISO !== fFecha) return false;
-      if (_moFiltroRapido === "PRE_ENTREGA" && !(op.tipo === "Preventa" && String(op.estado || "").indexOf("Entregado") !== -1)) return false;
-      if (_moFiltroRapido === "REP_ENTREGA" && !(op.tipo === "Reparación" && String(op.estado || "").indexOf("Retirado") !== -1)) return false;
       if (fBusqueda) {
         var enNumero  = op.numero.toLowerCase().indexOf(fBusqueda) !== -1;
         var enCliente = String(op.cliente || "").toLowerCase().indexOf(fBusqueda) !== -1;
@@ -469,7 +466,7 @@
       llamarBackend("editarDatosContactoOperacion", { numero: numero, operador: operador, campos: datos }, function(msg){
         mostrarToast(msg, "exito");
         overlay.style.display = "none";
-        misOperacionesInit();
+        misOperacionesRecargar();
       });
     });
   }
@@ -547,7 +544,7 @@
         llamarBackend("aceptarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
           document.getElementById("ver-overlay").style.display = "none";
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
@@ -562,7 +559,7 @@
         llamarBackend("rechazarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
           document.getElementById("ver-overlay").style.display = "none";
-          misOperacionesInit();
+          misOperacionesRecargar();
         });
       });
     });
@@ -579,7 +576,7 @@
           if (!ok) return;
           llamarBackend("anularOperacionPropia", { numero: numero, motivo: motivo, operador: operador }, function(msg){
             mostrarToast(msg, "exito");
-            misOperacionesInit();
+            misOperacionesRecargar();
             cargarDashboard();
           });
         });

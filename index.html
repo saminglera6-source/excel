@@ -743,7 +743,7 @@
         var fnLimpiar = nombreLimpiar && window[nombreLimpiar];
         if (fnLimpiar) fnLimpiar();
         cargarDashboard();
-        if (document.getElementById("view-mis_operaciones").classList.contains("activa")) misOperacionesInit();
+        if (document.getElementById("view-mis_operaciones").classList.contains("activa")) misOperacionesRecargar();
       });
     });
   }
