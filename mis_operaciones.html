@@ -118,11 +118,15 @@
 <div id="mo_editar-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.5);display:none;align-items:center;justify-content:center;z-index:9999">
   <div style="background:#fff;border-radius:12px;padding:22px;max-width:420px;width:92%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 30px rgba(0,0,0,.25)">
     <h3 id="mo_editar_titulo" style="margin:0 0 4px;color:#1A5276"></h3>
-    <div class="hint" style="margin-bottom:12px">Para arreglar un dato de contacto mal cargado y que el próximo recibo salga bien — no crea una operación nueva ni pide motivo (a diferencia de "Corregir"). El cambio queda igual en Auditoría.</div>
+    <div class="hint" style="margin-bottom:12px">Arreglá acá cualquier dato de contacto o descriptivo mal cargado — se aplica al toque, sin pedir motivo ni crear una operación nueva. El cambio queda igual en Auditoría.</div>
     <div id="mo_editar_contenido" style="display:flex;flex-direction:column"></div>
-    <div style="display:flex;gap:8px;margin-top:10px">
+    <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn" style="margin:0;background:#1E8449" onclick="misOperacionesGuardarEdicionRapida()">💾 Guardar</button>
       <button class="btn" style="margin:0;background:#888" onclick="document.getElementById('mo_editar-overlay').style.display='none'">Cancelar</button>
+    </div>
+    <div style="border-top:1px solid #E1E5EA;margin-top:14px;padding-top:10px">
+      <div class="hint" style="margin-bottom:6px">¿Necesitás cambiar precio, cobros o el equipo/celular de la operación? Eso requiere la corrección completa (crea una operación nueva, pide motivo).</div>
+      <button class="btn" style="margin:0;background:#B7950B" onclick="misOperacionesIrACorreccionCompleta()">🔧 Corrección completa</button>
     </div>
   </div>
 </div>
@@ -316,11 +320,15 @@
 
       var puedeCorregir = !op.operacionCorregida; // si ya fue corregida, la acción corresponde a la operación nueva
       var tieneHistorial = op.operacionOrigen || op.operacionCorregida;
-      var puedeEditarRapido = !!CAMPOS_EDITABLES_UI[op.tipo];
+      // Un solo botón para todo lo que antes eran "Editar" y "Corregir" por
+      // separado: "✏️ Editar" abre el modal rápido (datos de contacto +
+      // descriptivos) y, desde ahí mismo, ofrece pasar a la corrección
+      // completa si lo que hace falta cambiar es precio/cobro/equipo.
+      var puedeEditar = puedeCorregir && !!CAMPOS_EDITABLES_UI[op.tipo];
       var acciones =
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto' onclick=\"misOperacionesVer('" + op.numero + "')\">Ver</button> " +
-        (puedeEditarRapido
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#8E44AD' onclick=\"misOperacionesEditarRapido('" + op.numero + "','" + op.tipo + "')\" title=\"Corregir un dato de contacto sin crear una operación nueva\">✏️ Editar</button> "
+        (puedeEditar
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#8E44AD' onclick=\"misOperacionesEditarRapido('" + op.numero + "','" + op.tipo + "')\" title=\"Editar datos de esta operación, o pasar a corrección completa si hace falta cambiar precio/cobros\">✏️ Editar</button> "
           : "") +
         (op.tipo === "Reparación"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
@@ -343,9 +351,6 @@
           : "") +
         _botonesEstadoReparacion(op) +
         _botonReparacionInternaCompra(op) +
-        (puedeCorregir
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#B7950B' onclick=\"misOperacionesCorregir('" + op.numero + "')\">Corregir</button> "
-          : "") +
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#922B21' onclick=\"misOperacionesAnular('" + op.numero + "')\">Anular</button> " +
         (tieneHistorial
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1A5276' onclick=\"misOperacionesHistorial('" + op.numero + "')\">Historial</button>"
@@ -365,45 +370,74 @@
     }).join("");
   }
 
-  // ---------- EDITAR RÁPIDO (datos de contacto, sin crear operación nueva) ----------
+  // ---------- EDITAR (un solo botón que reemplaza a "Editar" + "Corregir")
+  // ----------
+  // Cubre todo lo que se necesita para que un recibo/etiqueta/cesión salga
+  // bien: contacto (Cliente/CUIL/Teléfono/Domicilio/Email) Y descriptivos
+  // del equipo (Modelo/IMEI/Color/Falla/Observaciones) — nunca precios,
+  // cobros ni estados, así que nunca puede desincronizar Caja/Ganancia/
+  // Stock. Si hace falta cambiar algo fuera de esta lista, el modal ofrece
+  // pasar a la corrección completa (misOperacionesCorregir, sin cambios).
   var CAMPOS_EDITABLES_UI = {
     "Venta": [
-      { campo: "Cliente",          label: "Cliente"  },
-      { campo: "CUIL Cliente",     label: "CUIL",     cuil: true },
-      { campo: "Teléfono Cliente", label: "Teléfono"  },
-      { campo: "Domicilio Cliente",label: "Domicilio" },
-      { campo: "Email Cliente",    label: "Email"     }
+      { campo: "Cliente",           label: "Cliente"  },
+      { campo: "CUIL Cliente",      label: "CUIL",      cuil: true },
+      { campo: "Teléfono Cliente",  label: "Teléfono"  },
+      { campo: "Domicilio Cliente", label: "Domicilio" },
+      { campo: "Email Cliente",     label: "Email"     },
+      { campo: "Modelo",            label: "Modelo"    },
+      { campo: "IMEI",              label: "IMEI"      },
+      { campo: "Observaciones",     label: "Observaciones" }
     ],
     "Preventa": [
       { campo: "Cliente",           label: "Cliente"  },
-      { campo: "CUIL Cliente",      label: "CUIL",     cuil: true },
+      { campo: "CUIL Cliente",      label: "CUIL",      cuil: true },
       { campo: "Teléfono",          label: "Teléfono" },
       { campo: "Domicilio Cliente", label: "Domicilio" },
-      { campo: "Email Cliente",     label: "Email"     }
+      { campo: "Email Cliente",     label: "Email"     },
+      { campo: "Modelo Solicitado", label: "Modelo solicitado" },
+      { campo: "IMEI Solicitado",   label: "IMEI solicitado"   },
+      { campo: "Color Solicitado",  label: "Color solicitado"  },
+      { campo: "Observaciones",     label: "Observaciones" }
     ],
     "Compra": [
       { campo: "Proveedor / Origen",  label: "Proveedor" },
       { campo: "CUIL/CUIT Proveedor", label: "CUIL/CUIT", cuil: true },
       { campo: "Domicilio Proveedor", label: "Domicilio" },
       { campo: "Localidad Proveedor", label: "Localidad" },
-      { campo: "Email Proveedor",     label: "Email"     }
+      { campo: "Email Proveedor",     label: "Email"     },
+      { campo: "Equipo / Modelo",     label: "Equipo / Modelo" },
+      { campo: "IMEI",                label: "IMEI"      },
+      { campo: "Color",               label: "Color"     },
+      { campo: "Observaciones",       label: "Observaciones" }
     ],
     "Reparación": [
-      { campo: "Cliente",     label: "Cliente"  },
-      { campo: "Teléfono",    label: "Teléfono" },
-      { campo: "DNI Cliente", label: "DNI"      },
-      { campo: "Email Cliente", label: "Email"  },
-      { campo: "Color",       label: "Color"    },
-      { campo: "Batería",     label: "Batería (%)" }
+      { campo: "Cliente",       label: "Cliente"  },
+      { campo: "Teléfono",      label: "Teléfono" },
+      { campo: "DNI Cliente",   label: "DNI"      },
+      { campo: "Email Cliente", label: "Email"    },
+      { campo: "Color",         label: "Color"    },
+      { campo: "Batería",       label: "Batería (%)" },
+      { campo: "Equipo",        label: "Equipo"   },
+      { campo: "Falla 1",       label: "Falla 1"  },
+      { campo: "Falla 2",       label: "Falla 2"  },
+      { campo: "Observaciones", label: "Observaciones" }
+    ],
+    "Gasto": [
+      { campo: "Categoría",     label: "Categoría"    },
+      { campo: "Descripción",   label: "Descripción"  },
+      { campo: "Responsable",   label: "Responsable"  },
+      { campo: "Comprobante",   label: "Comprobante"  },
+      { campo: "Observaciones", label: "Observaciones" }
     ]
   };
 
   function misOperacionesEditarRapido(numero, tipo){
     var campos = CAMPOS_EDITABLES_UI[tipo];
-    if (!campos) { mostrarToast("La edición rápida no está disponible para este tipo de operación.", "error"); return; }
+    if (!campos) { mostrarToast("La edición no está disponible para este tipo de operación.", "error"); return; }
     google.script.run
       .withSuccessHandler(function(op){
-        document.getElementById("mo_editar_titulo").textContent = "✏️ Editar datos — " + numero;
+        document.getElementById("mo_editar_titulo").textContent = "✏️ Editar — " + numero;
         document.getElementById("mo_editar_contenido").innerHTML = campos.map(function(c){
           var valorActual = op.datos[c.campo] || "";
           var idInput = "mo_edit_" + c.campo.replace(/[^a-zA-Z0-9]/g, "_");
@@ -430,7 +464,7 @@
       var idInput = "mo_edit_" + c.campo.replace(/[^a-zA-Z0-9]/g, "_");
       datos[c.campo] = document.getElementById(idInput).value.trim();
     });
-    pedirOperador("¿Quién está corrigiendo estos datos de " + numero + "?").then(function(operador){
+    pedirOperador("¿Quién está editando estos datos de " + numero + "?").then(function(operador){
       if (!operador) return;
       llamarBackend("editarDatosContactoOperacion", { numero: numero, operador: operador, campos: datos }, function(msg){
         mostrarToast(msg, "exito");
@@ -438,6 +472,13 @@
         misOperacionesInit();
       });
     });
+  }
+
+  /** Desde el modal de Editar: si lo que hay que arreglar es precio, cobros o el equipo de una venta, esto no alcanza — pasa a la corrección completa (misOperacionesCorregir, sin cambios) sin que el operador tenga que buscar un botón aparte. */
+  function misOperacionesIrACorreccionCompleta(){
+    var numero = document.getElementById("mo_editar-overlay").dataset.numero;
+    document.getElementById("mo_editar-overlay").style.display = "none";
+    misOperacionesCorregir(numero);
   }
 
   // ---------- VER ----------

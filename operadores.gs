@@ -716,11 +716,19 @@ function actualizarEstadoReparacionWeb(d) {
 //  estados. Igual que el resto del sistema, cada cambio queda en Auditoría.
 // ------------------------------------------------------------
 
+// Ampliado (antes solo datos de contacto) para que "✏️ Editar" alcance a
+// cubrir el caso de uso real de Mis Operaciones: un dato descriptivo mal
+// tipeado (modelo, IMEI, color, falla, observaciones) también impide
+// reimprimir bien un recibo/etiqueta/cesión, no solo el contacto. Sigue
+// sin incluir NADA que participe de un cálculo (precios, cobros, costos,
+// ganancia, stock, estado) — eso sigue exigiendo la corrección completa
+// (ver "🔧 Corrección completa" dentro del propio modal de Editar).
 const CAMPOS_EDITABLES_RAPIDO_POR_PREFIJO = {
-  VTA: ["Cliente", "CUIL Cliente", "Teléfono Cliente", "Domicilio Cliente", "Email Cliente"],
-  PRE: ["Cliente", "CUIL Cliente", "Teléfono", "Domicilio Cliente", "Email Cliente"],
-  CMP: ["Proveedor / Origen", "CUIL/CUIT Proveedor", "Domicilio Proveedor", "Localidad Proveedor", "Email Proveedor"],
-  REP: ["Cliente", "Teléfono", "DNI Cliente", "Email Cliente", "Color", "Batería"]
+  VTA: ["Cliente", "CUIL Cliente", "Teléfono Cliente", "Domicilio Cliente", "Email Cliente", "Modelo", "IMEI", "Observaciones"],
+  PRE: ["Cliente", "CUIL Cliente", "Teléfono", "Domicilio Cliente", "Email Cliente", "Modelo Solicitado", "IMEI Solicitado", "Color Solicitado", "Observaciones"],
+  CMP: ["Proveedor / Origen", "CUIL/CUIT Proveedor", "Domicilio Proveedor", "Localidad Proveedor", "Email Proveedor", "Equipo / Modelo", "IMEI", "Color", "Observaciones"],
+  REP: ["Cliente", "Teléfono", "DNI Cliente", "Email Cliente", "Color", "Batería", "Equipo", "Falla 1", "Falla 2", "Observaciones"],
+  GST: ["Categoría", "Descripción", "Responsable", "Comprobante", "Observaciones"]
 };
 
 /** d = { numero, operador, campos: { "Cliente": "...", ... } } — solo campos de la whitelist de arriba, cualquier otro se ignora en silencio. */
