@@ -141,15 +141,25 @@ function generarReciboVenta(numeroVenta) {
   const accSheet = ss.getSheetByName("Venta Accesorios");
   if (accSheet) {
     const fEA = 2;
-    let cAsoc = -1, cProd = -1, cCat = -1, cPU = -1;
+    let cAsoc = -1, cProd = -1, cCat = -1, cPU = -1, cObsAcc = -1;
     try { cAsoc = getCol(accSheet, "N° Venta Celular Asociada", fEA); } catch (e) { /* opcional */ }
     try { cProd = getCol(accSheet, "Producto",                  fEA); } catch (e) { /* opcional */ }
     try { cCat  = getCol(accSheet, "Categoría",                 fEA); } catch (e) { /* opcional */ }
     try { cPU   = getCol(accSheet, "Precio Unitario",           fEA); } catch (e) { /* opcional */ }
+    try { cObsAcc = getCol(accSheet, "Observaciones",           fEA); } catch (e) { /* opcional */ }
     const lastA = accSheet.getLastRow();
-    if (cAsoc > 0 && cProd > 0 && lastA > fEA) {
+    if (cProd > 0 && lastA > fEA) {
+      // Plan B si "N° Venta Celular Asociada" vino vacía (columna con el
+      // nombre corrido/mal escrito en la hoja real, visto en un caso real):
+      // registrarAccesorioAsociado_() (Code.gs) siempre escribe
+      // "Asociado a venta celular <N° Venta>" en Observaciones, así que
+      // ese texto sirve de respaldo para no perder el accesorio en el
+      // recibo aunque la columna de vínculo falle.
+      const patronObs = new RegExp("venta celular\\s+" + numero.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
       accSheet.getRange(fEA + 1, 1, lastA - fEA, accSheet.getLastColumn()).getValues().forEach(r => {
-        if (String(r[cAsoc - 1] || "").trim() !== numero) return;
+        const asocOk = cAsoc > 0 && String(r[cAsoc - 1] || "").trim() === numero;
+        const obsOk  = cObsAcc > 0 && patronObs.test(String(r[cObsAcc - 1] || ""));
+        if (!asocOk && !obsOk) return;
         const categoria = cCat > 0 ? String(r[cCat - 1] || "") : "";
         datos.accesorios.push({
           producto:  String(r[cProd - 1] || ""),
@@ -1730,15 +1740,24 @@ function generarReciboEntregaPreventa(numeroPreventa) {
     const accSheet = ss.getSheetByName("Venta Accesorios");
     if (accSheet) {
       const fEA = 2;
-      let cNVC = -1, cCAT = -1, cPRD = -1, cTCa = -1;
+      let cNVC = -1, cCAT = -1, cPRD = -1, cTCa = -1, cObsAcc = -1;
       try { cNVC = getCol(accSheet, "N° Venta Celular Asociada", fEA); } catch (e) { /* opcional */ }
       try { cCAT = getCol(accSheet, "Categoría",                 fEA); } catch (e) { /* opcional */ }
       try { cPRD = getCol(accSheet, "Producto",                  fEA); } catch (e) { /* opcional */ }
       try { cTCa = getCol(accSheet, "Total Cobrado",              fEA); } catch (e) { /* opcional */ }
+      try { cObsAcc = getCol(accSheet, "Observaciones",          fEA); } catch (e) { /* opcional */ }
       const lastA = accSheet.getLastRow();
-      if (cNVC > 0 && cPRD > 0 && lastA > fEA) {
+      if (cPRD > 0 && lastA > fEA) {
+        // Mismo plan B que generarReciboVenta(): si "N° Venta Celular
+        // Asociada" vino vacía, buscar el texto "venta celular <N° Venta>"
+        // que registrarAccesorioAsociado_() siempre escribe en Observaciones.
+        const patronObsEP = new RegExp("venta celular\\s+" + nVta.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "i");
         accSheet.getRange(fEA + 1, 1, lastA - fEA, accSheet.getLastColumn()).getValues()
-          .filter(r => String(r[cNVC - 1]).trim() === nVta)
+          .filter(r => {
+            const asocOk = cNVC > 0 && String(r[cNVC - 1] || "").trim() === nVta;
+            const obsOk  = cObsAcc > 0 && patronObsEP.test(String(r[cObsAcc - 1] || ""));
+            return asocOk || obsOk;
+          })
           .forEach(r => {
             const producto = String(r[cPRD - 1] || "");
             if (!producto) return;
