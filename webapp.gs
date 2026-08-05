@@ -89,8 +89,9 @@ function obtenerPreventasEntregables() {
   const cSP = getCol(preSheet, "Saldo Pendiente",       fE);
   const cES = getCol(preSheet, "Estado",                fE);
   const cNC = getCol(preSheet, "N° Compra Asociada",    fE);
-  let cEstReg = -1;
+  let cEstReg = -1, cTL = -1;
   try { cEstReg = getCol(preSheet, "ESTADO_REGISTRO", fE); } catch (e) { /* columna opcional */ }
+  try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
 
   const lastRow = preSheet.getLastRow();
   const opciones = [];
@@ -109,7 +110,8 @@ function obtenerPreventasEntregables() {
       cobrado: Number(row[cTC-1]) || 0,
       saldo:   Number(row[cSP-1]) || 0,
       nComp:   String(row[cNC-1] || ""),
-      estado:  estado
+      estado:  estado,
+      tel:     cTL > 0 ? String(row[cTL-1] || "") : ""
     });
   });
   return opciones;

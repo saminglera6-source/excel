@@ -168,6 +168,7 @@
       <span id="r_etiquetaNumero" style="font-size:12.5px"></span><br>
       <button class="btn" style="margin:8px 8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
       <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px;background:#117864" onclick="imprimirReciboReparacion(_ultimaReparacionNumero)">🖨 Imprimir ticket de ingreso</button>
+      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px;background:#1E8449" onclick="firmarYEnviarPorWhatsapp('REPARACION', _ultimaReparacionNumero, _ultimaReparacionTel)">📲 WhatsApp</button>
     </div>
   </div>
 </div>
@@ -175,6 +176,7 @@
 <script>
   document.getElementById("r_fecha").value = new Date().toISOString().split("T")[0];
   var _ultimaReparacionNumero = null;
+  var _ultimaReparacionTel = null;
 
   // Reutilizable desde Reparaciones, Mis Operaciones y el modal Ver Reparación.
   // Pide al backend el HTML ya armado (etiqueta imprimible ~10x5cm, etiquetas.gs)
@@ -476,6 +478,7 @@
       var m = String(msg || "").match(/\bREP-\S+/);
       if (m) {
         _ultimaReparacionNumero = m[0].replace(/[.,;:]+$/, "");
+        _ultimaReparacionTel = d.tel;
         document.getElementById("r_etiquetaNumero").textContent = "Reparación registrada: " + _ultimaReparacionNumero;
         document.getElementById("r_etiquetaBox").style.display = "block";
       }

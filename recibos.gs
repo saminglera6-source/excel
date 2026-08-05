@@ -1940,3 +1940,68 @@ function _armarHtmlReciboEntregaPreventa_(d) {
 </body>
 </html>`;
 }
+
+// ============================================================
+//  FIRMA DIGITAL DEL CLIENTE + ENVÍO POR WHATSAPP
+//  Muchos recibos ya no se imprimen en papel: el cliente firma en la
+//  pantalla del empleado (canvas, ver firma_cliente.html) y el recibo se
+//  manda como PDF por WhatsApp. Esto NO reemplaza la impresión (sigue
+//  intacta) — es un camino nuevo, en paralelo, que reutiliza el mismo HTML
+//  que ya generaba cada recibo (ninguna de las funciones generarReciboXxx()
+//  de arriba fue modificada).
+// ============================================================
+
+/**
+ * Inserta la firma del cliente (PNG en base64) en el recibo ya armado.
+ * Busca el bloque .firma-col del lado del cliente/vendedor-particular (el
+ * que NO tiene <img> de la firma del negocio — esa es siempre la primera
+ * coincidencia de este patrón en cualquiera de las 7 plantillas de este
+ * archivo, ver comentario de generarReciboPdfConFirma) e inyecta la imagen
+ * ahí, con el mismo estilo .firma-img que ya usa la firma del negocio.
+ */
+function _insertarFirmaClienteEnHtml_(html, firmaClienteBase64) {
+  if (!firmaClienteBase64) return html;
+  const patron = /<div class="firma-col">(\s*)<div class="firma-linea">/;
+  const imgTag = `<img class="firma-img" src="data:image/png;base64,${firmaClienteBase64}" alt="Firma cliente">`;
+  return html.replace(patron, (m, espacio) => `<div class="firma-col">${espacio}${imgTag}<div class="firma-linea">`);
+}
+
+/** Convierte el HTML de un recibo a PDF y lo devuelve en base64 — sin pasar por Drive, listo para que el navegador lo baje directo al dispositivo del empleado. La conversión de Apps Script no es pixel-perfect vs. un navegador real, pero para estas plantillas (tablas, bordes, texto) funciona bien. */
+function _htmlAPdfBase64_(html, nombreArchivo) {
+  const blob = Utilities.newBlob(html, "text/html", (nombreArchivo || "recibo") + ".html");
+  const pdfBlob = blob.getAs("application/pdf").setName((nombreArchivo || "recibo") + ".pdf");
+  return Utilities.base64Encode(pdfBlob.getBytes());
+}
+
+/**
+ * generarReciboPdfConFirma(d)
+ * d = { tipo, numero, firmaClienteBase64 }
+ * tipo ∈ "VENTA" | "PREVENTA" | "CESION" | "REPARACION" | "ENTREGA_REPARACION" | "ENTREGA_PREVENTA"
+ *
+ * Punto de entrada único para el botón "📲 Firmar y enviar por WhatsApp":
+ * arma el mismo HTML que ya arma cada generarReciboXxx() existente (sin
+ * tocar ninguna), le mete la firma del cliente si vino, lo convierte a PDF
+ * y devuelve { pdfBase64, nombreArchivo } para que el frontend lo baje y
+ * abra WhatsApp.
+ */
+function generarReciboPdfConFirma(d) {
+  const tipo = String((d && d.tipo) || "").trim().toUpperCase();
+  const numero = String((d && d.numero) || "").trim();
+  const firma = (d && d.firmaClienteBase64) || "";
+  if (!numero) throw new Error("❌ Falta el número de operación.");
+
+  let html;
+  switch (tipo) {
+    case "VENTA":               html = generarReciboVenta(numero); break;
+    case "PREVENTA":            html = generarReciboPreventa(numero); break;
+    case "CESION":               html = generarReciboCesion(numero); break;
+    case "REPARACION":           html = generarReciboReparacion(numero); break;
+    case "ENTREGA_REPARACION":  html = generarReciboEntregaReparacion(numero); break;
+    case "ENTREGA_PREVENTA":    html = generarReciboEntregaPreventa(numero); break;
+    default: throw new Error(`❌ Tipo de recibo "${tipo}" no reconocido.`);
+  }
+
+  html = _insertarFirmaClienteEnHtml_(html, firma);
+  const nombreArchivo = `Recibo_${tipo}_${numero}`.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return { pdfBase64: _htmlAPdfBase64_(html, nombreArchivo), nombreArchivo: nombreArchivo + ".pdf" };
+}

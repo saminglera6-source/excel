@@ -461,10 +461,12 @@
           var m = String(msg || "").match(/\bCMP-\S+/);
           if (m) {
             var numero = m[0].replace(/[.,;:]+$/, "");
-            mostrarToast("📄 ¿Imprimir la cesión de titularidad?", "info", {
+            mostrarToast("📄 ¿Imprimir o enviar la cesión de titularidad?", "info", {
               persistente: true,
-              accionTexto: "🖨 Cesión",
-              accionFn: function(){ imprimirReciboCesion(numero); }
+              botones: [
+                { texto: "🖨 Cesión", fn: function(){ imprimirReciboCesion(numero); } },
+                { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("CESION", numero, ""); } }
+              ]
             });
           }
         }

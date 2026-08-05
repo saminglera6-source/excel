@@ -221,13 +221,18 @@
       obs: document.getElementById("er_obs").value.trim()
     };
 
+    var rEntregada = _erData.listas.find(function(x){ return x.numero === numero; });
+    var telCliente = rEntregada ? rEntregada.tel : "";
+
     confirmarAccion("¿Confirmás la entrega de " + numero + "?").then(function(ok){
       if (!ok) return;
       llamarBackend("entregarReparacion", d, function(msg){
         mostrarToast(msg, "exito", {
           persistente: true,
-          accionTexto: "🖨 Recibo de Entrega",
-          accionFn: function(){ imprimirReciboEntregaReparacion(numero); }
+          botones: [
+            { texto: "🖨 Recibo de Entrega", fn: function(){ imprimirReciboEntregaReparacion(numero); } },
+            { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("ENTREGA_REPARACION", numero, telCliente); } }
+          ]
         });
         cargarDashboard();
         entregaRepLimpiarForm();

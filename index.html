@@ -390,6 +390,7 @@
       <?!= include('stock_general'); ?>
       <?!= include('mis_operaciones'); ?>
       <?!= include('comisiones'); ?>
+      <?!= include('firma_cliente'); ?>
     </div>
   </div>
 
@@ -633,15 +634,18 @@
   // imprimirReciboPreventa/preventas.html) — mismo patrón de abrir+pedir el
   // HTML en el mismo click, sin el hueco de tiempo que hacía fallar el
   // auto-abrir apenas se confirmaba la operación.
-  function mostrarToastOperacion(mensaje){
+  /** telefonoCliente es opcional — si se pasa, además de "🖨 Recibo" aparece "📲 WhatsApp" (firma en pantalla + PDF + WhatsApp, ver firmarYEnviarPorWhatsapp). */
+  function mostrarToastOperacion(mensaje, telefonoCliente){
     var m = String(mensaje || "").match(/\b(CMP|VTA|PRE|REP|GST|ACC|CAC|CAM|AJC)-\S+/);
     if (!m) { mostrarToast(mensaje, "exito"); return; }
     var numero = m[0].replace(/[.,;:]+$/, "");
     var botones = [{ texto: "Ver operación", fn: function(){ misOperacionesVer(numero); } }];
     if (numero.indexOf("VTA-") === 0) {
       botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboVenta(numero); } });
+      botones.push({ texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("VENTA", numero, telefonoCliente); } });
     } else if (numero.indexOf("PRE-") === 0) {
       botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboPreventa(numero); } });
+      botones.push({ texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("PREVENTA", numero, telefonoCliente); } });
     }
     mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
       persistente: true,
@@ -773,6 +777,59 @@
       });
     if (args === undefined) runner[nombreFuncion]();
     else runner[nombreFuncion](args);
+  }
+
+  // ---------- Firmar en pantalla y enviar por WhatsApp ----------
+  // Camino alternativo a imprimir: el cliente firma en la pantalla del
+  // empleado (capturarFirmaCliente(), firma_cliente.html), el backend arma
+  // el mismo recibo de siempre con esa firma insertada y lo devuelve como
+  // PDF; acá se baja al dispositivo y se abre WhatsApp para que solo falte
+  // adjuntar ese PDF recién bajado y tocar Enviar (WhatsApp no tiene forma
+  // gratuita de adjuntar un archivo automáticamente desde un link).
+  //
+  // tipo ∈ "VENTA" | "PREVENTA" | "CESION" | "REPARACION" |
+  //        "ENTREGA_REPARACION" | "ENTREGA_PREVENTA" (ver generarReciboPdfConFirma en recibos.gs)
+  function firmarYEnviarPorWhatsapp(tipo, numero, telefonoCliente){
+    capturarFirmaCliente("Firma del cliente — " + numero).then(function(firmaBase64){
+      if (!firmaBase64) return; // canceló o no firmó
+      llamarBackend("generarReciboPdfConFirma", { tipo: tipo, numero: numero, firmaClienteBase64: firmaBase64 }, function(res){
+        _descargarPdfBase64(res.pdfBase64, res.nombreArchivo);
+        var linkWa = _linkWhatsapp(telefonoCliente);
+        mostrarToast("📄 PDF firmado descargado. Abrí WhatsApp, adjuntá el archivo que se acaba de bajar y enviá.", "exito", {
+          persistente: true,
+          accionTexto: "💬 Abrir WhatsApp",
+          accionFn: function(){ window.open(linkWa, "_blank"); }
+        });
+      });
+    });
+  }
+
+  /** Convierte un PDF en base64 (como lo devuelve el backend) en una descarga real del navegador, sin pasar por Drive ni por ningún servidor intermedio. */
+  function _descargarPdfBase64(base64, nombreArchivo){
+    var byteChars = atob(base64);
+    var bytes = new Uint8Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = nombreArchivo || "recibo.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+  }
+
+  /** Heurística simple para armar el link de WhatsApp a partir de un teléfono cargado a mano (sin formato fijo) — antepone 54 9 si hace falta (celulares argentinos). Si el teléfono no está cargado, abre WhatsApp sin destinatario y el empleado busca el contacto. */
+  function _linkWhatsapp(telefono){
+    var digitos = String(telefono || "").replace(/[^\d]/g, "");
+    if (!digitos) return "https://wa.me/";
+    if (digitos.indexOf("54") === 0) {
+      if (digitos.indexOf("549") !== 0) digitos = "549" + digitos.slice(2);
+    } else {
+      digitos = "549" + digitos.replace(/^0/, "").replace(/^15/, "");
+    }
+    return "https://wa.me/" + digitos;
   }
 
   // ---------- Limpieza de formularios tras registrar con éxito ----------

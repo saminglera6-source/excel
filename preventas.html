@@ -275,7 +275,7 @@
     confirmarAccion("¿Confirmás registrar la preventa de " + d.modelo + " para " + d.cliente + "?").then(function(ok){
       if (!ok) return;
       llamarBackend("procesarPreventaConOperador", d, function(msg){
-        mostrarToastOperacion(msg);
+        mostrarToastOperacion(msg, d.tel);
         cargarDashboard();
         preventasLimpiarForm();
       });

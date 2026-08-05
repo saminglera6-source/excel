@@ -314,22 +314,28 @@
           : "") +
         (op.tipo === "Reparación"
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
-            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> "
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('REPARACION','" + op.numero + "','')\">📲</button> "
           : "") +
         (op.tipo === "Reparación" && String(op.estado || "").indexOf("Retirado") !== -1
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaReparacion('" + op.numero + "')\">🖨 Entrega</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaReparacion('" + op.numero + "')\">🖨 Entrega</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('ENTREGA_REPARACION','" + op.numero + "','')\">📲</button> "
           : "") +
         (op.tipo === "Venta"
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('VENTA','" + op.numero + "','')\">📲</button> "
           : "") +
         (op.tipo === "Preventa"
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboPreventa('" + op.numero + "')\">🖨 Recibo</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboPreventa('" + op.numero + "')\">🖨 Recibo</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('PREVENTA','" + op.numero + "','')\">📲</button> "
           : "") +
         (op.tipo === "Preventa" && String(op.estado || "").indexOf("Entregado") !== -1
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaPreventa('" + op.numero + "')\">🖨 Entrega</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaPreventa('" + op.numero + "')\">🖨 Entrega</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('ENTREGA_PREVENTA','" + op.numero + "','')\">📲</button> "
           : "") +
         (op.tipo === "Compra"
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboCesion('" + op.numero + "')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📄 Cesión</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboCesion('" + op.numero + "')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📄 Cesión</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('CESION','" + op.numero + "','')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📲</button> "
           : "") +
         _botonesEstadoReparacion(op) +
         _botonReparacionInternaCompra(op) +

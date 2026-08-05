@@ -242,12 +242,15 @@
 
     confirmarAccion(mensajeConfirm).then(function(ok){
       if (!ok) return;
+      var telCliente = p ? p.tel : "";
       llamarBackend("procesarEntregaPreventaConOperador", payload, function(msg){
         mostrarToastOperacion(msg);
-        mostrarToast("📄 ¿Imprimir el comprobante de entrega?", "info", {
+        mostrarToast("📄 ¿Imprimir o enviar el comprobante de entrega?", "info", {
           persistente: true,
-          accionTexto: "🖨 Entrega",
-          accionFn: function(){ imprimirReciboEntregaPreventa(nPre); }
+          botones: [
+            { texto: "🖨 Entrega", fn: function(){ imprimirReciboEntregaPreventa(nPre); } },
+            { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("ENTREGA_PREVENTA", nPre, telCliente); } }
+          ]
         });
         cargarDashboard();
         // Deja el formulario listo para la próxima entrega: limpia todo lo
