@@ -354,8 +354,7 @@
 
   // ---------- VER ----------
   function misOperacionesVer(numero){
-    google.script.run
-      .withSuccessHandler(function(op){
+    llamarBackend("obtenerOperacionCompletaWeb", numero, function(op){
         document.getElementById("ver-titulo").textContent = op.tipo + " — " + op.numero;
         var html = "<b>Operador:</b> " + (op.operador || "—") + "<br>" +
           "<b>Estado:</b> " + (op.estado || "—") + "<br>";
@@ -404,9 +403,7 @@
         }
         document.getElementById("ver-contenido").innerHTML = html;
         document.getElementById("ver-overlay").style.display = "flex";
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerOperacionCompletaWeb(numero);
+    });
   }
 
   // ---------- DIAGNÓSTICO: aceptar / rechazar (Partes 6-8) ----------
@@ -459,34 +456,33 @@
   }
 
   // ---------- CORREGIR ----------
+  // Usa llamarBackend() (en vez de google.script.run directo) para que se
+  // vea el spinner mientras el backend arma la operación completa (lee la
+  // fila, escanea Libro Diario/accesorios) — antes no había ningún
+  // indicador y el clic se sentía "colgado" hasta que aparecía el
+  // formulario, dando la sensación de que tardaba mucho en abrir.
   function misOperacionesCorregir(numero){
-    google.script.run
-      .withSuccessHandler(function(op){
-        iniciarCorreccion(op);
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerOperacionCompletaWeb(numero);
+    llamarBackend("obtenerOperacionParaCorregirWeb", numero, function(op){
+      iniciarCorreccion(op);
+    });
   }
 
   // ---------- HISTORIAL (PASO 2/3) ----------
   function misOperacionesHistorial(numero){
-    google.script.run
-      .withSuccessHandler(function(h){
-        document.getElementById("ver-titulo").textContent = "🕓 Historial de " + numero;
-        var html =
-          "<b>Operación original:</b> " + h.original + "<br>" +
-          "<b>Operación actual:</b> " + h.actual + "<br>" +
-          "<b>Cantidad de correcciones:</b> " + h.cantidadCorrecciones + "<br>";
-        if (h.ultimaCorreccion) {
-          html += "<b>Última corrección:</b> " + h.ultimaCorreccion.fecha + " — " + h.ultimaCorreccion.operador +
-            (h.ultimaCorreccion.motivo ? " (" + h.ultimaCorreccion.motivo + ")" : "") + "<br>";
-        }
-        html += "<hr><b>Cadena completa:</b><br>" + h.cadena.join(" &rarr; ");
-        document.getElementById("ver-contenido").innerHTML = html;
-        document.getElementById("ver-overlay").style.display = "flex";
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerHistorialCorreccion(numero);
+    llamarBackend("obtenerHistorialCorreccion", numero, function(h){
+      document.getElementById("ver-titulo").textContent = "🕓 Historial de " + numero;
+      var html =
+        "<b>Operación original:</b> " + h.original + "<br>" +
+        "<b>Operación actual:</b> " + h.actual + "<br>" +
+        "<b>Cantidad de correcciones:</b> " + h.cantidadCorrecciones + "<br>";
+      if (h.ultimaCorreccion) {
+        html += "<b>Última corrección:</b> " + h.ultimaCorreccion.fecha + " — " + h.ultimaCorreccion.operador +
+          (h.ultimaCorreccion.motivo ? " (" + h.ultimaCorreccion.motivo + ")" : "") + "<br>";
+      }
+      html += "<hr><b>Cadena completa:</b><br>" + h.cadena.join(" &rarr; ");
+      document.getElementById("ver-contenido").innerHTML = html;
+      document.getElementById("ver-overlay").style.display = "flex";
+    });
   }
 
   // ---------- PESTAÑAS: Mis Operaciones / Operaciones Anuladas (PASO 1) ----------

@@ -916,3 +916,8 @@ function calcularCuotas(monto) {
 function obtenerOperacionCompletaWeb(numero) {
   return obtenerOperacionCompleta_(numero);
 }
+
+/** Misma función, pero sin traer movimientos de Libro Diario ni líneas de Compras Accesorios (incluirExtras=false) — usada por el botón "✏️ Editar" de Mis Operaciones, que no necesita ese detalle y así evita escanear Libro Diario completo solo para abrir el formulario de corrección. */
+function obtenerOperacionParaCorregirWeb(numero) {
+  return obtenerOperacionCompleta_(numero, false);
+}

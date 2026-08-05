@@ -811,7 +811,17 @@ function corregirGasto(d) {
 }
 
 /** PASO 2/3: toda la información de una operación para el modal "Ver" y para precargar el formulario de "Corregir". */
-function obtenerOperacionCompleta_(numero) {
+/**
+ * @param {boolean} incluirExtras Por default (true) trae también los
+ * movimientos de Libro Diario y las líneas de Compras Accesorios — lo que
+ * necesita el modal "Ver" y "Historial". El flujo de Editar/Corregir NO usa
+ * ninguna de esas dos cosas (solo lee `datos` y, si es una Venta,
+ * `accesorios`) así que misOperacionesCorregir() pide incluirExtras=false
+ * para no pagar el escaneo completo de Libro Diario (que puede ser una
+ * hoja grande) en el camino que el usuario siente más lento al abrir.
+ */
+function obtenerOperacionCompleta_(numero, incluirExtras) {
+  if (incluirExtras === undefined) incluirExtras = true;
   const prefijo = String(numero || "").trim().split("-")[0].toUpperCase();
   const mapa = obtenerMapaTiposAnulacion_();
   const info = mapa[prefijo];
@@ -827,31 +837,33 @@ function obtenerOperacionCompleta_(numero) {
 
   // Movimientos asociados en Libro Diario
   const movimientos = [];
-  const libro = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Libro Diario");
-  if (libro) {
-    const fE = 2;
-    let colOp = -1, colRef = -1;
-    try { colOp  = getCol(libro, "ID_OPERACION", fE); } catch (e) { /* opcional */ }
-    try { colRef = getCol(libro, "REFERENCIA",   fE); } catch (e) { /* opcional */ }
-    const lastRow = libro.getLastRow();
-    if (lastRow > fE && (colOp > 0 || colRef > 0)) {
-      const hdrsLibro = libro.getRange(fE, 1, 1, libro.getLastColumn()).getValues()[0];
-      const idxL = (n) => hdrsLibro.findIndex(h => String(h).trim() === n);
-      const cFec = idxL("FECHA"), cDesc = idxL("DESCRIPCION"), cMonto = idxL("MONTO"), cMedio = idxL("MEDIO_PAGO");
-      const datosLibro = libro.getRange(fE + 1, 1, lastRow - fE, libro.getLastColumn()).getValues();
-      const numTrim = String(numero).trim();
-      datosLibro.forEach(row => {
-        const op  = colOp  > 0 ? String(row[colOp  - 1] || "").trim() : "";
-        const ref = colRef > 0 ? String(row[colRef - 1] || "").trim() : "";
-        if (op === numTrim || ref === numTrim) {
-          movimientos.push({
-            fecha:       (row[cFec] instanceof Date) ? Utilities.formatDate(row[cFec], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(row[cFec] || ""),
-            descripcion: cDesc  >= 0 ? String(row[cDesc]  || "") : "",
-            monto:       cMonto >= 0 ? (Number(row[cMonto]) || 0) : 0,
-            medio:       cMedio >= 0 ? String(row[cMedio]  || "") : ""
-          });
-        }
-      });
+  if (incluirExtras) {
+    const libro = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Libro Diario");
+    if (libro) {
+      const fE = 2;
+      let colOp = -1, colRef = -1;
+      try { colOp  = getCol(libro, "ID_OPERACION", fE); } catch (e) { /* opcional */ }
+      try { colRef = getCol(libro, "REFERENCIA",   fE); } catch (e) { /* opcional */ }
+      const lastRow = libro.getLastRow();
+      if (lastRow > fE && (colOp > 0 || colRef > 0)) {
+        const hdrsLibro = libro.getRange(fE, 1, 1, libro.getLastColumn()).getValues()[0];
+        const idxL = (n) => hdrsLibro.findIndex(h => String(h).trim() === n);
+        const cFec = idxL("FECHA"), cDesc = idxL("DESCRIPCION"), cMonto = idxL("MONTO"), cMedio = idxL("MEDIO_PAGO");
+        const datosLibro = libro.getRange(fE + 1, 1, lastRow - fE, libro.getLastColumn()).getValues();
+        const numTrim = String(numero).trim();
+        datosLibro.forEach(row => {
+          const op  = colOp  > 0 ? String(row[colOp  - 1] || "").trim() : "";
+          const ref = colRef > 0 ? String(row[colRef - 1] || "").trim() : "";
+          if (op === numTrim || ref === numTrim) {
+            movimientos.push({
+              fecha:       (row[cFec] instanceof Date) ? Utilities.formatDate(row[cFec], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(row[cFec] || ""),
+              descripcion: cDesc  >= 0 ? String(row[cDesc]  || "") : "",
+              monto:       cMonto >= 0 ? (Number(row[cMonto]) || 0) : 0,
+              medio:       cMedio >= 0 ? String(row[cMedio]  || "") : ""
+            });
+          }
+        });
+      }
     }
   }
 
@@ -896,10 +908,12 @@ function obtenerOperacionCompleta_(numero) {
 
   // Líneas completas (solo CAC): "N° Compra Accesorio" se repite en varias
   // filas de "Compras Accesorios" (1 compra = N líneas) — _obtenerFilaCompleta_
-  // de arriba solo trae la primera. Sin esto, "Ver"/"Corregir" perdería
-  // silenciosamente todas las líneas menos la primera.
+  // de arriba solo trae la primera. Sin esto, "Ver" perdería silenciosamente
+  // todas las líneas menos la primera. CAC no es un tipo corregible (no está
+  // en VISTA_POR_TIPO_CORRECCION), así que esto nunca hace falta en el
+  // camino de Editar/Corregir.
   let lineasCompraAccesorio = [];
-  if (prefijo === "CAC") {
+  if (incluirExtras && prefijo === "CAC") {
     const compAccSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Compras Accesorios");
     if (compAccSheet) {
       const fEC = 2;
