@@ -38,36 +38,50 @@
   function _firmaClienteInitCanvas(){
     var canvas = document.getElementById("firmaCliente-canvas");
     var ancho = canvas.parentElement.clientWidth;
-    var alto = Math.round(ancho * 0.45);
+    // Pad grande: más superficie para dibujar la firma cómodo con el dedo.
+    var alto = Math.max(260, Math.round(ancho * 0.75));
     var ratio = window.devicePixelRatio || 1;
     canvas.width = ancho * ratio;
     canvas.height = alto * ratio;
     canvas.style.height = alto + "px";
     _firmaClienteCtx = canvas.getContext("2d");
     _firmaClienteCtx.scale(ratio, ratio);
-    _firmaClienteCtx.lineWidth = 2.2;
+    _firmaClienteCtx.lineWidth = 2.6;
     _firmaClienteCtx.lineCap = "round";
     _firmaClienteCtx.lineJoin = "round";
     _firmaClienteCtx.strokeStyle = "#1a1a1a";
     _firmaClienteTieneTrazo = false;
 
+    var ultimoPunto = null;
+
     // Pointer Events cubre mouse + touch + lápiz con el mismo código, sin
-    // tener que manejar mousedown/touchstart por separado.
+    // tener que manejar mousedown/touchstart por separado. setPointerCapture +
+    // preventDefault en down/move evitan que el primer toque en un trackpad
+    // se "coma" el navegador (gesto de scroll/zoom) en vez de arrancar el
+    // trazo, que es lo que obligaba a tocar dos veces para poder escribir.
     canvas.onpointerdown = function(e){
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
       _firmaClienteDibujando = true;
-      var p = _firmaClientePos(canvas, e);
+      ultimoPunto = _firmaClientePos(canvas, e);
       _firmaClienteCtx.beginPath();
-      _firmaClienteCtx.moveTo(p.x, p.y);
+      _firmaClienteCtx.moveTo(ultimoPunto.x, ultimoPunto.y);
     };
     canvas.onpointermove = function(e){
       if (!_firmaClienteDibujando) return;
+      e.preventDefault();
       var p = _firmaClientePos(canvas, e);
-      _firmaClienteCtx.lineTo(p.x, p.y);
+      // Punto medio entre el anterior y el actual: suaviza el trazo para que
+      // los micro-movimientos del trackpad no generen líneas quebradas
+      // (menos "sensibilidad" percibida, trazo más parecido a una lapicera).
+      var medio = { x: (ultimoPunto.x + p.x) / 2, y: (ultimoPunto.y + p.y) / 2 };
+      _firmaClienteCtx.quadraticCurveTo(ultimoPunto.x, ultimoPunto.y, medio.x, medio.y);
       _firmaClienteCtx.stroke();
+      ultimoPunto = p;
       _firmaClienteTieneTrazo = true;
     };
-    canvas.onpointerup = function(){ _firmaClienteDibujando = false; };
-    canvas.onpointerleave = function(){ _firmaClienteDibujando = false; };
+    canvas.onpointerup = function(){ _firmaClienteDibujando = false; ultimoPunto = null; };
+    canvas.onpointerleave = function(){ _firmaClienteDibujando = false; ultimoPunto = null; };
   }
 
   function _firmaClientePos(canvas, e){
