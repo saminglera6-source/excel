@@ -61,17 +61,17 @@
         <span class="plegable-flecha" id="v_accFlecha">▾</span>
       </div>
       <div id="v_accesoriosBody" style="display:none;margin-top:10px">
-        <div class="hint">Completá solo los que apliquen. Se registran por separado, prorrateando el pago según su participación en el total.</div>
+        <div class="hint">Elegí el producto real del stock — así se descuenta solo, igual que una venta de accesorios sueltos. "Otro (no descuenta stock)" queda para algo que no está cargado en el catálogo.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="v_acc1" placeholder="Ej: Cargador 20W"/></div>
+          <div><label style="font-size:11px">Accesorio 1</label><select id="v_acc1" onchange="ventasAccInlineToggleOtro(1)"></select><input type="text" id="v_acc1_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc1p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="v_acc2" placeholder="Ej: Auriculares"/></div>
+          <div><label style="font-size:11px">Accesorio 2</label><select id="v_acc2" onchange="ventasAccInlineToggleOtro(2)"></select><input type="text" id="v_acc2_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc2p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="v_acc3" placeholder="Ej: Vidrio templado"/></div>
+          <div><label style="font-size:11px">Accesorio 3</label><select id="v_acc3" onchange="ventasAccInlineToggleOtro(3)"></select><input type="text" id="v_acc3_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc3p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
       </div>
@@ -314,12 +314,11 @@
     document.getElementById("v_obs").value          = datos["Observaciones"] || "";
 
     var accs = datos._accesoriosAsociados || [];
-    document.getElementById("v_acc1").value  = accs[0] ? accs[0].producto : "";
-    setInputMoneda(document.getElementById("v_acc1p"), accs[0] ? accs[0].precio   : 0);
-    document.getElementById("v_acc2").value  = accs[1] ? accs[1].producto : "";
-    setInputMoneda(document.getElementById("v_acc2p"), accs[1] ? accs[1].precio   : 0);
-    document.getElementById("v_acc3").value  = accs[2] ? accs[2].producto : "";
-    setInputMoneda(document.getElementById("v_acc3p"), accs[2] ? accs[2].precio   : 0);
+    [1,2,3].forEach(function(n){
+      var acc = accs[n - 1];
+      if (acc) ventasAccInlineSetOtro(n, acc.producto);
+      setInputMoneda(document.getElementById("v_acc" + n + "p"), acc ? acc.precio : 0);
+    });
     if (accs.length > 0 && !_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
 
     ventasCalcTotalOperacion();
@@ -381,11 +380,11 @@
       email: document.getElementById("v_email").value.trim(),
       efec: ef, transf: tr, cuotas: cu, usd: us,
       obs: document.getElementById("v_obs").value.trim(),
-      accesorios: [
-        { nombre: document.getElementById("v_acc1").value.trim(), precio: valorNumerico(document.getElementById("v_acc1p")) },
-        { nombre: document.getElementById("v_acc2").value.trim(), precio: valorNumerico(document.getElementById("v_acc2p")) },
-        { nombre: document.getElementById("v_acc3").value.trim(), precio: valorNumerico(document.getElementById("v_acc3p")) }
-      ].filter(function(a){ return a.nombre !== ""; }),
+      accesorios: [1,2,3].map(function(n){
+        var acc = ventasAccInlineLeer(n);
+        if (!acc) return null;
+        return { nombre: acc.nombre, skuId: acc.skuId, precio: valorNumerico(document.getElementById("v_acc" + n + "p")) };
+      }).filter(function(a){ return a !== null; }),
       operador: document.getElementById("v_operador").value,
       entregarRegalos: document.getElementById("v_entregarRegalos").checked
     };
@@ -435,6 +434,7 @@
       fechasHoy: ["v_fecha"],
       despues: ventasInit
     });
+    [1,2,3].forEach(function(n){ document.getElementById("v_acc" + n + "_otro").style.display = "none"; });
     if (_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
   }
 
@@ -456,9 +456,56 @@
       .withSuccessHandler(function(stock){
         _vaStockCache = stock || [];
         document.querySelectorAll("[id^='va_sku-']").forEach(ventasAccPoblarSelect);
+        [1,2,3].forEach(ventasAccPoblarInlineSelect);
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerStockAccesorios();
+  }
+
+  // ---- Accesorios incluidos en la venta del equipo (paso 3, EQUIPO) ----
+  // Antes eran <input type="text"> libres: nunca quedaban vinculados a
+  // ningún producto real, así que la venta nunca descontaba stock. Ahora
+  // son selects contra el mismo stock real que usa la venta de accesorios
+  // sueltos (arriba) — "Otro" queda como escape para algo fuera de catálogo,
+  // a costa de no descontar stock (igual que antes).
+  function ventasAccPoblarInlineSelect(n){
+    var select = document.getElementById("v_acc" + n);
+    if (!select) return;
+    var actual = select.value;
+    select.innerHTML = "<option value=''>— Sin accesorio —</option>" +
+      _vaStockCache.map(function(s){
+        return "<option value='" + s.skuId + "'>" + s.producto + (s.marca ? " — " + s.marca : "") + (s.color ? " (" + s.color + ")" : "") + " [stock: " + s.stock + "]</option>";
+      }).join("") +
+      "<option value='OTRO'>Otro (no descuenta stock)…</option>";
+    if (actual) select.value = actual;
+  }
+
+  function ventasAccInlineToggleOtro(n){
+    var select = document.getElementById("v_acc" + n);
+    var otro = document.getElementById("v_acc" + n + "_otro");
+    otro.style.display = (select.value === "OTRO") ? "block" : "none";
+    if (select.value !== "OTRO") otro.value = "";
+  }
+
+  /** Devuelve {nombre, skuId} para el accesorio n, o null si no se eligió nada. */
+  function ventasAccInlineLeer(n){
+    var select = document.getElementById("v_acc" + n);
+    if (!select || !select.value) return null;
+    if (select.value === "OTRO") {
+      var texto = document.getElementById("v_acc" + n + "_otro").value.trim();
+      return texto ? { nombre: texto, skuId: null } : null;
+    }
+    var s = _vaStockCache.find(function(x){ return x.skuId === select.value; });
+    return s ? { nombre: s.producto, skuId: s.skuId } : null;
+  }
+
+  /** Precarga en modo "Otro" (corrección de una venta ya cargada — el nombre viejo no necesariamente matchea un SKU actual). */
+  function ventasAccInlineSetOtro(n, texto){
+    var select = document.getElementById("v_acc" + n);
+    if (!select) return;
+    select.value = "OTRO";
+    document.getElementById("v_acc" + n + "_otro").style.display = "block";
+    document.getElementById("v_acc" + n + "_otro").value = texto || "";
   }
 
   function ventasAccPoblarSelect(select){

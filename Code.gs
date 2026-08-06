@@ -1069,14 +1069,26 @@ function procesarVenta(d) {
   // Registrar accesorios en Venta Accesorios, con su porción prorrateada
   // del pago (Problema 2): NO se asume que se cobraron en efectivo.
   let resumenAccesorios = "";
+  let tocoStockAccesorios = false;
   if (accesorios.length > 0) {
     try {
       accesorios.forEach((acc, i) => {
         const dist = distribucion[i + 1]; // 0 es el celular
-        registrarAccesorioAsociado_({
+        // Si el accesorio viene vinculado a un producto real de "Stock
+        // Accesorios" (acc.skuId, elegido con el selector — antes esto era
+        // texto libre y no descontaba nada del stock), se usa su nombre y
+        // costo reales y se taguea el SKU en la fila para que
+        // actualizarStockAccesorios_() lo descuente igual que un accesorio
+        // vendido suelto o entregado de regalo.
+        const sku = acc.skuId ? _buscarSkuAccesorioPorId_(acc.skuId) : null;
+        const nAcc = registrarAccesorioAsociado_({
           fecha:       d.fecha,
           vendedor:    d.operador || "",
-          producto:    acc.nombre,
+          categoria:   sku ? sku.categoria : undefined,
+          producto:    sku ? sku.producto : acc.nombre,
+          marca:       sku ? sku.marca : "",
+          modeloAcc:   sku ? sku.color : "",
+          costoUnit:   sku ? sku.costoPromedio : 0,
           precio:      acc.precio || 0,
           cliente:     d.cliente,
           cuil:        d.cuil,
@@ -1089,8 +1101,13 @@ function procesarVenta(d) {
           cotizacion:  cotizacion,
           obs:         `Asociado a venta celular ${nVta}`
         });
+        if (sku && nAcc) {
+          _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);
+          tocoStockAccesorios = true;
+        }
       });
       resumenAccesorios = `\n📦 ${accesorios.length} accesorio/s registrado/s en Ventas Accesorios (pago prorrateado).`;
+      if (tocoStockAccesorios) actualizarStockAccesorios_();
     } catch(e) {
       resumenAccesorios = `\n⚠️ Accesorios no registrados: ${e.message}`;
     }
@@ -5714,6 +5731,34 @@ function _buscarSkuPorCategoriaYTexto_(categoria, texto) {
     if (String(row[cPRD] || "").toLowerCase().indexOf(textoNorm) === -1) continue;
     return {
       skuId: row[cSKU], producto: row[cPRD], marca: row[cMRC], color: row[cCOL],
+      stock: Number(row[cSTK]) || 0, costoPromedio: Number(row[cCP]) || 0
+    };
+  }
+  return null;
+}
+
+/** Busca en "Stock Accesorios" el producto con ese SKU_ID exacto. Solo lectura — usada para vincular al stock real los accesorios que se cargan junto con la venta de un celular (antes quedaban en texto libre, sin descontar stock). */
+function _buscarSkuAccesorioPorId_(skuId) {
+  const id = String(skuId || "").trim();
+  if (!id) return null;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Stock Accesorios");
+  if (!sheet) return null;
+  const fE = 2;
+  const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idx = (n) => hdrs.findIndex(h => String(h).trim() === n);
+  const cSKU = idx("SKU_ID"), cCAT = idx("Categoría"), cPRD = idx("Producto"),
+        cMRC = idx("Marca"), cCOL = idx("Color"), cSTK = idx("Stock"), cCP = idx("COSTO_PROMEDIO");
+  if (cSKU === -1) return null;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return null;
+
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  for (let i = 0; i < datos.length; i++) {
+    const row = datos[i];
+    if (String(row[cSKU] || "").trim() !== id) continue;
+    return {
+      skuId: row[cSKU], categoria: row[cCAT], producto: row[cPRD], marca: row[cMRC], color: row[cCOL],
       stock: Number(row[cSTK]) || 0, costoPromedio: Number(row[cCP]) || 0
     };
   }
