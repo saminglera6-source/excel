@@ -890,11 +890,12 @@ function generarReciboCesion(numeroCompra) {
   const cEst = getCol(sheet, "Estado Físico",          fE);
   const cPC  = getCol(sheet, "Precio Compra",          fE);
   const cFP  = getCol(sheet, "Forma de Pago Compra",   fE);
-  let cCuil = -1, cDom = -1, cLoc = -1, cEml = -1;
+  let cCuil = -1, cDom = -1, cLoc = -1, cEml = -1, cTel = -1;
   try { cCuil = getCol(sheet, "CUIL/CUIT Proveedor", fE); } catch (e) { /* opcional */ }
   try { cDom  = getCol(sheet, "Domicilio Proveedor", fE); } catch (e) { /* opcional */ }
   try { cLoc  = getCol(sheet, "Localidad Proveedor", fE); } catch (e) { /* opcional */ }
   try { cEml  = getCol(sheet, "Email Proveedor",     fE); } catch (e) { /* opcional */ }
+  try { cTel  = getCol(sheet, "Teléfono Proveedor",  fE); } catch (e) { /* opcional */ }
 
   const lastRow = sheet.getLastRow();
   if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrado en "Compras".`);
@@ -928,6 +929,7 @@ function generarReciboCesion(numeroCompra) {
     domicilio:   cDom > 0 ? String(fila[cDom - 1] || "") : "",
     localidad:   cLoc > 0 ? String(fila[cLoc - 1] || "") : "",
     email:       cEml > 0 ? String(fila[cEml - 1] || "") : "",
+    tel:         cTel > 0 ? String(fila[cTel - 1] || "") : "",
     precio:      Number(fila[cPC - 1]) || 0,
     formaPago:   String(fila[cFP - 1] || "")
   };
@@ -972,6 +974,7 @@ function _armarHtmlReciboCesion_(d) {
     ${campo("Apellido y Nombre", `<b>${esc(d.vendedor) || linea(260)}</b>`)}
     ${campo("DNI N°", `<b>${esc(d.dni) || linea(160)}</b>`)}
     ${campo("CUIL", `<b>${esc(d.cuil) || linea(160)}</b>`)}
+    ${campo("Teléfono", `<b>${esc(d.tel) || linea(160)}</b>`)}
     ${campo("Domicilio", `<b>${esc(d.domicilio) || linea(260)}</b>`)}
     ${campo("Localidad", `<b>${esc(d.localidad) || linea(200)}</b>`)}
     ${campo("Gmail", `<b>${esc(d.email) || linea(220)}</b>`)}
@@ -2061,5 +2064,21 @@ function generarReciboPdfConFirma(d) {
 
   html = _insertarFirmaClienteEnHtml_(html, firma);
   const nombreArchivo = `Recibo_${tipo}_${numero}`.replace(/[^a-zA-Z0-9_-]/g, "_");
-  return { pdfBase64: _htmlAPdfBase64_(html, nombreArchivo), nombreArchivo: nombreArchivo + ".pdf" };
+  return {
+    pdfBase64: _htmlAPdfBase64_(html, nombreArchivo),
+    nombreArchivo: nombreArchivo + ".pdf",
+    // Teléfono leído del propio HTML ya armado (campo "Teléfono"/"Tel" de
+    // cada plantilla) — así el WhatsApp manda siempre al mismo número que
+    // el cliente ve impreso en su recibo, sin depender de que cada
+    // pantalla lo haya pasado bien por separado (index.html usa esto con
+    // prioridad sobre el teléfono que le llegó del formulario).
+    telefono: _extraerTelefonoDeRecibo_(html)
+  };
+}
+
+/** Saca el teléfono impreso en un recibo ya armado (campo "Teléfono:" o "Tel:", según la plantilla) — solo dígitos, listo para _linkWhatsapp() (index.html). */
+function _extraerTelefonoDeRecibo_(html) {
+  const m = html.match(/<span class="etiqueta">(?:Teléfono|Tel):<\/span>\s*(.*?)<\/div>/s);
+  if (!m) return "";
+  return m[1].replace(/<[^>]+>/g, "").replace(/[^\d]/g, "");
 }

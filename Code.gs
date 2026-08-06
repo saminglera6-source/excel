@@ -4098,6 +4098,15 @@ function procesarPreventa(d) {
   asegurarColumnaGenerica_(sheet, fE, "IMEI Solicitado");
   asegurarColumnaGenerica_(sheet, fE, "Color Solicitado");
   asegurarColumnaGenerica_(sheet, fE, "Estado Requerido");
+  // Sin esto, si la hoja "Preventas" nunca tuvo estas dos columnas creadas
+  // a mano, cED/cEH quedaban en -1 para siempre (idx(...,true) las trata
+  // como opcionales y no rompe nada, pero tampoco las crea) — la fecha de
+  // entrega calculada en el formulario nunca se guardaba, y por eso el
+  // recibo de preventa (generarReciboPreventa, recibos.gs) mostraba
+  // "Fecha de entrega" vacía pese a que dias_habiles.gs ya calculaba bien
+  // el rango de 7 a 10 días hábiles en pantalla.
+  asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Desde");
+  asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Hasta");
   const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idx = (n, opcional) => {
     const i = hdrs.findIndex(h => String(h).trim() === n.trim());

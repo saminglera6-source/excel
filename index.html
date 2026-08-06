@@ -794,7 +794,13 @@
       if (!firmaBase64) return; // canceló o no firmó
       llamarBackend("generarReciboPdfConFirma", { tipo: tipo, numero: numero, firmaClienteBase64: firmaBase64 }, function(res){
         _descargarPdfBase64(res.pdfBase64, res.nombreArchivo);
-        var linkWa = _linkWhatsapp(telefonoCliente);
+        // Preferí el teléfono que el backend leyó del propio recibo recién
+        // armado (res.telefono) — así el WhatsApp manda siempre al número
+        // que el cliente ve impreso, sin depender de que cada pantalla lo
+        // haya pasado bien por separado. telefonoCliente (el que ya venía
+        // del formulario) queda solo de respaldo si por algo esa lectura
+        // no encontró nada.
+        var linkWa = _linkWhatsapp(res.telefono || telefonoCliente);
         mostrarToast("📄 PDF firmado descargado. Abrí WhatsApp, adjuntá el archivo que se acaba de bajar y enviá.", "exito", {
           persistente: true,
           accionTexto: "💬 Abrir WhatsApp",
