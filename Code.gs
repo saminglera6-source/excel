@@ -1097,11 +1097,15 @@ function procesarVenta(d) {
   }
 
   Logger.log("procesarVenta: " + (Date.now() - t0) + " ms");
+  const hayAccesorios = valorTotalOperacion > valorCelular;
   return `✅ Venta registrada.\nN° Venta: ${nVta}\nEquipo: ${modeloEquip}\n` +
-         `Precio celular: ${fmtPeso(d.precioVenta)}\nGanancia teórica: ${fmtPeso(gananciaTeorica)}\nGanancia cobrada: ${fmtPeso(gananciaCobrada)}` +
+         (hayAccesorios
+           ? `Total operación (celular + accesorios): ${fmtPeso(valorTotalOperacion)}\nPrecio celular: ${fmtPeso(d.precioVenta)}\n`
+           : `Precio: ${fmtPeso(d.precioVenta)}\n`) +
+         `Ganancia teórica: ${fmtPeso(gananciaTeorica)}\nGanancia cobrada: ${fmtPeso(gananciaCobrada)}` +
          (usdMontoReal > 0 ? `\nUSD (celular): ${usdMontoReal} → ${fmtPeso(usdEnPesos)} (cotización ${fmtPeso(cotizacion.venta)})` : ``) +
          `\nCobrado por el celular: ${fmtPeso(totalCobradoPesos)}` +
-         (valorTotalOperacion > valorCelular ? `\nTotal operación (celular + accesorios): ${fmtPeso(valorTotalOperacion)}` : ``) +
+         (hayAccesorios ? `\nCobrado total (celular + accesorios): ${fmtPeso(totalIngresadoPesos)}` : ``) +
          resumenAccesorios;
 }
 

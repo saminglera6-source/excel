@@ -138,15 +138,26 @@ function generarReciboVenta(numeroVenta) {
   // entregaron (entregarRegalosAutomaticos_(), Code.gs: mismos registros,
   // categoría "Regalo automático" y Precio Unitario 0). Se trae la
   // Categoría para poder distinguirlos en el recibo (comprado vs. regalo).
+  // El precio y el cobrado que trae "Ventas" son solo los del celular: la
+  // venta con accesorios se cobra en un único pago que después se prorratea
+  // entre el celular y cada accesorio (ver dist.* / registrarAccesorioAsociado_
+  // en Code.gs), así que hay que sumarle a datos.precioVenta/cobrado* la
+  // parte que le tocó a cada accesorio comprado (no a los regalos, que ya
+  // van con Precio Unitario y cobrado en 0) para que el recibo muestre el
+  // total real de la operación y no solo el del equipo.
   const accSheet = ss.getSheetByName("Venta Accesorios");
   if (accSheet) {
     const fEA = 2;
-    let cAsoc = -1, cProd = -1, cCat = -1, cPU = -1, cObsAcc = -1;
+    let cAsoc = -1, cProd = -1, cCat = -1, cPU = -1, cObsAcc = -1, cAEF = -1, cATR = -1, cACU = -1, cAUS = -1;
     try { cAsoc = getCol(accSheet, "N° Venta Celular Asociada", fEA); } catch (e) { /* opcional */ }
     try { cProd = getCol(accSheet, "Producto",                  fEA); } catch (e) { /* opcional */ }
     try { cCat  = getCol(accSheet, "Categoría",                 fEA); } catch (e) { /* opcional */ }
     try { cPU   = getCol(accSheet, "Precio Unitario",           fEA); } catch (e) { /* opcional */ }
     try { cObsAcc = getCol(accSheet, "Observaciones",           fEA); } catch (e) { /* opcional */ }
+    try { cAEF  = getCol(accSheet, "Cobrado Efectivo",          fEA); } catch (e) { /* opcional */ }
+    try { cATR  = getCol(accSheet, "Cobrado Transferencia",     fEA); } catch (e) { /* opcional */ }
+    try { cACU  = getCol(accSheet, "Cobrado Cuotas",            fEA); } catch (e) { /* opcional */ }
+    try { cAUS  = getCol(accSheet, "Cobrado USD",               fEA); } catch (e) { /* opcional */ }
     const lastA = accSheet.getLastRow();
     if (cProd > 0 && lastA > fEA) {
       // Plan B si "N° Venta Celular Asociada" vino vacía (columna con el
@@ -161,11 +172,17 @@ function generarReciboVenta(numeroVenta) {
         const obsOk  = cObsAcc > 0 && patronObs.test(String(r[cObsAcc - 1] || ""));
         if (!asocOk && !obsOk) return;
         const categoria = cCat > 0 ? String(r[cCat - 1] || "") : "";
+        const precio = cPU > 0 ? (Number(r[cPU - 1]) || 0) : 0;
         datos.accesorios.push({
           producto:  String(r[cProd - 1] || ""),
           esRegalo:  categoria.trim() === "Regalo automático",
-          precio:    cPU > 0 ? (Number(r[cPU - 1]) || 0) : 0
+          precio:    precio
         });
+        datos.precioVenta += precio;
+        datos.cobradoEf   += cAEF > 0 ? (Number(r[cAEF - 1]) || 0) : 0;
+        datos.cobradoTr   += cATR > 0 ? (Number(r[cATR - 1]) || 0) : 0;
+        datos.cobradoCu   += cACU > 0 ? (Number(r[cACU - 1]) || 0) : 0;
+        datos.cobradoUsd  += cAUS > 0 ? (Number(r[cAUS - 1]) || 0) : 0;
       });
     }
   }
