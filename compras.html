@@ -163,8 +163,22 @@
 
       <div class="paso">
         <p class="paso-titulo"><span class="paso-num">3</span> Productos comprados</p>
+
+        <div class="box box-info">
+          <div class="hint" style="margin-top:0">Para lotes (ej. varios modelos de funda en una misma compra): completá acá lo que se repite en casi todas las líneas — cada línea nueva ya nace con estos valores, y solo te queda tocar modelo/color/cantidad en cada una.</div>
+          <div class="fila2">
+            <div><label style="font-size:11px">Categoría por defecto</label><select id="ca_defCat"></select></div>
+            <div><label style="font-size:11px">Marca / Calidad por defecto</label><input type="text" id="ca_defMarca" placeholder="Ej: Original, Alternativa, Genérica China"/></div>
+          </div>
+          <div class="fila2">
+            <div><label style="font-size:11px">Costo unitario por defecto ($)</label><input type="text" inputmode="numeric" id="ca_defCosto" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+            <div><label style="font-size:11px">Precio venta por defecto ($)</label><input type="text" inputmode="numeric" id="ca_defPrecio" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          </div>
+          <label style="font-size:11px">Stock mínimo por defecto</label><input type="number" id="ca_defMin" value="0" min="0" style="max-width:120px"/>
+        </div>
+
         <div id="ca_lineas"></div>
-        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="comprasAccLineaAgregar()">➕ Agregar línea</button>
+        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="comprasAccLineaAgregarConDefaults()">➕ Agregar línea</button>
         <div class="box box-info" id="ca_totalDiv" style="margin-top:10px;font-weight:bold">Costo total: $0</div>
       </div>
 
@@ -217,6 +231,9 @@
   // igual que lo espera CONFIG_REGALOS/entregarRegalosAutomaticos_ (Code.gs).
   var CATS_MODELO_ESPECIFICO = ["Fundas", "Vidrios templados"];
 
+  document.getElementById("ca_defCat").innerHTML = "<option value=''>— sin default —</option>" +
+    CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("");
+
   function comprasToggleModo(){
     var modo = document.getElementById("c_modo").value;
     document.getElementById("c_bloqueEquipo").style.display      = (modo === "EQUIPO") ? "block" : "none";
@@ -248,10 +265,25 @@
   }
   comprasActualizarVisibilidad();
 
+  /** Escapa para uso seguro dentro de un atributo value="..." armado con concatenación de strings (duplicar línea/defaults pueden traer texto con comillas). */
+  function _escAttr(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  }
+
   var _caContador = 0;
-  function comprasAccLineaAgregar(){
+  /**
+   * valoresIniciales (opcional) precarga la línea nueva — desde los
+   * defaults del lote (comprasAccLineaAgregar() sin argumentos, botón
+   * "➕ Agregar línea") o clonando una línea existente entera
+   * (comprasAccLineaDuplicar()). En compras por lote (ej. 10 modelos de
+   * funda de la misma marca/costo/precio) esto evita re-tipear los mismos
+   * 5-6 campos en cada línea — solo quedan por tocar los que de verdad
+   * cambian línea a línea (modelo/color/cantidad).
+   */
+  function comprasAccLineaAgregar(valoresIniciales){
     _caContador++;
     var id = _caContador;
+    var v = valoresIniciales || {};
     var div = document.createElement("div");
     div.className = "box";
     div.id = "ca_linea-" + id;
@@ -259,29 +291,35 @@
     div.innerHTML =
       '<div class="fila2">' +
         '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'" onchange="comprasAccToggleModelo('+id+')">' +
-          CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("") +
+          CATS_ACCESORIOS.map(function(c){ return "<option"+(c===v.categoria?" selected":"")+">"+c+"</option>"; }).join("") +
         '</select></div>' +
-        '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'"/></div>' +
+        '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'" value="'+_escAttr(v.producto)+'"/></div>' +
       '</div>' +
       '<div id="ca_modeloWrap-'+id+'" style="display:none">' +
         '<label style="font-size:11px">Modelo compatible <span class="req">*</span></label>' +
-        '<div class="gp-modelo-wrap" style="position:relative"><input type="text" id="ca_modelo-'+id+'" placeholder="Buscar modelo..."/></div>' +
+        '<div class="gp-modelo-wrap" style="position:relative"><input type="text" id="ca_modelo-'+id+'" placeholder="Buscar modelo..." value="'+_escAttr(v.modelo)+'"/></div>' +
         '<div class="hint">Se agrega al nombre del producto (ej. "Funda — iPhone 14 Pro") para que quede buscable por modelo.</div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Marca</label><input type="text" id="ca_marca-'+id+'"/></div>' +
-        '<div><label style="font-size:11px">Color</label><input type="text" id="ca_color-'+id+'"/></div>' +
+        '<div><label style="font-size:11px">Marca / Calidad</label><input type="text" id="ca_marca-'+id+'" placeholder="Ej: Original, Alternativa, Genérica" value="'+_escAttr(v.marca)+'"/></div>' +
+        '<div><label style="font-size:11px">Color</label><input type="text" id="ca_color-'+id+'" value="'+_escAttr(v.color)+'"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="1" min="1" oninput="comprasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="'+(v.cantidad||1)+'" min="1" oninput="comprasAccCalcTotal()"/></div>' +
         '<div><label style="font-size:11px">Costo unitario ($)</label><input type="text" inputmode="numeric" id="ca_costo-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>' +
       '</div>' +
       '<div class="fila2">' +
         '<div><label style="font-size:11px">Precio venta ($)</label><input type="text" inputmode="numeric" id="ca_precio-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>' +
-        '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="0" min="0"/></div>' +
+        '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="'+(v.stockMinimo||0)+'" min="0"/></div>' +
       '</div>' +
-      '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
+      '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<button type="button" class="btn" style="background:#5D6D7E;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaDuplicar('+id+')">📋 Duplicar línea</button>' +
+        '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>' +
+      '</div>';
     document.getElementById("ca_lineas").appendChild(div);
+    if (v.costo)   setInputMoneda(document.getElementById("ca_costo-"+id), v.costo);
+    if (v.precio)  setInputMoneda(document.getElementById("ca_precio-"+id), v.precio);
+    if (v.categoria) comprasAccToggleModelo(id);
     comprasAccCalcTotal();
   }
 
@@ -289,6 +327,32 @@
     var el = document.getElementById("ca_linea-" + id);
     if (el) el.remove();
     comprasAccCalcTotal();
+  }
+
+  /** Clona una línea entera (todos sus campos, incluido modelo) — para variaciones puntuales dentro de un lote (ej. una marca distinta en el medio) sin tener que volver a completar todo desde cero. */
+  function comprasAccLineaDuplicar(id){
+    comprasAccLineaAgregar({
+      categoria:   document.getElementById("ca_cat-"+id).value,
+      producto:    document.getElementById("ca_prod-"+id).value,
+      modelo:      document.getElementById("ca_modelo-"+id) ? document.getElementById("ca_modelo-"+id).value : "",
+      marca:       document.getElementById("ca_marca-"+id).value,
+      color:       document.getElementById("ca_color-"+id).value,
+      cantidad:    parseInt(document.getElementById("ca_cant-"+id).value) || 1,
+      costo:       valorNumerico(document.getElementById("ca_costo-"+id)),
+      precio:      valorNumerico(document.getElementById("ca_precio-"+id)),
+      stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
+    });
+  }
+
+  /** ➕ Agregar línea (botón): arranca desde los defaults del lote, si hay alguno cargado. */
+  function comprasAccLineaAgregarConDefaults(){
+    comprasAccLineaAgregar({
+      categoria: document.getElementById("ca_defCat").value,
+      marca:     document.getElementById("ca_defMarca").value,
+      costo:     valorNumerico(document.getElementById("ca_defCosto")),
+      precio:    valorNumerico(document.getElementById("ca_defPrecio")),
+      stockMinimo: parseInt(document.getElementById("ca_defMin").value) || 0
+    });
   }
 
   /** Muestra/oculta y arma el selector de "Modelo compatible" para la línea id, según su categoría. No-strict: no todos los modelos posibles están necesariamente en "Lista de Precios" (ej. equipos viejos), así que se permite texto libre. */
