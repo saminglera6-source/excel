@@ -6,20 +6,11 @@
 
     <div class="paso">
       <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién toma el pedido y cuándo?</p>
-      <div class="fila2">
-        <div>
-          <label>Operador: <span class="req">*</span></label>
-          <select id="p_operador" required>
-            <option value="" disabled selected>Seleccionar...</option>
-            <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
-          </select>
-        </div>
-        <div>
-          <label>Vendedor: <span class="req">*</span></label>
-          <input type="text" id="p_vendedor" placeholder="Nombre del vendedor" value="Martin"/>
-        </div>
-      </div>
-      <div class="hint">"Vendedor" es quien concretó la venta con el cliente — puede ser distinto de "Operador" (arriba), que es quien está cargando esta pantalla ahora mismo.</div>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="p_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
 
       <label>Fecha preventa:</label>
       <input type="date" id="p_fecha"/>
@@ -219,7 +210,6 @@
     document.getElementById("p_imei").value        = datos["IMEI Solicitado"] || "";
     document.getElementById("p_color").value       = datos["Color Solicitado"] || "";
     document.getElementById("p_estadoRequerido").value = datos["Estado Requerido"] || "";
-    document.getElementById("p_vendedor").value    = datos["Vendedor"] || "Martin";
     document.getElementById("p_tel").value         = datos["Teléfono"] || "";
     _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
     setInputMoneda(document.getElementById("p_efec"), datos["Cobrado Efectivo"] || 0);
@@ -246,7 +236,6 @@
     if (!document.getElementById("p_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
     if (!document.getElementById("p_cliente").value.trim()) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
     if (!document.getElementById("p_modelo").value.trim()) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
-    if (!document.getElementById("p_vendedor").value.trim()) { mostrarToast("Ingresá el nombre del vendedor.", "error"); return; }
     if (pv <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
     if (total <= 0) { mostrarToast("Debe registrarse al menos un cobro.", "error"); return; }
 
@@ -261,7 +250,7 @@
       imei: document.getElementById("p_imei").value.trim(),
       color: document.getElementById("p_color").value.trim(),
       estadoRequerido: document.getElementById("p_estadoRequerido").value.trim(),
-      vendedor: document.getElementById("p_vendedor").value.trim(),
+      vendedor: document.getElementById("p_operador").value,
       precioVenta: pv,
       efec: ef, transf: tr, cuotas: cu, usd: us,
       fechaDesde: document.getElementById("p_fechaDesde").value,

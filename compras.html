@@ -36,9 +36,17 @@
       <label>Proveedor / Origen:</label>
       <input type="text" id="c_proveedor" placeholder="Ej: Juan Pérez, Particular"/>
 
-      <label>CUIL/CUIT proveedor (opcional):</label>
-      <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
-      <div class="hint">Completalo solo si necesitás facturar esta compra. El DNI de la cesión de titularidad se calcula solo a partir de este dato.</div>
+      <div class="fila2">
+        <div>
+          <label>CUIL/CUIT proveedor (opcional):</label>
+          <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
+        </div>
+        <div>
+          <label>Teléfono proveedor (opcional):</label>
+          <input type="text" id="c_telProveedor" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+      <div class="hint">El CUIL/CUIT: completalo solo si necesitás facturar esta compra. El DNI de la cesión de titularidad se calcula solo a partir de este dato.</div>
 
       <div class="fila2">
         <div>
@@ -495,6 +503,7 @@
     document.getElementById("c_tipo").value          = datos["Tipo Ingreso"] || "COMPRA";
     document.getElementById("c_proveedor").value     = datos["Proveedor / Origen"] || "";
     document.getElementById("c_cuil").value          = datos["CUIL/CUIT Proveedor"] || "";
+    document.getElementById("c_telProveedor").value  = datos["Teléfono Proveedor"] || "";
     document.getElementById("c_domicilio").value     = datos["Domicilio Proveedor"] || "";
     document.getElementById("c_localidad").value     = datos["Localidad Proveedor"] || "";
     document.getElementById("c_email").value         = datos["Email Proveedor"] || "";
@@ -518,6 +527,7 @@
       fecha: document.getElementById("c_fecha").value,
       proveedor: document.getElementById("c_proveedor").value.trim(),
       cuil: document.getElementById("c_cuil").value.trim(),
+      telProveedor: document.getElementById("c_telProveedor").value.trim(),
       domicilio: document.getElementById("c_domicilio").value.trim(),
       localidad: document.getElementById("c_localidad").value.trim(),
       email: document.getElementById("c_email").value.trim(),

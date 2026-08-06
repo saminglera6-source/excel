@@ -526,6 +526,7 @@ function procesarCompra(d) {
   // exigir que alguien edite la planilla a mano. Domicilio/Localidad/Email
   // son opcionales — solo alimentan la Cesión de Titularidad (recibos.gs).
   asegurarColumnaGenerica_(sheet, filaEnc, "CUIL/CUIT Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Teléfono Proveedor");
   asegurarColumnaGenerica_(sheet, filaEnc, "Domicilio Proveedor");
   asegurarColumnaGenerica_(sheet, filaEnc, "Localidad Proveedor");
   asegurarColumnaGenerica_(sheet, filaEnc, "Email Proveedor");
@@ -542,6 +543,7 @@ function procesarCompra(d) {
   const colTipo = idxDe("Tipo Ingreso");
   const colProv = idxDe("Proveedor / Origen");
   const colCuil = idxDe("CUIL/CUIT Proveedor");
+  const colTelP = idxDe("Teléfono Proveedor");
   const colDom  = idxDe("Domicilio Proveedor");
   const colLoc  = idxDe("Localidad Proveedor");
   const colEmlP = idxDe("Email Proveedor");
@@ -591,6 +593,7 @@ function procesarCompra(d) {
   fila2D[colTipo]   = d.tipo;
   fila2D[colProv]   = d.proveedor;
   fila2D[colCuil]   = d.cuil || "";
+  fila2D[colTelP]   = d.telProveedor || "";
   fila2D[colDom]    = d.domicilio || "";
   fila2D[colLoc]    = d.localidad || "";
   fila2D[colEmlP]   = d.email || "";
