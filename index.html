@@ -647,7 +647,7 @@
       botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboPreventa(numero); } });
       botones.push({ texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("PREVENTA", numero, telefonoCliente); } });
     }
-    mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
+    mostrarToast(mensaje, "exito", {
       persistente: true,
       botones: botones
     });
