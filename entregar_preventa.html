@@ -50,17 +50,17 @@
         <span class="plegable-flecha" id="e_accFlecha">▾</span>
       </div>
       <div id="e_accesoriosBody" style="display:none;margin-top:10px">
-        <div class="hint">Solo completá si vendiste algo junto con el equipo. El pago se prorratea entre el saldo del celular y los accesorios.</div>
+        <div class="hint">Elegí el producto real del stock — así se descuenta solo. "Otro (no descuenta stock)" queda para algo que no está en el catálogo. El pago se prorratea entre el saldo del celular y los accesorios.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="e_acc1" placeholder="Ej: Cargador 20W"/></div>
+          <div><label style="font-size:11px">Accesorio 1</label><select id="e_acc1" onchange="entregaAccInlineToggleOtro(1)"></select><input type="text" id="e_acc1_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="e_acc1p" value="" placeholder="$0" oninput="formatearInputMoneda(this); entregaCalcTotalNecesario()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="e_acc2" placeholder="Ej: Auriculares"/></div>
+          <div><label style="font-size:11px">Accesorio 2</label><select id="e_acc2" onchange="entregaAccInlineToggleOtro(2)"></select><input type="text" id="e_acc2_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="e_acc2p" value="" placeholder="$0" oninput="formatearInputMoneda(this); entregaCalcTotalNecesario()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="e_acc3" placeholder="Ej: Vidrio templado"/></div>
+          <div><label style="font-size:11px">Accesorio 3</label><select id="e_acc3" onchange="entregaAccInlineToggleOtro(3)"></select><input type="text" id="e_acc3_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
           <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="e_acc3p" value="" placeholder="$0" oninput="formatearInputMoneda(this); entregaCalcTotalNecesario()"/></div>
         </div>
       </div>
@@ -92,6 +92,48 @@
   }
 
   var _entregaPreventas = [];
+  var _epStockCache = [];
+
+  /** Mismo patrón que ventas.html (ventasAccPoblarInlineSelect/ventasAccInlineLeer): los accesorios vendidos junto con la entrega se eligen del stock real, para que la venta descuente stock — antes eran texto libre y no descontaban nada. */
+  function entregaAccCargarStock(){
+    google.script.run
+      .withSuccessHandler(function(stock){
+        _epStockCache = stock || [];
+        [1,2,3].forEach(entregaAccPoblarInlineSelect);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerStockAccesorios();
+  }
+
+  function entregaAccPoblarInlineSelect(n){
+    var select = document.getElementById("e_acc" + n);
+    if (!select) return;
+    var actual = select.value;
+    select.innerHTML = "<option value=''>— Sin accesorio —</option>" +
+      _epStockCache.map(function(s){
+        return "<option value='" + s.skuId + "'>" + s.producto + (s.marca ? " — " + s.marca : "") + (s.color ? " (" + s.color + ")" : "") + " [stock: " + s.stock + "]</option>";
+      }).join("") +
+      "<option value='OTRO'>Otro (no descuenta stock)…</option>";
+    if (actual) select.value = actual;
+  }
+
+  function entregaAccInlineToggleOtro(n){
+    var select = document.getElementById("e_acc" + n);
+    var otro = document.getElementById("e_acc" + n + "_otro");
+    otro.style.display = (select.value === "OTRO") ? "block" : "none";
+    if (select.value !== "OTRO") otro.value = "";
+  }
+
+  function entregaAccInlineLeer(n){
+    var select = document.getElementById("e_acc" + n);
+    if (!select || !select.value) return null;
+    if (select.value === "OTRO") {
+      var texto = document.getElementById("e_acc" + n + "_otro").value.trim();
+      return texto ? { nombre: texto, skuId: null } : null;
+    }
+    var s = _epStockCache.find(function(x){ return x.skuId === select.value; });
+    return s ? { nombre: s.producto, skuId: s.skuId } : null;
+  }
 
   function entregaInit(){
     google.script.run
@@ -115,6 +157,7 @@
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerPreventasEntregables();
+    entregaAccCargarStock();
   }
 
   function entregaPreventaSeleccionada(){
@@ -228,11 +271,11 @@
       efec: ef, transf: tr, cuotas: cu, usd: us,
       obs: document.getElementById("e_obs").value.trim(),
       imei: imeiCompra, costoEquipo: costoCompra, proveedor: proveedorCompra, fechaCompra: fechaCompra,
-      accesorios: [
-        { nombre: document.getElementById("e_acc1").value.trim(), precio: valorNumerico(document.getElementById("e_acc1p")) },
-        { nombre: document.getElementById("e_acc2").value.trim(), precio: valorNumerico(document.getElementById("e_acc2p")) },
-        { nombre: document.getElementById("e_acc3").value.trim(), precio: valorNumerico(document.getElementById("e_acc3p")) }
-      ].filter(function(a){ return a.nombre !== ""; }),
+      accesorios: [1,2,3].map(function(n){
+        var acc = entregaAccInlineLeer(n);
+        if (!acc) return null;
+        return { nombre: acc.nombre, skuId: acc.skuId, precio: valorNumerico(document.getElementById("e_acc" + n + "p")) };
+      }).filter(function(a){ return a !== null; }),
       operador: document.getElementById("e_operador").value
     };
 
@@ -266,9 +309,12 @@
         setInputMoneda(document.getElementById("e_transf"), 0);
         setInputMoneda(document.getElementById("e_cuotas"), 0);
         document.getElementById("e_usd").value = "";
-        document.getElementById("e_acc1").value = ""; setInputMoneda(document.getElementById("e_acc1p"), 0);
-        document.getElementById("e_acc2").value = ""; setInputMoneda(document.getElementById("e_acc2p"), 0);
-        document.getElementById("e_acc3").value = ""; setInputMoneda(document.getElementById("e_acc3p"), 0);
+        [1,2,3].forEach(function(n){
+          document.getElementById("e_acc"+n).value = "";
+          document.getElementById("e_acc"+n+"_otro").value = "";
+          document.getElementById("e_acc"+n+"_otro").style.display = "none";
+          setInputMoneda(document.getElementById("e_acc"+n+"p"), 0);
+        });
         entregaInit();
       });
     });

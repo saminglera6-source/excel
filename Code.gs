@@ -4865,14 +4865,24 @@ function procesarEntregaPreventa(d) {
   // Registrar accesorios en Ventas Accesorios, con su porción prorrateada
   // del cobro de la entrega (Problema 2) — no se asume que se cobraron 100% en efectivo.
   let resumenAccesorios = "";
+  let tocoStockAccesoriosEntrega = false;
   if (accesorios.length > 0) {
     try {
       accesorios.forEach((acc, i) => {
         const dist = distribucionEntrega[i + 1]; // 0 es el saldo del celular
-        registrarAccesorioAsociado_({
+        // Mismo criterio que procesarVenta(): si el accesorio viene
+        // vinculado a un producto real de "Stock Accesorios" (acc.skuId,
+        // elegido con el selector), se usa su nombre/costo reales y se
+        // taguea el SKU para que actualizarStockAccesorios_() lo descuente.
+        const sku = acc.skuId ? _buscarSkuAccesorioPorId_(acc.skuId) : null;
+        const nAcc = registrarAccesorioAsociado_({
           fecha:       d.fecha,
           vendedor:    "Martin",
-          producto:    acc.nombre,
+          categoria:   sku ? sku.categoria : undefined,
+          producto:    sku ? sku.producto : acc.nombre,
+          marca:       sku ? sku.marca : "",
+          modeloAcc:   sku ? sku.color : "",
+          costoUnit:   sku ? sku.costoPromedio : 0,
           precio:      acc.precio || 0,
           cliente:     cliente,
           cuil:        cuilCliente,
@@ -4885,8 +4895,13 @@ function procesarEntregaPreventa(d) {
           cotizacion:  cotizacion,
           obs:         `Asociado a preventa ${d.nPre} / venta celular ${nVta}`
         });
+        if (sku && nAcc) {
+          _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);
+          tocoStockAccesoriosEntrega = true;
+        }
       });
       resumenAccesorios = `\n📦 ${accesorios.length} accesorio/s registrado/s en Ventas Accesorios (pago prorrateado).`;
+      if (tocoStockAccesoriosEntrega) actualizarStockAccesorios_();
     } catch(e) {
       resumenAccesorios = `\n⚠️ Accesorios no registrados: ${e.message}`;
     }
