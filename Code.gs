@@ -5727,6 +5727,20 @@ function resolverOCrearSkuAccesorio_(categoria, producto, marca, color) {
 }
 
 /** Busca en "Stock Accesorios" el primer producto de `categoria` cuyo nombre contenga `texto` (case-insensitive). Solo lectura. */
+/**
+ * Normaliza texto para comparaciones tolerantes: sin acentos, sin
+ * espacios/guiones/guiones bajos, minúsculas. Sin esto, "USB-C" (config)
+ * vs "USB C" o "Cable Usb-C a Lightning" (como haya quedado escrito el
+ * producto en el stock) no matcheaban por la diferencia de guión/espacio,
+ * y el regalo automático se reportaba "sin stock" aunque sí había.
+ */
+function _normalizarTextoAccesorio_(s) {
+  return String(s || "")
+    .trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[\s\-_]+/g, "");
+}
+
 function _buscarSkuPorCategoriaYTexto_(categoria, texto) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Stock Accesorios");
   if (!sheet) return null;
@@ -5740,13 +5754,13 @@ function _buscarSkuPorCategoriaYTexto_(categoria, texto) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= fE) return null;
 
-  const textoNorm = String(texto || "").trim().toLowerCase();
-  const catNorm   = String(categoria || "").trim().toLowerCase();
+  const textoNorm = _normalizarTextoAccesorio_(texto);
+  const catNorm   = _normalizarTextoAccesorio_(categoria);
   const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
   for (let i = 0; i < datos.length; i++) {
     const row = datos[i];
-    if (String(row[cCAT] || "").trim().toLowerCase() !== catNorm) continue;
-    if (String(row[cPRD] || "").toLowerCase().indexOf(textoNorm) === -1) continue;
+    if (_normalizarTextoAccesorio_(row[cCAT]) !== catNorm) continue;
+    if (_normalizarTextoAccesorio_(row[cPRD]).indexOf(textoNorm) === -1) continue;
     return {
       skuId: row[cSKU], producto: row[cPRD], marca: row[cMRC], color: row[cCOL],
       stock: Number(row[cSTK]) || 0, costoPromedio: Number(row[cCP]) || 0
