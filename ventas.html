@@ -392,7 +392,7 @@
 
     if (_correccion && _correccion.tipo === "VENTA") { enviarCorreccion("corregirVenta", d); return; }
 
-    confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(pv) + "?").then(function(ok){
+    confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(totOp) + "?").then(function(ok){
       if (!ok) return;
       llamarBackend("procesarVentaConOperador", d, function(msg){
         // El recibo ya NO se abre solo: el toast de éxito (mostrarToastOperacion,
