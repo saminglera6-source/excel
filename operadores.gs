@@ -1006,7 +1006,7 @@ function _mapaCorrecciones_() {
   return mapa;
 }
 
-function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colCliente, colesImporte, colEstado, mapaCorrecciones, colEquipo) {
+function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colCliente, colesImporte, colEstado, mapaCorrecciones, colEquipo, colTelefono) {
   const sheet = ss.getSheetByName(nombreHoja);
   if (!sheet) return [];
   const fE = 2;
@@ -1020,6 +1020,11 @@ function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colClien
   const cCli    = colCliente ? idx(colCliente) : -1;
   const cEst    = colEstado ? idx(colEstado) : -1;
   const cEq     = colEquipo ? idx(colEquipo) : -1;
+  // Teléfono de la otra parte (cliente o proveedor, según la hoja) — para
+  // que el botón "📲 WhatsApp" de Mis Operaciones pueda abrir el chat
+  // directo con esa persona en vez de abrir WhatsApp sin destinatario
+  // (ver firmarYEnviarPorWhatsapp()/_linkWhatsapp(), index.html).
+  const cTel    = colTelefono ? idx(colTelefono) : -1;
   const cOp     = idx("OPERADOR");
   const cEstReg = idx("ESTADO_REGISTRO");
   const cOrigen = idx("OPERACION_ORIGEN");
@@ -1045,6 +1050,7 @@ function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colClien
       numero:   numero,
       cliente:  cCli >= 0 ? String(row[cCli] || "") : "",
       equipo:   cEq  >= 0 ? String(row[cEq]  || "") : "",
+      tel:      cTel >= 0 ? String(row[cTel] || "") : "",
       importe:  _sumaColumnas_(row, hdrs, colesImporte),
       operador: cOp >= 0 ? String(row[cOp] || "") : "",
       estado:   cEst >= 0 ? String(row[cEst] || "") : "",
@@ -1063,13 +1069,13 @@ function obtenerOperacionesRecientes() {
 
   let resultado = [];
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_COMPRAS || "Compras", "Compra",
-    "Fecha Ingreso", "N° OP", "Proveedor / Origen", ["Precio Compra"], "Estado", mapaCorrecciones, "Equipo / Modelo"));
+    "Fecha Ingreso", "N° OP", "Proveedor / Origen", ["Precio Compra"], "Estado", mapaCorrecciones, "Equipo / Modelo", "Teléfono Proveedor"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_VENTAS || "Ventas", "Venta",
-    "Fecha Venta", "N° Venta", "Cliente", ["Precio Venta"], "Estado", mapaCorrecciones, "Modelo"));
+    "Fecha Venta", "N° Venta", "Cliente", ["Precio Venta"], "Estado", mapaCorrecciones, "Modelo", "Teléfono Cliente"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Preventas", "Preventa",
-    "Fecha Preventa", "N° Preventa", "Cliente", ["Precio Venta Pactado"], "Estado", mapaCorrecciones, "Modelo Solicitado"));
+    "Fecha Preventa", "N° Preventa", "Cliente", ["Precio Venta Pactado"], "Estado", mapaCorrecciones, "Modelo Solicitado", "Teléfono"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_REPARACIONES || "Reparaciones", "Reparación",
-    "Fecha Ingreso", "N° Rep", "Cliente", ["Precio Cobrado"], "Estado", mapaCorrecciones, "Equipo"));
+    "Fecha Ingreso", "N° Rep", "Cliente", ["Precio Cobrado"], "Estado", mapaCorrecciones, "Equipo", "Teléfono"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_GASTOS || "Gastos", "Gasto",
     "Fecha", "N° Gasto", "Descripción", ["Monto Efectivo", "Monto Transferencia"], null, mapaCorrecciones));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Compras Accesorios", "Compra Accesorio",

@@ -1990,16 +1990,36 @@ function _insertarFirmaClienteEnHtml_(html, firmaClienteBase64) {
   // cliente, tomando los mismos datos que ya están impresos en "DATOS DEL
   // COMPRADOR/CLIENTE" del recibo — firmando en pantalla no debería hacer
   // falta escribir nada más a mano.
-  const extraerCampo = (etiqueta) => {
-    const m2 = out.match(new RegExp(`<span class="etiqueta">${etiqueta}:</span>\\s*<span class="valor">(.*?)</span>`, "s"));
-    if (!m2) return "";
-    return m2[1].replace(/<[^>]+>/g, "").trim();
+  // La mayoría de los recibos arma cada campo como
+  // <div class="campo"><span class="etiqueta">X:</span> <span class="valor">Y</span></div>,
+  // pero Cesión (recibos.gs, _armarHtmlReciboCesion_) usa
+  // <div class="campo-fila"><span class="etiqueta">X:</span> Y</div> sin el
+  // <span class="valor">. Se busca hasta el cierre del </div> en vez de
+  // depender del span de valor, para que ambos formatos funcionen igual.
+  const extraerCampo = (...etiquetas) => {
+    for (const etiqueta of etiquetas) {
+      const m2 = out.match(new RegExp(`<span class="etiqueta">${etiqueta}:</span>\\s*(.*?)</div>`, "s"));
+      if (m2) {
+        const valor = m2[1].replace(/<[^>]+>/g, "").trim();
+        if (valor) return valor;
+      }
+    }
+    return "";
   };
+  // "DNI N°" es la etiqueta que usa el recibo de Cesión (recibos.gs,
+  // "DATOS DEL VENDEDOR") — el resto usa simplemente "DNI".
   const nombre = extraerCampo("Apellido y Nombre");
-  const dni = extraerCampo("DNI");
+  const dni = extraerCampo("DNI", "DNI N°");
   if (nombre) {
     const aclaracion = dni ? `${nombre} — DNI ${dni}` : nombre;
-    out = out.replace(/(<div class="firma-label">)((?:Comprador|Cliente) — Aclaración y DNI)(<\/div>)/, `$1${aclaracion}$3`);
+    // Cesión usa el orden invertido "Aclaración y DNI — Vendedor" (layout
+    // reflejado: la firma del negocio va del lado derecho, la del
+    // vendedor/cedente —la que se completa acá— del lado izquierdo) en vez
+    // de "Comprador/Cliente — Aclaración y DNI" que usan los demás recibos.
+    out = out.replace(
+      /(<div class="firma-label">)((?:Comprador|Cliente) — Aclaración y DNI|Aclaración y DNI — Vendedor)(<\/div>)/,
+      `$1${aclaracion}$3`
+    );
   }
   return out;
 }

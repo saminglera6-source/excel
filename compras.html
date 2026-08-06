@@ -576,7 +576,7 @@
               persistente: true,
               botones: [
                 { texto: "🖨 Cesión", fn: function(){ imprimirReciboCesion(numero); } },
-                { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("CESION", numero, ""); } }
+                { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("CESION", numero, d.telProveedor); } }
               ]
             });
           }
