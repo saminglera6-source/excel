@@ -208,6 +208,14 @@
   });
 
   var CATS_ACCESORIOS = ["Cargadores", "Auriculares", "Fundas", "Vidrios templados", "Cables", "Accesorios varios", "Otros"];
+  // Fundas y vidrios templados son específicos de un modelo — no tiene
+  // sentido cargar "100 fundas" como un solo producto genérico, porque
+  // después nada sabe para qué equipo sirve cada una (ni el regalo
+  // automático de bienvenida ni una venta futura pueden buscarla por
+  // modelo). Estas categorías obligan a elegir el modelo compatible, que
+  // se agrega al nombre del producto para que quede buscable por modelo
+  // igual que lo espera CONFIG_REGALOS/entregarRegalosAutomaticos_ (Code.gs).
+  var CATS_MODELO_ESPECIFICO = ["Fundas", "Vidrios templados"];
 
   function comprasToggleModo(){
     var modo = document.getElementById("c_modo").value;
@@ -250,10 +258,15 @@
     div.style.marginTop = "8px";
     div.innerHTML =
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'">' +
+        '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'" onchange="comprasAccToggleModelo('+id+')">' +
           CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("") +
         '</select></div>' +
         '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'"/></div>' +
+      '</div>' +
+      '<div id="ca_modeloWrap-'+id+'" style="display:none">' +
+        '<label style="font-size:11px">Modelo compatible <span class="req">*</span></label>' +
+        '<div class="gp-modelo-wrap" style="position:relative"><input type="text" id="ca_modelo-'+id+'" placeholder="Buscar modelo..."/></div>' +
+        '<div class="hint">Se agrega al nombre del producto (ej. "Funda — iPhone 14 Pro") para que quede buscable por modelo.</div>' +
       '</div>' +
       '<div class="fila2">' +
         '<div><label style="font-size:11px">Marca</label><input type="text" id="ca_marca-'+id+'"/></div>' +
@@ -278,14 +291,36 @@
     comprasAccCalcTotal();
   }
 
+  /** Muestra/oculta y arma el selector de "Modelo compatible" para la línea id, según su categoría. No-strict: no todos los modelos posibles están necesariamente en "Lista de Precios" (ej. equipos viejos), así que se permite texto libre. */
+  var _selectoresModeloAcc = {};
+  function comprasAccToggleModelo(id){
+    var cat = document.getElementById("ca_cat-"+id).value;
+    var wrap = document.getElementById("ca_modeloWrap-"+id);
+    var esEspecifico = CATS_MODELO_ESPECIFICO.indexOf(cat) !== -1;
+    wrap.style.display = esEspecifico ? "block" : "none";
+    if (esEspecifico && !_selectoresModeloAcc[id]) {
+      _selectoresModeloAcc[id] = crearSelectorModelos(document.getElementById("ca_modelo-"+id), {});
+    }
+    if (!esEspecifico) document.getElementById("ca_modelo-"+id).value = "";
+  }
+
   function comprasAccLeerLineas(){
     var out = [];
+    var errores = [];
     document.querySelectorAll("[id^='ca_linea-']").forEach(function(div){
       var id = div.id.split("-")[1];
       var producto = document.getElementById("ca_prod-"+id).value.trim();
+      var categoria = document.getElementById("ca_cat-"+id).value;
+      if (!producto && CATS_MODELO_ESPECIFICO.indexOf(categoria) === -1) return;
+      var modelo = "";
+      if (CATS_MODELO_ESPECIFICO.indexOf(categoria) !== -1) {
+        modelo = document.getElementById("ca_modelo-"+id).value.trim();
+        if (!modelo) { errores.push('Falta el modelo compatible de "' + (producto || categoria) + '".'); return; }
+        producto = producto ? (producto + " — " + modelo) : (categoria.replace(/s$/, "") + " — " + modelo);
+      }
       if (!producto) return;
       out.push({
-        categoria: document.getElementById("ca_cat-"+id).value,
+        categoria: categoria,
         producto: producto,
         marca: document.getElementById("ca_marca-"+id).value.trim(),
         color: document.getElementById("ca_color-"+id).value.trim(),
@@ -295,6 +330,7 @@
         stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
       });
     });
+    out._errores = errores;
     return out;
   }
 
@@ -318,6 +354,7 @@
     var operador = document.getElementById("ca_operador").value;
     if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
     var lineas = comprasAccLeerLineas();
+    if (lineas._errores && lineas._errores.length > 0) { mostrarToast(lineas._errores.join("\n"), "error"); return; }
     if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto.", "error"); return; }
     for (var i = 0; i < lineas.length; i++) {
       if (lineas[i].cantidad <= 0) { mostrarToast("Revisá la cantidad de: " + lineas[i].producto, "error"); return; }
