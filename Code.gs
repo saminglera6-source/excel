@@ -6502,7 +6502,13 @@ function entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, 
       cliente:     cliente || "",
       tel:         "",
       nVtaCelular: nVta,
-      obs:         `Regalo automático — ${modelo}`
+      // El texto "Asociado a venta celular <N° Venta>" es el mismo que usa
+      // registrarAccesorioAsociado_() para los accesorios comprados — el
+      // recibo (generarReciboVenta/generarReciboEntregaPreventa,
+      // recibos.gs) lo usa como respaldo para encontrar la fila si la
+      // columna "N° Venta Celular Asociada" viene vacía. Sin este texto acá,
+      // ese respaldo nunca encontraba los regalos (solo los comprados).
+      obs:         `Regalo automático — ${modelo} — Asociado a venta celular ${nVta}`
     });
     if (nAcc) {
       _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);
