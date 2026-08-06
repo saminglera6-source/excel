@@ -293,40 +293,26 @@ function _armarHtmlReciboVenta_(d) {
     filaPago("Cuotas", d.cobradoCu > 0, "$ " + Number(d.cobradoCu).toLocaleString("es-AR"))
   ].join("");
 
-  // Los 4 accesorios "de siempre" (recibo de referencia) se muestran SIEMPRE,
-  // tildados solo si hay algo cargado en esta venta que coincida (búsqueda
-  // simple por palabra clave en el nombre del producto — Cada accesorio ya
-  // viene marcado como comprado o regalo automático, esRegalo, ver
-  // generarReciboVenta()). Lo que no matchea ninguna de las 4 (ej. un
-  // regalo o compra distinto) se agrega igual, como ítem extra tildado.
-  const ACCESORIOS_BASE = [
-    { etiqueta: "Cable USB-C / Lightning", buscar: /cable/i },
-    { etiqueta: "Cabezal de cargador",     buscar: /cargador|cabezal/i },
-    { etiqueta: "Funda protectora",        buscar: /funda/i },
-    { etiqueta: "Vidrio templado",         buscar: /vidrio/i }
-  ];
-  const detalleDe = (a) => a.esRegalo ? "(Regalo)" : (a.precio > 0 ? `(${fmtPeso(a.precio)})` : "");
-  const usados = new Set();
-  const baseHtml = ACCESORIOS_BASE.map(base => {
-    const match = d.accesorios.find((a, i) => !usados.has(i) && base.buscar.test(a.producto));
-    if (match) {
-      usados.add(d.accesorios.indexOf(match));
-      const detalle = detalleDe(match);
-      return `<span class="chk"><span class="chk-box">☑</span> ${base.etiqueta}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
-    }
-    return `<span class="chk"><span class="chk-box">☐</span> ${base.etiqueta}</span>`;
-  });
-  const extrasHtml = d.accesorios
-    .filter((a, i) => !usados.has(i))
-    .map(a => {
-      const detalle = detalleDe(a);
-      return `<span class="chk"><span class="chk-box">☑</span> ${esc(a.producto)}${detalle ? ` <span class="chk-detalle">${detalle}</span>` : ""}</span>`;
-    });
-  // Las 4 opciones fijas siempre van en una sola línea (chk-fila-base, sin
-  // wrap); si además hay algún accesorio/regalo que no matcheó ninguna de
-  // esas 4, se agrega debajo en una fila aparte que sí puede envolver.
-  const accesoriosHtml = `<div class="chk-fila-base">${baseHtml.join("")}</div>` +
-    (extrasHtml.length > 0 ? `<div class="chk-fila-extra">${extrasHtml.join("")}</div>` : "");
+  // Mismo formato que el comprobante de Entrega de Preventa (lista con
+  // viñetas, separando comprados de regalos) en vez de los 4 checkboxes
+  // fijos de antes — más simple y no depende de adivinar por palabra clave
+  // a qué casillero corresponde cada producto.
+  const compradosVenta = d.accesorios.filter(a => !a.esRegalo);
+  const regalosVenta   = d.accesorios.filter(a => a.esRegalo);
+  const accesoriosSeccionHtml = (compradosVenta.length > 0 || regalosVenta.length > 0) ? `
+    <div class="seccion-titulo">ACCESORIOS Y REGALOS INCLUIDOS</div>
+    <div class="dos-columnas">
+      ${compradosVenta.length > 0 ? `
+      <div class="columna">
+        <div class="campo"><span class="etiqueta">Comprados en esta venta:</span></div>
+        ${compradosVenta.map(a => `<div class="campo">• ${esc(a.producto)}${a.precio > 0 ? ` — <b>${fmtPeso(a.precio)}</b>` : ""}</div>`).join("")}
+      </div>` : ""}
+      ${regalosVenta.length > 0 ? `
+      <div class="columna">
+        <div class="campo"><span class="etiqueta">Regalo/s incluido/s:</span></div>
+        ${regalosVenta.map(r => `<div class="campo">🎁 ${esc(r.producto)}</div>`).join("")}
+      </div>` : ""}
+    </div>` : "";
 
   const campo = (etiqueta, valor) => `<div class="campo"><span class="etiqueta">${etiqueta}:</span> <span class="valor">${valor}</span></div>`;
 
@@ -358,8 +344,7 @@ function _armarHtmlReciboVenta_(d) {
       </div>
     </div>
 
-    <div class="seccion-titulo">ACCESORIOS INCLUIDOS</div>
-    ${accesoriosHtml}
+    ${accesoriosSeccionHtml}
 
     <div class="seccion-titulo">PRECIO Y FORMA DE PAGO</div>
     <div class="pago-box">

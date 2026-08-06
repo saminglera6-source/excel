@@ -66,6 +66,14 @@
       </div>
     </div>
 
+    <div class="paso paso-opcional">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:0">
+        <input type="checkbox" id="e_entregarRegalos" checked style="width:auto"/>
+        Entregar regalo(s) de bienvenida (si el modelo tiene alguno configurado)
+      </label>
+      <div class="hint">Dejalo tildado salvo que el cliente no quiera llevarse el regalo — si el modelo no tiene ninguno configurado, no cambia nada.</div>
+    </div>
+
     <div class="paso">
       <p class="paso-titulo"><span class="paso-num">4</span> Fecha y observaciones</p>
       <label>Fecha de entrega:</label>
@@ -276,7 +284,8 @@
         if (!acc) return null;
         return { nombre: acc.nombre, skuId: acc.skuId, precio: valorNumerico(document.getElementById("e_acc" + n + "p")) };
       }).filter(function(a){ return a !== null; }),
-      operador: document.getElementById("e_operador").value
+      operador: document.getElementById("e_operador").value,
+      entregarRegalos: document.getElementById("e_entregarRegalos").checked
     };
 
     var mensajeConfirm = (necesario > 0 && totalCobrarAhora <= 0)
