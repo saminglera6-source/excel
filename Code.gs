@@ -6444,11 +6444,31 @@ function determinarFamiliaYPuerto_(modelo) {
  * como advertencia en el mensaje final.
  */
 function entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, entregar) {
-  const resultado = { entregados: [], omitidos: [] };
+  const resultado = { entregados: [], omitidos: [], sinModelo: false, sinConfigurar: false };
   if (entregar === false) return resultado;
 
-  const info = determinarFamiliaYPuerto_(modelo);
-  if (!info) return resultado;
+  const modeloNorm = String(modelo || "").trim();
+  if (!modeloNorm) {
+    // Sin esto, un modelo vacío pasaba totalmente en silencio: ni se
+    // entregaba nada ni se avisaba nada, así que parecía que la casilla
+    // "entregar regalo" tildada no hacía nada.
+    resultado.sinModelo = true;
+    registrarAuditoria_("REGALO_AUTOMATICO", nVta, "SIN_MODELO",
+      "No se pudo determinar el modelo vendido (N° OP/Preventa sin modelo cargado) — no se buscó regalo.");
+    return resultado;
+  }
+
+  const info = determinarFamiliaYPuerto_(modeloNorm);
+  if (!info) {
+    // Mismo problema: si el modelo no matchea ninguna fila de CONFIG_REGALOS
+    // (familia mal escrita, o directamente no configurada para ese modelo)
+    // no había ningún aviso — quedaba indistinguible de "no tiene regalo
+    // configurado a propósito".
+    resultado.sinConfigurar = true;
+    registrarAuditoria_("REGALO_AUTOMATICO", nVta, "SIN_FAMILIA_CONFIGURADA",
+      `El modelo "${modeloNorm}" no matcheó ninguna familia en CONFIG_REGALOS — no se entregó regalo.`);
+    return resultado;
+  }
 
   const items = [];
   if (info.regalaFunda) items.push({ categoria: "Fundas", buscar: info.familia });

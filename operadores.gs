@@ -224,12 +224,15 @@ function procesarVentaConOperador(d) {
 
 /** Regalos automáticos (CONFIG_REGALOS): se llama SOLO desde estos wrappers, nunca desde procesarVenta()/procesarEntregaPreventa() (protegidas). Si algo falla acá, no debe tumbar la venta ya registrada — por eso el try/catch. */
 function _entregarRegalosSiCorresponde_(nVta, modelo, cliente, vendedor, operador, entregarRegalos) {
-  if (!nVta || !modelo) return "";
+  if (!nVta) return "";
+  if (entregarRegalos === false) return "";
+  if (!modelo) return `\n⚠ Regalo de bienvenida: no se pudo determinar el modelo vendido, no se buscó regalo.`;
   try {
     const resultado = entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, entregarRegalos !== false);
     let extra = "";
     if (resultado.entregados.length > 0) extra += `\n🎁 Regalo/s entregado/s: ${resultado.entregados.join(", ")}`;
     if (resultado.omitidos.length   > 0) extra += `\n⚠ No hay stock del regalo: ${resultado.omitidos.join(", ")}`;
+    if (resultado.sinConfigurar)         extra += `\n⚠ Regalo de bienvenida: "${modelo}" no tiene familia configurada en CONFIG_REGALOS, no se entregó nada.`;
     return extra;
   } catch (e) {
     return `\n⚠️ Regalos automáticos no procesados: ${e.message}`;
