@@ -1999,7 +1999,24 @@ function _insertarFirmaClienteEnHtml_(html, firmaClienteBase64) {
   if (!firmaClienteBase64) return html;
   const patron = /<div class="firma-col">(\s*)<div class="firma-linea">/;
   const imgTag = `<img class="firma-img" src="data:image/png;base64,${firmaClienteBase64}" alt="Firma cliente">`;
-  return html.replace(patron, (m, espacio) => `<div class="firma-col">${espacio}${imgTag}<div class="firma-linea">`);
+  let out = html.replace(patron, (m, espacio) => `<div class="firma-col">${espacio}${imgTag}<div class="firma-linea">`);
+
+  // Completa sola la aclaración (nombre + DNI) debajo de la firma del
+  // cliente, tomando los mismos datos que ya están impresos en "DATOS DEL
+  // COMPRADOR/CLIENTE" del recibo — firmando en pantalla no debería hacer
+  // falta escribir nada más a mano.
+  const extraerCampo = (etiqueta) => {
+    const m2 = out.match(new RegExp(`<span class="etiqueta">${etiqueta}:</span>\\s*<span class="valor">(.*?)</span>`, "s"));
+    if (!m2) return "";
+    return m2[1].replace(/<[^>]+>/g, "").trim();
+  };
+  const nombre = extraerCampo("Apellido y Nombre");
+  const dni = extraerCampo("DNI");
+  if (nombre) {
+    const aclaracion = dni ? `${nombre} — DNI ${dni}` : nombre;
+    out = out.replace(/(<div class="firma-label">)((?:Comprador|Cliente) — Aclaración y DNI)(<\/div>)/, `$1${aclaracion}$3`);
+  }
+  return out;
 }
 
 /** Convierte el HTML de un recibo a PDF y lo devuelve en base64 — sin pasar por Drive, listo para que el navegador lo baje directo al dispositivo del empleado. La conversión de Apps Script no es pixel-perfect vs. un navegador real, pero para estas plantillas (tablas, bordes, texto) funciona bien. */
