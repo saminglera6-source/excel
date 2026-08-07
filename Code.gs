@@ -142,9 +142,10 @@ function fmt(fecha) {
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
 
-/** Formatea número como $#,### */
+/** Formatea número como $#,### — si n no es un número válido (NaN/undefined/null), muestra $0 en vez de "$NaN" (encontrado corriendo casos límite contra la lógica real). */
 function fmtPeso(n) {
-  return "$" + Number(n).toLocaleString("es-AR");
+  const num = Number(n);
+  return "$" + (isNaN(num) ? 0 : num).toLocaleString("es-AR");
 }
 
 /** Formatea cantidad de dólares como USD 1,234 */

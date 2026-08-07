@@ -220,7 +220,10 @@ function extraerDniDeCuil_(cuil) {
 function numeroAPesosEnLetras_(num) {
   num = Math.round(Number(num) || 0);
   if (num === 0) return "Cero pesos";
-  if (num < 0) return "";
+  // Un monto negativo no debería llegar nunca a un recibo real, pero antes
+  // esto devolvía "" — la línea "Son pesos: " quedaba en blanco en el papel
+  // en vez de avisar claramente que algo está mal con el precio cargado.
+  if (num < 0) return "Menos " + numeroAPesosEnLetras_(-num).toLowerCase();
 
   const UNIDADES = ["", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve"];
   const ESPECIALES = ["diez", "once", "doce", "trece", "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"];
