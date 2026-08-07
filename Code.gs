@@ -867,6 +867,11 @@ function procesarVenta(d) {
   const ventasSheet  = ss.getSheetByName(cfg.HOJA_VENTAS   || "Ventas");
   const comprasSheet = ss.getSheetByName(cfg.HOJA_COMPRAS  || "Compras");
   if (!ventasSheet || !comprasSheet) throw new Error("❌ Hojas Ventas/Compras no encontradas.");
+  // Sin esto, un d.nOp vacío (por ejemplo al reenviar una corrección sin
+  // volver a elegir el equipo) tiraba un error críptico de JS ("Cannot read
+  // properties of null (reading 'trim')") en vez de un mensaje claro —
+  // encontrado corriendo corregirVenta() con datos incompletos.
+  if (!d.nOp) throw new Error("❌ Falta seleccionar el equipo (N° OP) de esta venta.");
 
   const filaEnc = 2;
   // Una sola lectura de encabezados de Compras
