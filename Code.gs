@@ -6088,6 +6088,12 @@ function procesarCompraAccesorios(d) {
     const cantidad = Number(l.cantidad) || 0;
     if (cantidad <= 0) throw new Error(`❌ La línea "${l.producto}" necesita una cantidad mayor a 0.`);
     const costoUnit  = Number(l.costoUnit) || 0;
+    // Sin este chequeo, un costo negativo (típicamente un typo con "-") pasa
+    // silencioso y contamina el COSTO_PROMEDIO de ese SKU para siempre —
+    // actualizarStockAccesorios_() promedia costoTotal/cantidad acumulando
+    // TODAS las compras de ese producto, así que un solo error de tipeo acá
+    // rompe la "Ganancia" reportada en cada venta futura de ese producto.
+    if (costoUnit < 0) throw new Error(`❌ La línea "${l.producto}" tiene un costo unitario negativo.`);
     const costoTotal = cantidad * costoUnit;
     costoTotalCompra += costoTotal;
     Logger.log("[AUDIT] >>> ANTES resolverOCrearSkuAccesorio_() | categoria=" + l.categoria + " producto=" + l.producto + " marca=" + l.marca + " color=" + l.color);
