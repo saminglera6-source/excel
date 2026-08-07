@@ -2113,6 +2113,12 @@ function _restaurarInversor_(numero, motivo) {
  * queda como evidencia — buscarTransaccionesIncompletas_() la detecta.
  */
 function procesarAnularOperacion(numero, motivo) {
+  // mis_operaciones.html ya exige un motivo no vacío antes de enviar —
+  // revalidado acá para que el backend no dependa exclusivamente de esa
+  // pantalla (_ejecutarCorreccion_(), operadores.gs, siempre manda
+  // "Corrección: <motivo>", así que nunca queda vacío en ese camino).
+  if (!String(motivo || "").trim()) throw new Error("❌ Ingresá un motivo para la anulación.");
+
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);

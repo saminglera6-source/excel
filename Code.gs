@@ -519,6 +519,11 @@ function procesarCompra(d) {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_COMPRAS || "Compras");
   if (!sheet) throw new Error("❌ Hoja 'Compras' no encontrada.");
+  // Mismos requisitos que ya exige compras.html antes de enviar — revalidados
+  // acá para que el backend no dependa exclusivamente de esa pantalla.
+  if (!String(d.modelo || "").trim()) throw new Error("❌ Ingresá el modelo del equipo.");
+  if (d.tipo === "COMPRA" && !(Number(d.precioCompra) > 0)) throw new Error("❌ Para COMPRA, el precio de compra debe ser mayor a 0.");
+  if (d.tipo === "CONSIGNACION" && !(Number(d.precioConsig) > 0)) throw new Error("❌ Para CONSIGNACIÓN, el precio acordado debe ser mayor a 0.");
 
   const filaEnc = 2;
   // CUIL/CUIT/Domicilio/Localidad/Email del proveedor: columnas nuevas,
@@ -872,6 +877,12 @@ function procesarVenta(d) {
   // properties of null (reading 'trim')") en vez de un mensaje claro —
   // encontrado corriendo corregirVenta() con datos incompletos.
   if (!d.nOp) throw new Error("❌ Falta seleccionar el equipo (N° OP) de esta venta.");
+  // El frontend (ventas.html) ya exige cliente y precio > 0 antes de
+  // enviar, pero el backend no los revalidaba — cualquier otro camino que
+  // llegue a procesarVenta() sin pasar por esa pantalla (ej. una API, un
+  // bug futuro en el formulario) podía grabar una venta sin cliente.
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!(Number(d.precioVenta) > 0)) throw new Error("❌ El precio de venta debe ser mayor a 0.");
 
   const filaEnc = 2;
   // Una sola lectura de encabezados de Compras
@@ -1251,6 +1262,13 @@ function procesarReparacion(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_REPARACIONES || "Reparaciones");
   if (!sheet) throw new Error("❌ Hoja 'Reparaciones' no encontrada.");
+  // Mismos requisitos que ya exige reparaciones.html antes de enviar —
+  // revalidados acá para que el backend no dependa exclusivamente de esa
+  // pantalla (encontrado corriendo procesarReparacion() directo con datos
+  // incompletos: no tiraba ningún error).
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!String(d.equipo  || "").trim()) throw new Error("❌ Ingresá el equipo.");
+  if (!String(d.falla1  || "").trim()) throw new Error("❌ Describí la falla principal.");
 
   const fE  = 2;
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 17 getCol()
@@ -1587,6 +1605,9 @@ function procesarGasto(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_GASTOS || "Gastos");
   if (!sheet) throw new Error("❌ Hoja 'Gastos' no encontrada.");
+  // Mismo requisito que ya exige gastos.html antes de enviar — revalidado
+  // acá para que el backend no dependa exclusivamente de esa pantalla.
+  if (!String(d.desc || "").trim()) throw new Error("❌ Ingresá una descripción.");
 
   const fE  = 2;
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 9 getCol()
@@ -4091,6 +4112,12 @@ function procesarPreventa(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Preventas");
   if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada. Creala con los encabezados indicados.");
+  // Mismos requisitos que ya exige preventas.html antes de enviar —
+  // revalidados acá para que el backend no dependa exclusivamente de esa
+  // pantalla.
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!String(d.modelo || "").trim()) throw new Error("❌ Ingresá el modelo solicitado.");
+  if (!(Number(d.precioVenta) > 0)) throw new Error("❌ El precio pactado debe ser mayor a 0.");
 
   const fE   = 2;
   // CUIL/Domicilio/Email del cliente + IMEI/Color/Estado del equipo
