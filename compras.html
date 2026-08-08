@@ -224,8 +224,12 @@
   // incluye en index.html antes que precios_mac_ipad.html: para el momento
   // en que esta función realmente se ejecuta (usuario abriendo el dropdown)
   // todos los <script> de la página ya cargaron.
+  // No-strict: el buscador sugiere modelos de la Lista de Precios, pero el
+  // operador puede dejar cargado cualquier texto — hace falta poder
+  // registrar un equipo que todavía no está en esa lista (modelo nuevo,
+  // poco común, etc.) sin que quede bloqueado.
   var _selectorModeloCompras = crearSelectorModelos(document.getElementById("c_modelo"), {
-    strict: true,
+    strict: false,
     obtenerDatos: function(cb){ catalogoCompletoCargar(cb); }
   });
 

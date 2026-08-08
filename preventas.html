@@ -154,8 +154,11 @@
   // SOLO puede elegir un modelo existente, no texto libre. Autocompleta
   // SIEMPRE el Precio Preventa (nunca el Contado) — vía _precioAutoPreventas,
   // que decide si corresponde.
+  // No-strict: si el cliente pide un modelo que todavía no está en la Lista
+  // de Precios, el operador tiene que poder dejarlo cargado igual (el precio
+  // sugerido simplemente no se autocompleta en ese caso — se carga a mano).
   var _selectorModeloPreventas = crearSelectorModelos(document.getElementById("p_modelo"), {
-    strict: true,
+    strict: false,
     obtenerDatos: function(cb){ catalogoCompletoCargar(cb); },
     onSeleccion: function(fila){
       _precioAutoPreventas.autocompletar(fila.preventaARS || 0);
