@@ -342,6 +342,9 @@
     <div class="nav-group-title">Gestión</div>
     <div class="nav-btn" data-vista="mis_operaciones" onclick="cargarVista('mis_operaciones')">🗂️ Mis Operaciones</div>
     <div class="nav-btn" data-vista="comisiones" onclick="cargarVista('comisiones')">💼 Comisiones</div>
+
+    <div class="nav-group-title">Ayuda</div>
+    <div class="nav-btn" data-vista="guia" onclick="cargarVista('guia')">📖 Guía del sistema</div>
   </nav>
 
   <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -390,6 +393,7 @@
       <?!= include('stock_general'); ?>
       <?!= include('mis_operaciones'); ?>
       <?!= include('comisiones'); ?>
+      <?!= include('guia'); ?>
       <?!= include('firma_cliente'); ?>
     </div>
   </div>
@@ -530,7 +534,8 @@
       reparaciones:"🔧 Registrar Reparación", entregar_reparacion:"📦 Entregar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
       gastos:"💸 Registrar Gasto", reportes:"💰 Caja",
       stock_accesorios:"📦 Stock Accesorios", stock_general:"📋 Stock General",
-      mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones"
+      mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones",
+      guia:"📖 Guía del sistema"
     };
     document.getElementById("tituloVista").textContent = titulos[nombre] || nombre;
 
