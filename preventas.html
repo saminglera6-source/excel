@@ -1,4 +1,30 @@
 <div id="view-preventas" class="view">
+  <style>
+    #view-preventas .preventas-layout { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+    #view-preventas .preventas-layout > .panel:first-child { flex: 1 1 480px; min-width: 320px; }
+    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex: 1 1 320px; position: sticky; top: 14px; }
+    #view-preventas .p-cal-dia {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; cursor: default; position: relative;
+    }
+    #view-preventas .p-cal-dia.p-cal-otromes { opacity: .3; }
+    #view-preventas .p-cal-dia.p-cal-hoy { outline: 1.5px solid #4F46E5; outline-offset: -1.5px; }
+    #view-preventas .p-cal-dia.p-cal-clickable { cursor: pointer; font-weight: 700; color: #fff; }
+    #view-preventas .p-cal-dia.p-cal-clickable:hover { transform: scale(1.08); }
+    #view-preventas .p-cal-roja { background: #C0392B; }
+    #view-preventas .p-cal-amarilla { background: #B7860B; }
+    #view-preventas .p-cal-verde { background: #1E8449; }
+    #view-preventas .p-seg-item {
+      border: 1px solid #E4E7EC; border-radius: 8px; padding: 8px 10px; cursor: pointer;
+      display: flex; flex-direction: column; gap: 2px; font-size: 12px; transition: border-color .15s;
+    }
+    #view-preventas .p-seg-item:hover { border-color: #9AA5B1; }
+    #view-preventas .p-seg-item .p-seg-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    #view-preventas .p-seg-item .p-seg-cliente { font-weight: 700; }
+    #view-preventas .p-seg-item .p-seg-fecha { font-size: 10.5px; padding: 2px 7px; border-radius: 100px; font-weight: 700; color: #fff; white-space: nowrap; }
+    #view-preventas .p-seg-item .p-seg-modelo { color: #7B8794; font-size: 11px; }
+  </style>
+  <div class="preventas-layout">
   <div class="panel">
     <h3>🟡 Registrar Preventa</h3>
 
@@ -103,6 +129,42 @@
 
     <button type="button" class="btn" onclick="preventasEnviar()">✅ Registrar preventa</button>
     </form>
+  </div>
+
+  <!-- ============================================================
+       PANEL DE SEGUIMIENTO — calendario + lista de preventas pendientes
+       de entrega, para reorganizarse por fecha límite. Solo lectura +
+       atajo a "Editar": el guardado real sigue siendo 100% el mecanismo
+       de corrección que ya existe (misOperacionesCorregir → iniciarCorreccion
+       → preventasPrecargarCorreccion → corregirPreventa, operadores.gs), así
+       que cualquier cambio que se haga desde acá queda en Preventas,
+       Libro Diario, Auditoría y Correcciones exactamente igual que si se
+       editara desde Mis Operaciones — no hay ninguna copia de los datos.
+       ============================================================ -->
+  <div class="panel" id="p_seguimientoPanel" style="max-width:380px">
+    <h3 style="margin-bottom:2px">📅 Entregas pendientes</h3>
+    <div class="hint" style="margin-top:0">Tocá un día con color o una preventa de la lista para editarla.</div>
+
+    <div id="p_calWrap" style="margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <button type="button" class="btn" style="width:auto;padding:4px 10px;margin:0;background:#5D6D7E" onclick="preventasCalMes(-1)">‹</button>
+        <b id="p_calTitulo" style="font-size:13px"></b>
+        <button type="button" class="btn" style="width:auto;padding:4px 10px;margin:0;background:#5D6D7E" onclick="preventasCalMes(1)">›</button>
+      </div>
+      <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;text-align:center"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7B8794">
+        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span>
+      </div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #E4E7EC;margin:14px 0">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <b style="font-size:12.5px">Todas las pendientes</b>
+      <span id="p_segCant" style="font-size:11px;color:#7B8794"></span>
+    </div>
+    <div id="p_segLista" style="display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto"></div>
+  </div>
   </div>
 </div>
 
@@ -300,5 +362,129 @@
         preventasRecalcularPlazoEntrega(); // form.reset() no dispara "change" en p_fecha
       }
     });
+    preventasSegCargar(); // refresca el panel de seguimiento con lo que se acaba de guardar
+  }
+
+  // ============================================================
+  //  PANEL DE SEGUIMIENTO (calendario + lista) — solo lectura + atajo a
+  //  "Editar". El único camino real de guardado sigue siendo
+  //  misOperacionesCorregir() → iniciarCorreccion() (index.html) →
+  //  preventasPrecargarCorreccion() → corregirPreventa() (operadores.gs):
+  //  este panel no escribe nada por su cuenta, solo lee y dispara ese
+  //  mismo mecanismo — así cualquier edición hecha desde acá queda
+  //  registrada en Preventas/Libro Diario/Auditoría/Correcciones igual
+  //  que si se hiciera desde Mis Operaciones.
+  // ============================================================
+  var _segPreventas = [];
+  var _segCalFecha = new Date(); // mes que se está mostrando en el calendario
+
+  function preventasInit(){
+    preventasSegCargar();
+  }
+
+  function preventasSegCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _segPreventas = (datos || []).filter(function(p){ return p.fechaHasta; });
+        preventasSegRenderCalendario();
+        preventasSegRenderLista();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregables();
+  }
+
+  /** "Roja" (vencida), "amarilla" (hoy o mañana) o "verde" (en plazo) según cuántos días faltan hasta fechaHasta. */
+  function preventasSegSeveridad(fechaHastaISO){
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var partes = fechaHastaISO.split("-");
+    var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+    var dias = Math.round((limite - hoy) / 86400000);
+    if (dias < 0) return "roja";
+    if (dias <= 1) return "amarilla";
+    return "verde";
+  }
+
+  function preventasCalMes(delta){
+    _segCalFecha.setMonth(_segCalFecha.getMonth() + delta);
+    preventasSegRenderCalendario();
+  }
+
+  function preventasSegRenderCalendario(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var anio = _segCalFecha.getFullYear(), mes = _segCalFecha.getMonth();
+    document.getElementById("p_calTitulo").textContent = MESES[mes] + " " + anio;
+
+    // Peor severidad del día (roja > amarilla > verde) agrupando las preventas de ese mes por fecha.
+    var porDia = {};
+    _segPreventas.forEach(function(p){
+      var partes = p.fechaHasta.split("-");
+      if (+partes[0] !== anio || (+partes[1]-1) !== mes) return;
+      var dia = +partes[2];
+      var sev = preventasSegSeveridad(p.fechaHasta);
+      var rango = { roja: 3, amarilla: 2, verde: 1 };
+      if (!porDia[dia] || rango[sev] > rango[porDia[dia]]) porDia[dia] = sev;
+    });
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay(); // 0=domingo
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1;padding:2px 0'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='p-cal-dia p-cal-otromes'></div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var sev = porDia[d];
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (sev ? " p-cal-clickable p-cal-" + sev : "");
+      var click = sev ? " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"" : "";
+      celdas.push("<div class='" + clases + "'" + click + ">" + d + "</div>");
+    }
+    document.getElementById("p_calGrid").innerHTML = celdas.join("");
+  }
+
+  var _segFiltroDia = null;
+  function preventasSegFiltrarDia(anio, mes, dia){
+    var key = anio + "-" + String(mes+1).padStart(2,"0") + "-" + String(dia).padStart(2,"0");
+    _segFiltroDia = (_segFiltroDia === key) ? null : key; // click de nuevo = saca el filtro
+    preventasSegRenderLista();
+  }
+
+  function preventasSegRenderLista(){
+    var lista = _segPreventas.slice().sort(function(a,b){ return a.fechaHasta.localeCompare(b.fechaHasta); });
+    if (_segFiltroDia) lista = lista.filter(function(p){ return p.fechaHasta === _segFiltroDia; });
+
+    document.getElementById("p_segCant").textContent = lista.length + (_segFiltroDia ? " ese día" : " en total");
+
+    if (lista.length === 0) {
+      document.getElementById("p_segLista").innerHTML = "<div class='hint' style='margin:0'>" +
+        (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.") + "</div>";
+      return;
+    }
+
+    var COLORES = { roja: "#C0392B", amarilla: "#B7860B", verde: "#1E8449" };
+    var ETIQUETAS = { roja: "Vencida", amarilla: "Próxima", verde: "En plazo" };
+
+    document.getElementById("p_segLista").innerHTML = lista.map(function(p){
+      var sev = preventasSegSeveridad(p.fechaHasta);
+      var partesFecha = p.fechaHasta.split("-");
+      var fechaLinda = partesFecha[2] + "/" + partesFecha[1];
+      return "<div class='p-seg-item' onclick=\"preventasSegEditar('" + p.nPre + "')\">" +
+        "<div class='p-seg-top'>" +
+          "<span class='p-seg-cliente'>" + esc_(p.cliente) + "</span>" +
+          "<span class='p-seg-fecha' style='background:" + COLORES[sev] + "'>" + fechaLinda + " · " + ETIQUETAS[sev] + "</span>" +
+        "</div>" +
+        "<div class='p-seg-modelo'>" + esc_(p.modelo) + " — " + p.nPre + (p.saldo > 0 ? " · saldo " + fmtP(p.saldo) : "") + "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  /** Igual que Mis Operaciones → "✏️ Editar": abre el formulario precargado, cualquier cambio pide motivo y queda registrado como corrección real. */
+  function preventasSegEditar(nPre){
+    misOperacionesCorregir(nPre);
+  }
+
+  function esc_(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 </script>

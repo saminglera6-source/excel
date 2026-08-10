@@ -89,13 +89,23 @@ function obtenerPreventasEntregables() {
   const cSP = getCol(preSheet, "Saldo Pendiente",       fE);
   const cES = getCol(preSheet, "Estado",                fE);
   const cNC = getCol(preSheet, "N° Compra Asociada",    fE);
-  let cEstReg = -1, cTL = -1;
+  let cEstReg = -1, cTL = -1, cED = -1, cEH = -1;
   try { cEstReg = getCol(preSheet, "ESTADO_REGISTRO", fE); } catch (e) { /* columna opcional */ }
   try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
+  // Fecha Prometida Desde/Hasta: usadas por el panel de seguimiento de
+  // preventas (calendario + lista) en preventas.html, para saber para
+  // cuándo se comprometió cada entrega — opcionales para no romper si la
+  // hoja todavía no las tiene (asegurarColumnaGenerica_ las crea recién al
+  // registrar la próxima preventa, ver procesarPreventa en Code.gs).
+  try { cED = getCol(preSheet, "Fecha Prometida Desde", fE); } catch (e) { /* opcional */ }
+  try { cEH = getCol(preSheet, "Fecha Prometida Hasta", fE); } catch (e) { /* opcional */ }
 
   const lastRow = preSheet.getLastRow();
   const opciones = [];
   if (lastRow < fE + 1) return opciones;
+
+  const tz = Session.getScriptTimeZone();
+  const fISO = (celda) => (celda instanceof Date) ? Utilities.formatDate(celda, tz, "yyyy-MM-dd") : "";
 
   const datos = preSheet.getRange(fE + 1, 1, lastRow - fE, preSheet.getLastColumn()).getValues();
   datos.forEach(row => {
@@ -111,7 +121,9 @@ function obtenerPreventasEntregables() {
       saldo:   Number(row[cSP-1]) || 0,
       nComp:   String(row[cNC-1] || ""),
       estado:  estado,
-      tel:     cTL > 0 ? String(row[cTL-1] || "") : ""
+      tel:     cTL > 0 ? String(row[cTL-1] || "") : "",
+      fechaDesde: cED > 0 ? fISO(row[cED-1]) : "",
+      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : ""
     });
   });
   return opciones;
