@@ -734,7 +734,14 @@
   }
 
   function cancelarCorreccion(){
+    // Mismo criterio que enviarCorreccion() al terminar: dejar el
+    // cuestionario en blanco y listo para cargar otra cosa, no solo ocultar
+    // el banner de corrección — si no, quedaban los datos de la operación
+    // que se estaba corrigiendo pisando el formulario.
+    var nombreLimpiar = _correccion && FORM_LIMPIAR_POR_VISTA[_correccion.vista];
     _limpiarEstadoCorreccion_();
+    var fnLimpiar = nombreLimpiar && window[nombreLimpiar];
+    if (fnLimpiar) fnLimpiar();
     mostrarToast("Corrección cancelada.", "info");
   }
 

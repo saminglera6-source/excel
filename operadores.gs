@@ -240,18 +240,45 @@ function _entregarRegalosSiCorresponde_(nVta, modelo, cliente, vendedor, operado
 }
 
 /**
- * Cupo de entregas por día (pedido del dueño: se le acumulaban demasiadas
- * entregas juntas, sobre todo a fin de mes). Un día normal admite hasta 3
- * equipos y $2.500.000 en total de valor a entregar ese día; en los
- * últimos 5 días del mes el cupo baja a 1 equipo y $1.000.000, para
- * repartir mejor la carga en vez de amontonar todo al cierre.
+ * Cupo de entregas (pedido del dueño: se le acumulaban demasiadas entregas
+ * juntas, sobre todo a fin de mes). Un día normal admite hasta 3 equipos y
+ * $2.500.000 en total de valor a entregar ese día. Los últimos 5 días del
+ * mes funcionan como un solo bloque (no día por día): entre esos 5 días
+ * juntos no puede haber más de 5 equipos ni más de $5.000.000 en total,
+ * repartidos como se quiera — para no dejar que todo se amontone al cierre.
  */
-function _capacidadEntregaPreventa_(fecha) {
+function _esFinDeMesCandidata_(fecha) {
   const diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
-  const esFinDeMes = (diasEnMes - fecha.getDate()) < 5; // últimos 5 días del mes
-  return esFinDeMes
-    ? { maxEquipos: 1, maxMonto: 1000000 }
+  return (diasEnMes - fecha.getDate()) < 5; // últimos 5 días del mes
+}
+
+function _capacidadEntregaPreventa_(fecha) {
+  return _esFinDeMesCandidata_(fecha)
+    ? { maxEquipos: 5, maxMonto: 5000000 } // bloque completo de los últimos 5 días, no por día
     : { maxEquipos: 3, maxMonto: 2500000 };
+}
+
+/**
+ * Cuánto hay usado (cantidad y monto) para poder comparar contra el cupo de
+ * `fecha`: si `fecha` cae en el bloque de fin de mes, se suma lo usado en
+ * TODO el bloque (los últimos 5 días del mes juntos), no solo ese día —
+ * porque en ese tramo el cupo es compartido entre los 5 días.
+ */
+function _usadosParaFecha_(fecha, porDia) {
+  const tz = Session.getScriptTimeZone();
+  if (!_esFinDeMesCandidata_(fecha)) {
+    const key = Utilities.formatDate(fecha, tz, "yyyy-MM-dd");
+    return porDia[key] || { cant: 0, monto: 0 };
+  }
+  const anio = fecha.getFullYear(), mes = fecha.getMonth();
+  const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+  const total = { cant: 0, monto: 0 };
+  for (let d = diasEnMes - 4; d <= diasEnMes; d++) {
+    const key = Utilities.formatDate(new Date(anio, mes, d), tz, "yyyy-MM-dd");
+    const u = porDia[key];
+    if (u) { total.cant += u.cant; total.monto += u.monto; }
+  }
+  return total;
 }
 
 /**
@@ -299,9 +326,8 @@ function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
   const candidata = new Date(fechaDeseada.getFullYear(), fechaDeseada.getMonth(), fechaDeseada.getDate());
   for (let i = 0; i < 120; i++) { // ~4 meses de margen, no debería hacer falta ni de cerca
     if (!esDiaHabil_(candidata, feriados)) { candidata.setDate(candidata.getDate() + 1); continue; }
-    const key = Utilities.formatDate(candidata, tz, "yyyy-MM-dd");
     const limites = _capacidadEntregaPreventa_(candidata);
-    const usados = porDia[key] || { cant: 0, monto: 0 };
+    const usados = _usadosParaFecha_(candidata, porDia);
     if (usados.cant < limites.maxEquipos && (usados.monto + montoNuevo) <= limites.maxMonto) {
       return candidata;
     }
