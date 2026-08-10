@@ -34,6 +34,22 @@
     #view-preventas .p-cal-tooltip b { display: block; margin-bottom: 4px; font-size: 11px; opacity: .8; }
     #view-preventas .p-cal-tooltip .p-cal-tt-row { padding: 2px 0; border-top: 1px solid rgba(255,255,255,.12); }
     #view-preventas .p-cal-tooltip .p-cal-tt-row:first-of-type { border-top: none; }
+    #view-preventas .p-fp-wrap { position: relative; }
+    #view-preventas #p_fechaHasta_txt { cursor: pointer; background: #fff; }
+    #view-preventas .p-fp-cal {
+      position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; width: 280px;
+      background: #fff; border: 1px solid #E4E7EC; border-radius: 10px; padding: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15); font-size: 12px;
+    }
+    #view-preventas .p-fp-cal .p-fp-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    #view-preventas .p-fp-cal .p-fp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; text-align: center; }
+    #view-preventas .p-fp-cal .p-cal-dia { min-height: 32px; font-size: 11.5px; border-radius: 6px; }
+    #view-preventas .p-fp-cal .p-cal-dia.p-fp-lleno {
+      background: repeating-linear-gradient(135deg, #FBDCD7, #FBDCD7 4px, #F6C6BE 4px, #F6C6BE 8px);
+      color: #B03A2E; cursor: not-allowed;
+    }
+    #view-preventas .p-fp-cal .p-cal-dia.p-fp-seleccionado { outline: 2px solid #4F46E5; outline-offset: -2px; }
+    #view-preventas .p-fp-cal .p-fp-leyenda { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 10px; color: #7B8794; }
     #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
     #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #E4E7EC; border-radius: 8px; }
     #view-preventas table.p-seg-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
@@ -137,9 +153,13 @@
       <p class="paso-titulo"><span class="paso-num">3</span> Fecha de entrega</p>
       <div class="box box-info" style="margin-top:0">
         <label style="margin-top:0">📅 Fecha de entrega</label>
-        <input type="date" id="p_fechaHasta"/>
+        <div class="p-fp-wrap">
+          <input type="text" id="p_fechaHasta_txt" readonly placeholder="Elegí una fecha" onclick="preventasFechaEntregaAbrir()"/>
+          <input type="hidden" id="p_fechaHasta"/>
+          <div id="p_fechaEntregaCal" class="p-fp-cal" style="display:none"></div>
+        </div>
         <div class="hint" id="p_plazoHint">Calculando fecha sugerida...</div>
-        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) — esperá que aparezca antes de registrar. Si hace falta, la podés editar a mano.</div>
+        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) — esperá que aparezca antes de registrar. El calendario marca en gris los días no hábiles y en rojo los que ya tienen el cupo de entregas completo: no se pueden elegir, tocá otro día.</div>
       </div>
     </div>
 
@@ -250,7 +270,7 @@
         // no un rango — se sugiere la de 10 días hábiles (rango.fechaMaxima),
         // que es el mismo dato que ya usa el resto del sistema (cupo diario,
         // calendario del panel) como "Fecha Prometida Hasta".
-        document.getElementById("p_fechaHasta").value = rango.fechaMaxima;
+        preventasFechaEntregaSet(rango.fechaMaxima);
         document.getElementById("p_plazoHint").textContent =
           "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (10 días hábiles).";
         _feriadosMap = rango.feriados || {};
@@ -262,6 +282,142 @@
 
   document.getElementById("p_fecha").addEventListener("change", preventasRecalcularPlazoEntrega);
   preventasRecalcularPlazoEntrega();
+
+  // ============================================================
+  //  MINI-CALENDARIO PARA "FECHA DE ENTREGA" — reemplaza al <input
+  //  type="date"> nativo (que no puede marcar días bloqueados). Usa
+  //  exactamente las mismas reglas que ya aplica el backend
+  //  (_capacidadEntregaPreventa_/_usadosParaFecha_, operadores.gs) para que
+  //  el operador vea de entrada qué días no puede elegir, en vez de
+  //  enterarse recién después de registrar que la fecha se reprogramó
+  //  sola. Si de todos modos elige algo inválido (dato viejo, carrera con
+  //  otra carga simultánea), el backend sigue siendo la autoridad final:
+  //  reprograma solo igual.
+  // ============================================================
+  var _fpMes = new Date();
+
+  function preventasFechaEntregaSet(iso){
+    document.getElementById("p_fechaHasta").value = iso || "";
+    document.getElementById("p_fechaHasta_txt").value = iso ? preventasFmtDDMMYYYY(iso) : "";
+  }
+
+  function preventasFechaEntregaAbrir(){
+    var cal = document.getElementById("p_fechaEntregaCal");
+    var abriendo = cal.style.display === "none";
+    if (abriendo) {
+      var actual = document.getElementById("p_fechaHasta").value;
+      if (actual) { var p = actual.split("-"); _fpMes = new Date(+p[0], +p[1]-1, 1); }
+      preventasFechaEntregaRender();
+    }
+    cal.style.display = abriendo ? "block" : "none";
+  }
+
+  document.addEventListener("click", function(ev){
+    var wrap = document.querySelector("#view-preventas .p-fp-wrap");
+    if (wrap && !wrap.contains(ev.target)) document.getElementById("p_fechaEntregaCal").style.display = "none";
+  });
+
+  function _fpEsFinDeMes_(fecha){
+    var diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth()+1, 0).getDate();
+    return (diasEnMes - fecha.getDate()) < 5;
+  }
+  function _fpCapacidad_(fecha){
+    return _fpEsFinDeMes_(fecha) ? { maxEquipos: 5, maxMonto: 5000000 } : { maxEquipos: 3, maxMonto: 2500000 };
+  }
+  /** Igual criterio que el backend: si `fecha` cae en el bloque de fin de mes, suma lo usado en los últimos 5 días juntos; si no, solo ese día. */
+  function _fpUsados_(fecha, porDia){
+    if (!_fpEsFinDeMes_(fecha)) {
+      var key = _fpISO_(fecha);
+      return porDia[key] || { cant: 0, monto: 0 };
+    }
+    var anio = fecha.getFullYear(), mes = fecha.getMonth();
+    var diasEnMes = new Date(anio, mes+1, 0).getDate();
+    var total = { cant: 0, monto: 0 };
+    for (var d = diasEnMes - 4; d <= diasEnMes; d++) {
+      var u = porDia[_fpISO_(new Date(anio, mes, d))];
+      if (u) { total.cant += u.cant; total.monto += u.monto; }
+    }
+    return total;
+  }
+  function _fpISO_(fecha){
+    return fecha.getFullYear() + "-" + String(fecha.getMonth()+1).padStart(2,"0") + "-" + String(fecha.getDate()).padStart(2,"0");
+  }
+
+  function preventasFechaEntregaRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var anio = _fpMes.getFullYear(), mes = _fpMes.getMonth();
+
+    // Cupo ya usado por día, a partir de las preventas pendientes ya cargadas
+    // (_segPreventas, panel de seguimiento) — no hace falta otra llamada al
+    // backend. Si se está corrigiendo una preventa existente, se excluye a
+    // sí misma (si no, se contaría dos veces contra su propio cupo).
+    var excluirNPre = (typeof _correccion !== "undefined" && _correccion && _correccion.numeroOriginal) || null;
+    var porDia = {};
+    (_segPreventas || []).forEach(function(p){
+      if (excluirNPre && p.nPre === excluirNPre) return;
+      if (!p.fechaHasta) return;
+      if (!porDia[p.fechaHasta]) porDia[p.fechaHasta] = { cant: 0, monto: 0 };
+      porDia[p.fechaHasta].cant++;
+      porDia[p.fechaHasta].monto += Number(p.precio) || 0;
+    });
+    var montoNuevo = valorNumerico(document.getElementById("p_precioVenta"));
+
+    var seleccionada = document.getElementById("p_fechaHasta").value;
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes+1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1;padding:2px 0'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='p-cal-dia p-cal-otromes'></div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var iso = _fpISO_(fechaDia);
+      var diaSemana = fechaDia.getDay();
+      var descFeriado = _feriadosMap[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var esSeleccionada = iso === seleccionada;
+
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (esSeleccionada ? " p-fp-seleccionado" : "");
+      var attrs = "";
+      if (esNoHabil) {
+        clases += " p-cal-nohabil";
+        attrs = " title='" + (descFeriado ? esc_(descFeriado) : "Fin de semana") + " — no hábil'";
+      } else {
+        var limites = _fpCapacidad_(fechaDia);
+        var usados = _fpUsados_(fechaDia, porDia);
+        var entra = usados.cant < limites.maxEquipos && (usados.monto + montoNuevo) <= limites.maxMonto;
+        if (entra) {
+          attrs = " onclick=\"preventasFechaEntregaElegir('" + iso + "')\" style='cursor:pointer'";
+        } else {
+          clases += " p-fp-lleno";
+          attrs = " title='Cupo de entregas completo para esta fecha'";
+        }
+      }
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + "</div>");
+    }
+
+    document.getElementById("p_fechaEntregaCal").innerHTML =
+      "<div class='p-fp-nav'>" +
+        "<button type='button' class='btn' style='width:auto;padding:2px 8px;margin:0;background:#5D6D7E' onclick='preventasFechaEntregaMes(-1)'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' class='btn' style='width:auto;padding:2px 8px;margin:0;background:#5D6D7E' onclick='preventasFechaEntregaMes(1)'>›</button>" +
+      "</div>" +
+      "<div class='p-fp-grid'>" + celdas.join("") + "</div>" +
+      "<div class='p-fp-leyenda'><span>🚫 Gris: no hábil</span><span>🔴 Rojo: cupo de entregas completo</span></div>";
+  }
+
+  function preventasFechaEntregaMes(delta){
+    _fpMes.setMonth(_fpMes.getMonth() + delta);
+    preventasFechaEntregaRender();
+  }
+
+  function preventasFechaEntregaElegir(iso){
+    preventasFechaEntregaSet(iso);
+    document.getElementById("p_fechaEntregaCal").style.display = "none";
+  }
 
   // Precio Inteligente (precio_automatico.html, mismo helper que Ventas):
   // autocompleta Precio Preventa al seleccionar modelo SOLO si el operador
@@ -357,9 +513,9 @@
     document.getElementById("p_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("p_obs").value          = datos["Observaciones"] || "";
     var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
-    if (fHasta) document.getElementById("p_fechaHasta").value = fHasta;
+    if (fHasta) preventasFechaEntregaSet(fHasta);
     if (_segDropTargetFecha) {
-      document.getElementById("p_fechaHasta").value = _segDropTargetFecha;
+      preventasFechaEntregaSet(_segDropTargetFecha);
       mostrarToast("📅 Fecha de entrega propuesta: " + preventasFmtDDMMYYYY(_segDropTargetFecha) + ". Revisá y confirmá la corrección.", "info");
       _segDropTargetFecha = null;
     }
@@ -447,6 +603,7 @@
         preventasCalcTotal();
         preventasRecalcularPlazoEntrega(); // form.reset() no dispara "change" en p_fecha
         preventasTogglePartePago(); // form.reset() no dispara "change" en el checkbox
+        document.getElementById("p_fechaEntregaCal").style.display = "none";
       }
     });
     preventasSegCargar(); // refresca el panel de seguimiento con lo que se acaba de guardar
