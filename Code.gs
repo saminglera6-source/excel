@@ -4202,11 +4202,16 @@ function procesarPreventa(d) {
     throw new Error(`❌ Lo cobrado (${fmtPeso(totalCobrado)}) no puede superar el precio pactado (${fmtPeso(d.precioVenta)}).`);
   }
 
-  // Descripción automática de entrega si observaciones vacías (Parte 3)
+  // Descripción automática de entrega si observaciones vacías (Parte 3).
+  // Parte 6: el formulario ahora pide una sola "Fecha de entrega" (no un
+  // rango) — manda el mismo valor en fechaDesde y fechaHasta, así que acá
+  // se describe como fecha única en vez de "del X al Y".
   const fechaDesde = d.fechaDesde ? parseDate(d.fechaDesde) : null;
   const fechaHasta = d.fechaHasta ? parseDate(d.fechaHasta) : null;
   let entregaDesc = "";
-  if (fechaDesde && fechaHasta) {
+  if (fechaDesde && fechaHasta && fechaDesde.getTime() === fechaHasta.getTime()) {
+    entregaDesc = `Entrega prometida: el ${fmt(fechaHasta)}`;
+  } else if (fechaDesde && fechaHasta) {
     entregaDesc = `Entrega prometida: ${fmt(fechaDesde)} a ${fmt(fechaHasta)}`;
   } else if (fechaDesde) {
     entregaDesc = `Entrega prometida: a partir del ${fmt(fechaDesde)}`;

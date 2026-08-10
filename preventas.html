@@ -134,21 +134,12 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">3</span> Plazo de entrega</p>
+      <p class="paso-titulo"><span class="paso-num">3</span> Fecha de entrega</p>
       <div class="box box-info" style="margin-top:0">
-        <label style="margin-top:0">📅 Plazo de entrega (7 a 10 días hábiles)</label>
-        <div class="fila2">
-          <div>
-            <label style="font-size:11px">Fecha Prometida Desde</label>
-            <input type="date" id="p_fechaDesde"/>
-          </div>
-          <div>
-            <label style="font-size:11px">Fecha Prometida Hasta</label>
-            <input type="date" id="p_fechaHasta"/>
-          </div>
-        </div>
-        <div class="hint" id="p_plazoHint">Calculando plazo permitido...</div>
-        <div class="hint">Estas fechas se completan solas apenas elegís la "Fecha preventa" — esperá que aparezca el rango antes de registrar. Si hace falta, las podés editar a mano.</div>
+        <label style="margin-top:0">📅 Fecha de entrega</label>
+        <input type="date" id="p_fechaHasta"/>
+        <div class="hint" id="p_plazoHint">Calculando fecha sugerida...</div>
+        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) — esperá que aparezca antes de registrar. Si hace falta, la podés editar a mano.</div>
       </div>
     </div>
 
@@ -242,7 +233,7 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
 
-  /** Recalcula fechaDesde/fechaHasta sugeridas y el hint de plazo. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve el rango). */
+  /** Sugiere la fecha de entrega (10 días hábiles desde "Fecha preventa", sin contar sábados/domingos/feriados) y actualiza el hint. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve la fecha). */
   // Mapa "yyyy-MM-dd" -> descripción, cargado desde CONFIG_FERIADOS
   // (dias_habiles.gs) para que el calendario del panel de seguimiento
   // pueda marcar los días no hábiles — mismo criterio que ya usa el
@@ -255,10 +246,13 @@
     if (!fecha) return;
     google.script.run
       .withSuccessHandler(function(rango){
-        document.getElementById("p_fechaDesde").value = rango.fechaMinima;
+        // Una sola fecha (Parte 6): se pide un único "Fecha de entrega",
+        // no un rango — se sugiere la de 10 días hábiles (rango.fechaMaxima),
+        // que es el mismo dato que ya usa el resto del sistema (cupo diario,
+        // calendario del panel) como "Fecha Prometida Hasta".
         document.getElementById("p_fechaHasta").value = rango.fechaMaxima;
         document.getElementById("p_plazoHint").textContent =
-          "Plazo permitido: del " + preventasFmtDDMMYYYY(rango.fechaMinima) + " al " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (7 a 10 días hábiles).";
+          "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (10 días hábiles).";
         _feriadosMap = rango.feriados || {};
         preventasSegRenderCalendario();
       })
@@ -362,9 +356,7 @@
     setInputMoneda(document.getElementById("p_cuotas"), datos["Cobrado Cuotas"] || 0);
     document.getElementById("p_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("p_obs").value          = datos["Observaciones"] || "";
-    var fDesde = fechaParaInput(datos["Fecha Prometida Desde"]);
     var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
-    if (fDesde) document.getElementById("p_fechaDesde").value = fDesde;
     if (fHasta) document.getElementById("p_fechaHasta").value = fHasta;
     if (_segDropTargetFecha) {
       document.getElementById("p_fechaHasta").value = _segDropTargetFecha;
@@ -408,7 +400,11 @@
       vendedor: document.getElementById("p_operador").value,
       precioVenta: pv,
       efec: ef, transf: tr, cuotas: cu, usd: us,
-      fechaDesde: document.getElementById("p_fechaDesde").value,
+      // Una sola fecha de entrega (Parte 6): se manda el mismo valor como
+      // Desde y Hasta — el backend (Code.gs/operadores.gs) sigue guardando
+      // ambas columnas por compatibilidad con el cupo diario y el
+      // calendario del panel, que usan "Fecha Prometida Hasta".
+      fechaDesde: document.getElementById("p_fechaHasta").value,
       fechaHasta: document.getElementById("p_fechaHasta").value,
       obs: document.getElementById("p_obs").value.trim(),
       operador: document.getElementById("p_operador").value
