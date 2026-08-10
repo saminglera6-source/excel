@@ -256,13 +256,17 @@ function _capacidadEntregaPreventa_(fecha) {
 
 /**
  * Si la "Fecha Prometida Hasta" pedida ya está topada (cupo de equipos o
- * de valor, ver _capacidadEntregaPreventa_), busca día por día hacia
- * adelante la primera fecha donde esta preventa entra sin romper el cupo.
- * Nunca bloquea el registro: reprograma sola, como pidió el dueño.
- * Cuenta solo preventas activas (ni ANULADO ni ya Entregada/Cancelada) —
- * mismo criterio que obtenerPreventasEntregables() en webapp.gs.
+ * de valor, ver _capacidadEntregaPreventa_) O cae en un día no hábil
+ * (sábado, domingo o feriado — esDiaHabil_, dias_habiles.gs, misma fuente
+ * que ya usa el plazo de 7 a 10 días hábiles de la preventa), busca día
+ * por día hacia adelante la primera fecha hábil donde esta preventa entra
+ * sin romper el cupo. Nunca bloquea el registro: reprograma sola, como
+ * pidió el dueño. Cuenta solo preventas activas (ni ANULADO ni ya
+ * Entregada/Cancelada) — mismo criterio que obtenerPreventasEntregables()
+ * en webapp.gs.
  */
 function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
+  const feriados = obtenerFeriados_(); // 1 sola lectura, reutilizada en todo el loop de abajo
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
   if (!sheet) return fechaDeseada;
   const fE = 2;
@@ -294,6 +298,7 @@ function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
 
   const candidata = new Date(fechaDeseada.getFullYear(), fechaDeseada.getMonth(), fechaDeseada.getDate());
   for (let i = 0; i < 120; i++) { // ~4 meses de margen, no debería hacer falta ni de cerca
+    if (!esDiaHabil_(candidata, feriados)) { candidata.setDate(candidata.getDate() + 1); continue; }
     const key = Utilities.formatDate(candidata, tz, "yyyy-MM-dd");
     const limites = _capacidadEntregaPreventa_(candidata);
     const usados = porDia[key] || { cant: 0, monto: 0 };
@@ -328,13 +333,15 @@ function procesarPreventaConOperador(d) {
     throw new Error("❌ La Fecha Prometida Hasta no puede ser anterior a la Fecha Prometida Desde.");
   }
 
-  // Cupo diario de entregas: si el día pedido ya está topado, se reprograma
-  // sola a la próxima fecha disponible (nunca bloquea el registro).
+  // Cupo diario de entregas: si el día pedido ya está topado, o cae sábado/
+  // domingo/feriado, se reprograma sola al próximo día hábil disponible
+  // (nunca bloquea el registro).
   let notaCupo = "";
   const fechaDisponible = _resolverFechaEntregaDisponible_(fHasta, Number(d.precioVenta) || 0);
   if (fechaDisponible.getTime() !== fHasta.getTime()) {
     const tz = Session.getScriptTimeZone();
-    notaCupo = `\n📦 Cupo de entregas de ${Utilities.formatDate(fHasta, tz, "dd/MM/yyyy")} completo (equipos o valor a entregar) — se reprogramó sola para el ${Utilities.formatDate(fechaDisponible, tz, "dd/MM/yyyy")}.`;
+    const motivoCambio = esDiaHabil_(fHasta) ? "tiene el cupo de entregas completo (equipos o valor a entregar)" : "no es un día hábil (fin de semana o feriado)";
+    notaCupo = `\n📦 El ${Utilities.formatDate(fHasta, tz, "dd/MM/yyyy")} ${motivoCambio} — la entrega se reprogramó sola para el ${Utilities.formatDate(fechaDisponible, tz, "dd/MM/yyyy")}.`;
     d.fechaHasta = Utilities.formatDate(fechaDisponible, tz, "yyyy-MM-dd");
   }
 

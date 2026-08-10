@@ -21,6 +21,11 @@
     #view-preventas .p-cal-roja { background: #C0392B; }
     #view-preventas .p-cal-amarilla { background: #B7860B; }
     #view-preventas .p-cal-verde { background: #1E8449; }
+    #view-preventas .p-cal-dia.p-cal-nohabil {
+      background: repeating-linear-gradient(135deg, #F0F1F3, #F0F1F3 4px, #E4E6E9 4px, #E4E6E9 8px);
+      color: #B0B7C0;
+    }
+    #view-preventas .p-cal-dia.p-cal-nohabil.p-cal-clickable { color: #fff; }
     #view-preventas .p-cal-tooltip {
       position: fixed; z-index: 50; background: #1F2937; color: #fff; border-radius: 8px;
       padding: 8px 10px; font-size: 11.5px; max-width: 240px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
@@ -194,7 +199,7 @@
       </div>
       <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7B8794">
-        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>El numerito es cuántas entregan ese día — pasá el mouse para ver cuáles</span>
+        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>🚫 No hábil (fin de semana/feriado)</span><span>El numerito es cuántas entregan ese día — pasá el mouse para ver cuáles</span>
       </div>
       <div id="p_calTooltip" class="p-cal-tooltip"></div>
     </div>
@@ -238,6 +243,13 @@
   }
 
   /** Recalcula fechaDesde/fechaHasta sugeridas y el hint de plazo. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve el rango). */
+  // Mapa "yyyy-MM-dd" -> descripción, cargado desde CONFIG_FERIADOS
+  // (dias_habiles.gs) para que el calendario del panel de seguimiento
+  // pueda marcar los días no hábiles — mismo criterio que ya usa el
+  // backend (operadores.gs) para no reprogramar entregas en fin de
+  // semana/feriado.
+  var _feriadosMap = {};
+
   function preventasRecalcularPlazoEntrega(){
     var fecha = document.getElementById("p_fecha").value;
     if (!fecha) return;
@@ -247,6 +259,8 @@
         document.getElementById("p_fechaHasta").value = rango.fechaMaxima;
         document.getElementById("p_plazoHint").textContent =
           "Plazo permitido: del " + preventasFmtDDMMYYYY(rango.fechaMinima) + " al " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (7 a 10 días hábiles).";
+        _feriadosMap = rango.feriados || {};
+        preventasSegRenderCalendario();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .calcularRangoEntregaPreventa(fecha);
@@ -529,8 +543,12 @@
       var info = porDia[d];
       var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
       var iso = anio + "-" + String(mes+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
-      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (info ? " p-cal-clickable p-cal-" + info.sev : "");
+      var diaSemana = new Date(anio, mes, d).getDay();
+      var descFeriado = _feriadosMap[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (esNoHabil ? " p-cal-nohabil" : "") + (info ? " p-cal-clickable p-cal-" + info.sev : "");
       var attrs = " data-fecha='" + iso + "'" +
+        (esNoHabil ? " title='" + (descFeriado ? esc_(descFeriado) : "Fin de semana") + " — no hábil'" : "") +
         " ondragover=\"preventasSegDragOver(event)\" ondragleave=\"preventasSegDragLeave(event)\" ondrop=\"preventasSegDrop(event,'" + iso + "')\"";
       if (info) {
         attrs += " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"" +
@@ -568,6 +586,9 @@
     var nPre = ev.dataTransfer.getData("text/plain");
     if (!nPre) return;
     _segDropTargetFecha = isoFecha;
+    if (ev.currentTarget.classList.contains("p-cal-nohabil")) {
+      mostrarToast("⚠ Ese día no es hábil (fin de semana/feriado) — al confirmar, el sistema va a reprogramar la entrega sola al próximo día disponible.", "info");
+    }
     preventasSegEditar(nPre);
   }
 
