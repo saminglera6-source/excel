@@ -3,26 +3,40 @@
     #view-preventas .preventas-layout { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
     #view-preventas .preventas-layout > .panel:first-child { flex: 1 1 480px; min-width: 320px; }
     #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex: 1 1 320px; position: sticky; top: 14px; }
+    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { max-width: 560px; }
     #view-preventas .p-cal-dia {
-      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-      border-radius: 6px; cursor: default; position: relative;
+      aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 6px; cursor: default; position: relative; gap: 1px;
     }
     #view-preventas .p-cal-dia.p-cal-otromes { opacity: .3; }
     #view-preventas .p-cal-dia.p-cal-hoy { outline: 1.5px solid #4F46E5; outline-offset: -1.5px; }
     #view-preventas .p-cal-dia.p-cal-clickable { cursor: pointer; font-weight: 700; color: #fff; }
     #view-preventas .p-cal-dia.p-cal-clickable:hover { transform: scale(1.08); }
+    #view-preventas .p-cal-dia.p-cal-dragover { outline: 2px dashed #fff; outline-offset: -3px; }
+    #view-preventas .p-cal-dia .p-cal-badge { font-size: 9px; font-weight: 700; opacity: .9; }
     #view-preventas .p-cal-roja { background: #C0392B; }
     #view-preventas .p-cal-amarilla { background: #B7860B; }
     #view-preventas .p-cal-verde { background: #1E8449; }
-    #view-preventas .p-seg-item {
-      border: 1px solid #E4E7EC; border-radius: 8px; padding: 8px 10px; cursor: pointer;
-      display: flex; flex-direction: column; gap: 2px; font-size: 12px; transition: border-color .15s;
+    #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
+    #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #E4E7EC; border-radius: 8px; }
+    #view-preventas table.p-seg-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    #view-preventas table.p-seg-tabla thead th {
+      position: sticky; top: 0; background: #F4F6F8; text-align: left; padding: 6px 7px;
+      font-size: 10px; color: #7B8794; text-transform: uppercase; letter-spacing: .3px; z-index: 1;
     }
-    #view-preventas .p-seg-item:hover { border-color: #9AA5B1; }
-    #view-preventas .p-seg-item .p-seg-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-    #view-preventas .p-seg-item .p-seg-cliente { font-weight: 700; }
-    #view-preventas .p-seg-item .p-seg-fecha { font-size: 10.5px; padding: 2px 7px; border-radius: 100px; font-weight: 700; color: #fff; white-space: nowrap; }
-    #view-preventas .p-seg-item .p-seg-modelo { color: #7B8794; font-size: 11px; }
+    #view-preventas table.p-seg-tabla tbody tr {
+      cursor: grab; border-top: 1px solid #ECEEF1; transition: filter .15s;
+    }
+    #view-preventas table.p-seg-tabla tbody tr:hover { filter: brightness(0.96); }
+    #view-preventas table.p-seg-tabla tbody tr.p-seg-dragging { opacity: .4; }
+    #view-preventas table.p-seg-tabla td { padding: 6px 7px; white-space: nowrap; }
+    #view-preventas table.p-seg-tabla td.p-seg-td-objeto { white-space: normal; max-width: 140px; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-roja { background: #FDECEA; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-amarilla { background: #FEF6E0; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-verde { background: #EAF6EE; }
+    #view-preventas .p-seg-fecha-chip { font-size: 10px; padding: 1px 6px; border-radius: 100px; font-weight: 700; color: #fff; white-space: nowrap; }
+    #view-preventas .p-seg-nombre { font-weight: 700; }
+    #view-preventas .p-seg-sub { color: #7B8794; font-size: 10.5px; }
   </style>
   <div class="preventas-layout">
   <div class="panel">
@@ -141,9 +155,9 @@
        Libro Diario, Auditoría y Correcciones exactamente igual que si se
        editara desde Mis Operaciones — no hay ninguna copia de los datos.
        ============================================================ -->
-  <div class="panel" id="p_seguimientoPanel" style="max-width:380px">
+  <div class="panel" id="p_seguimientoPanel">
     <h3 style="margin-bottom:2px">📅 Entregas pendientes</h3>
-    <div class="hint" style="margin-top:0">Tocá un día con color o una preventa de la lista para editarla.</div>
+    <div class="hint" style="margin-top:0">Tocá un día o una fila de la lista para editarla. También podés <b>arrastrar una fila y soltarla sobre un día</b> del calendario para reprogramar esa entrega (te abre la corrección con la fecha ya cargada, vos confirmás).</div>
 
     <div id="p_calWrap" style="margin-top:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -153,7 +167,7 @@
       </div>
       <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;text-align:center"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7B8794">
-        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span>
+        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>El numerito es cuántas entregan ese día</span>
       </div>
     </div>
 
@@ -163,7 +177,17 @@
       <b style="font-size:12.5px">Todas las pendientes</b>
       <span id="p_segCant" style="font-size:11px;color:#7B8794"></span>
     </div>
-    <div id="p_segLista" style="display:flex;flex-direction:column;gap:6px;max-height:480px;overflow-y:auto"></div>
+    <input type="text" id="p_segBuscar" class="p-seg-buscador" placeholder="🔎 Buscar por cliente, modelo o Nº..." oninput="preventasSegRenderLista()"/>
+    <div class="p-seg-tabla-wrap">
+      <table class="p-seg-tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th>
+          </tr>
+        </thead>
+        <tbody id="p_segLista"></tbody>
+      </table>
+    </div>
   </div>
   </div>
 </div>
@@ -286,6 +310,11 @@
     var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
     if (fDesde) document.getElementById("p_fechaDesde").value = fDesde;
     if (fHasta) document.getElementById("p_fechaHasta").value = fHasta;
+    if (_segDropTargetFecha) {
+      document.getElementById("p_fechaHasta").value = _segDropTargetFecha;
+      mostrarToast("📅 Fecha de entrega propuesta: " + preventasFmtDDMMYYYY(_segDropTargetFecha) + ". Revisá y confirmá la corrección.", "info");
+      _segDropTargetFecha = null;
+    }
     preventasCalcTotal();
   }
 
@@ -377,6 +406,7 @@
   // ============================================================
   var _segPreventas = [];
   var _segCalFecha = new Date(); // mes que se está mostrando en el calendario
+  var _segDropTargetFecha = null; // fecha (ISO) soltada por drag&drop, se aplica al precargar la corrección
 
   function preventasInit(){
     preventasSegCargar();
@@ -385,7 +415,19 @@
   function preventasSegCargar(){
     google.script.run
       .withSuccessHandler(function(datos){
-        _segPreventas = (datos || []).filter(function(p){ return p.fechaHasta; });
+        var hoy = new Date(); hoy.setHours(0,0,0,0);
+        _segPreventas = (datos || []).filter(function(p){ return p.fechaHasta; }).map(function(p){
+          var partes = p.fechaHasta.split("-");
+          var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+          var diasRestantes = Math.round((limite - hoy) / 86400000);
+          // "Monto diario" = cuánto tendría que ir cobrando por día, en promedio, para llegar
+          // sin saldo a la fecha límite — la misma idea que la columna "MONTO DIARIO" de la
+          // planilla manual, pero calculada sola a partir del saldo y los días que faltan.
+          var montoDiario = (p.saldo > 0) ? p.saldo / Math.max(diasRestantes, 1) : 0;
+          p.diasRestantes = diasRestantes;
+          p.montoDiario = montoDiario;
+          return p;
+        });
         preventasSegRenderCalendario();
         preventasSegRenderLista();
       })
@@ -414,7 +456,7 @@
     var anio = _segCalFecha.getFullYear(), mes = _segCalFecha.getMonth();
     document.getElementById("p_calTitulo").textContent = MESES[mes] + " " + anio;
 
-    // Peor severidad del día (roja > amarilla > verde) agrupando las preventas de ese mes por fecha.
+    // Peor severidad del día (roja > amarilla > verde) y cantidad de preventas, agrupando por fecha.
     var porDia = {};
     _segPreventas.forEach(function(p){
       var partes = p.fechaHasta.split("-");
@@ -422,7 +464,9 @@
       var dia = +partes[2];
       var sev = preventasSegSeveridad(p.fechaHasta);
       var rango = { roja: 3, amarilla: 2, verde: 1 };
-      if (!porDia[dia] || rango[sev] > rango[porDia[dia]]) porDia[dia] = sev;
+      if (!porDia[dia]) porDia[dia] = { sev: sev, cant: 0 };
+      if (rango[sev] > rango[porDia[dia].sev]) porDia[dia].sev = sev;
+      porDia[dia].cant++;
     });
 
     var hoy = new Date();
@@ -434,13 +478,28 @@
     });
     for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='p-cal-dia p-cal-otromes'></div>");
     for (var d = 1; d <= diasEnMes; d++) {
-      var sev = porDia[d];
+      var info = porDia[d];
       var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
-      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (sev ? " p-cal-clickable p-cal-" + sev : "");
-      var click = sev ? " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"" : "";
-      celdas.push("<div class='" + clases + "'" + click + ">" + d + "</div>");
+      var iso = anio + "-" + String(mes+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (info ? " p-cal-clickable p-cal-" + info.sev : "");
+      var attrs = " data-fecha='" + iso + "'" +
+        " ondragover=\"preventasSegDragOver(event)\" ondragleave=\"preventasSegDragLeave(event)\" ondrop=\"preventasSegDrop(event,'" + iso + "')\"";
+      if (info) attrs += " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"";
+      var badge = info ? "<span class='p-cal-badge'>" + info.cant + "</span>" : "";
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + badge + "</div>");
     }
     document.getElementById("p_calGrid").innerHTML = celdas.join("");
+  }
+
+  function preventasSegDragOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add("p-cal-dragover"); }
+  function preventasSegDragLeave(ev){ ev.currentTarget.classList.remove("p-cal-dragover"); }
+  function preventasSegDrop(ev, isoFecha){
+    ev.preventDefault();
+    ev.currentTarget.classList.remove("p-cal-dragover");
+    var nPre = ev.dataTransfer.getData("text/plain");
+    if (!nPre) return;
+    _segDropTargetFecha = isoFecha;
+    preventasSegEditar(nPre);
   }
 
   var _segFiltroDia = null;
@@ -454,32 +513,56 @@
     var lista = _segPreventas.slice().sort(function(a,b){ return a.fechaHasta.localeCompare(b.fechaHasta); });
     if (_segFiltroDia) lista = lista.filter(function(p){ return p.fechaHasta === _segFiltroDia; });
 
+    var q = (document.getElementById("p_segBuscar").value || "").trim().toLowerCase();
+    if (q) {
+      lista = lista.filter(function(p){
+        return (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.nPre||"").toLowerCase().indexOf(q) >= 0;
+      });
+    }
+
     document.getElementById("p_segCant").textContent = lista.length + (_segFiltroDia ? " ese día" : " en total");
 
     if (lista.length === 0) {
-      document.getElementById("p_segLista").innerHTML = "<div class='hint' style='margin:0'>" +
-        (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.") + "</div>";
+      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='6' class='hint' style='margin:0'>" +
+        (q ? "Sin resultados para \"" + esc_(q) + "\"." : (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.")) + "</td></tr>";
       return;
     }
 
-    var COLORES = { roja: "#C0392B", amarilla: "#B7860B", verde: "#1E8449" };
     var ETIQUETAS = { roja: "Vencida", amarilla: "Próxima", verde: "En plazo" };
+    var COLORES = { roja: "#C0392B", amarilla: "#B7860B", verde: "#1E8449" };
 
     document.getElementById("p_segLista").innerHTML = lista.map(function(p){
       var sev = preventasSegSeveridad(p.fechaHasta);
       var partesFecha = p.fechaHasta.split("-");
       var fechaLinda = partesFecha[2] + "/" + partesFecha[1];
-      return "<div class='p-seg-item' onclick=\"preventasSegEditar('" + p.nPre + "')\">" +
-        "<div class='p-seg-top'>" +
-          "<span class='p-seg-cliente'>" + esc_(p.cliente) + "</span>" +
-          "<span class='p-seg-fecha' style='background:" + COLORES[sev] + "'>" + fechaLinda + " · " + ETIQUETAS[sev] + "</span>" +
-        "</div>" +
-        "<div class='p-seg-modelo'>" + esc_(p.modelo) + " — " + p.nPre + (p.saldo > 0 ? " · saldo " + fmtP(p.saldo) : "") + "</div>" +
-      "</div>";
+      var subDias = p.diasRestantes < 0 ? "hace " + Math.abs(p.diasRestantes) + " días" :
+                    (p.diasRestantes === 0 ? "hoy" : "en " + p.diasRestantes + " días");
+      return "<tr class='p-seg-fila-" + sev + "' draggable='true'" +
+          " ondragstart=\"preventasSegDragStart(event,'" + p.nPre + "')\"" +
+          " ondragend=\"preventasSegDragEnd(event)\"" +
+          " onclick=\"preventasSegEditar('" + p.nPre + "')\">" +
+        "<td><span class='p-seg-fecha-chip' style='background:" + COLORES[sev] + "'>" + fechaLinda + "</span><div class='p-seg-sub'>" + subDias + "</div></td>" +
+        "<td><div class='p-seg-nombre'>" + esc_(p.cliente) + "</div>" + (p.tel ? "<div class='p-seg-sub'>" + esc_(p.tel) + "</div>" : "") + "</td>" +
+        "<td class='p-seg-td-objeto'>" + esc_(p.modelo) + "<div class='p-seg-sub'>" + p.nPre + " · " + ETIQUETAS[sev] + "</div></td>" +
+        "<td>" + fmtP(p.precio) + "</td>" +
+        "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
+        "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
+      "</tr>";
     }).join("");
   }
 
-  /** Igual que Mis Operaciones → "✏️ Editar": abre el formulario precargado, cualquier cambio pide motivo y queda registrado como corrección real. */
+  function preventasSegDragStart(ev, nPre){
+    ev.dataTransfer.setData("text/plain", nPre);
+    ev.dataTransfer.effectAllowed = "move";
+    ev.currentTarget.classList.add("p-seg-dragging");
+  }
+  function preventasSegDragEnd(ev){
+    ev.currentTarget.classList.remove("p-seg-dragging");
+  }
+
+  /** Igual que Mis Operaciones → "✏️ Editar": abre el formulario precargado, cualquier cambio pide motivo y queda registrado como corrección real. Si vino de un drag&drop sobre el calendario, precarga la fecha soltada en "Fecha Prometida Hasta" — el operador la ve y todavía tiene que confirmar la corrección. */
   function preventasSegEditar(nPre){
     misOperacionesCorregir(nPre);
   }
