@@ -4140,6 +4140,11 @@ function procesarPreventa(d) {
   // el rango de 7 a 10 días hábiles en pantalla.
   asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Desde");
   asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Hasta");
+  // Equipo que el cliente entrega en parte de pago de esta preventa (si
+  // corresponde) — opcional, solo para que el panel de seguimiento y el
+  // recibo lo muestren; no genera ningún movimiento de stock por sí solo.
+  asegurarColumnaGenerica_(sheet, fE, "Equipo Parte De Pago");
+  asegurarColumnaGenerica_(sheet, fE, "Valor Parte De Pago");
   const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idx = (n, opcional) => {
     const i = hdrs.findIndex(h => String(h).trim() === n.trim());
@@ -4176,6 +4181,8 @@ function procesarPreventa(d) {
   // convertidos a pesos (columna nueva, opcional) para poder reconstruir
   // caja/ganancias/reportes sin perder ninguno de los dos valores.
   const cUSC  = idx("Cobrado USD Convertido", true);
+  const cPPE  = idx("Equipo Parte De Pago",   true);
+  const cPPV  = idx("Valor Parte De Pago",    true);
 
   const nPre = genCorrelativo(sheet, cNP + 1, "PRE", fE + 1);
   const fila = getFilaVacia(sheet, cNP + 1, fE + 1);
@@ -4239,6 +4246,8 @@ function procesarPreventa(d) {
   if (cED   >= 0) filaData[cED]   = fechaDesde || "";
   if (cEH   >= 0) filaData[cEH]   = fechaHasta || "";
   if (cUSC  >= 0) filaData[cUSC]  = usdEnPesos;
+  if (cPPE  >= 0) filaData[cPPE]  = d.partePagoEquipo || "";
+  if (cPPV  >= 0) filaData[cPPV]  = d.partePagoEquipo ? (Number(d.partePagoValor) || 0) : "";
 
   sheet.getRange(fila, 1, 1, totalCols).setValues([filaData]);
   sheet.getRange(fila, cFP + 1).setNumberFormat("dd/mm/yyyy");
@@ -4251,6 +4260,7 @@ function procesarPreventa(d) {
   if (cED  >= 0) sheet.getRange(fila, cED  + 1).setNumberFormat("dd/mm/yyyy");
   if (cEH  >= 0) sheet.getRange(fila, cEH  + 1).setNumberFormat("dd/mm/yyyy");
   if (cUSC >= 0) sheet.getRange(fila, cUSC + 1).setNumberFormat("$#,##0");
+  if (cPPV >= 0) sheet.getRange(fila, cPPV + 1).setNumberFormat("$#,##0");
   sheet.getRange(fila, cNP + 1, 1, totalCols).setBackground("#F5EEF8");
 
   // Registrar SOLO lo efectivamente cobrado (puede ser parcial). Cambio 3:
@@ -4285,6 +4295,7 @@ function procesarPreventa(d) {
     (usdMontoReal > 0 ? `\nUSD: ${usdMontoReal} → ${fmtPeso(usdEnPesos)} (cotización ${fmtPeso(cotizacion.venta)})` : ``) +
     `\nSaldo pendiente: ${fmtPeso(saldoPendiente)}` +
     (entregaDesc ? `\n📅 ${entregaDesc}` : ``) +
+    (d.partePagoEquipo ? `\n🔁 Entrega en parte de pago: ${d.partePagoEquipo}${Number(d.partePagoValor) > 0 ? " (" + fmtPeso(Number(d.partePagoValor)) + ")" : ""}` : ``) +
     `\n\n💰 Ingreso registrado en caja.`;
 }
 

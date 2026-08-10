@@ -3,20 +3,32 @@
     #view-preventas .preventas-layout { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
     #view-preventas .preventas-layout > .panel:first-child { flex: 1 1 480px; min-width: 320px; }
     #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex: 1 1 320px; position: sticky; top: 14px; }
-    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { max-width: 560px; }
+    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex-basis: 720px; max-width: 720px; }
+    #view-preventas #p_calGrid { gap: 5px; }
     #view-preventas .p-cal-dia {
       aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      border-radius: 6px; cursor: default; position: relative; gap: 1px;
+      border-radius: 8px; cursor: default; position: relative; gap: 1px; min-height: 44px; font-size: 13px;
     }
     #view-preventas .p-cal-dia.p-cal-otromes { opacity: .3; }
-    #view-preventas .p-cal-dia.p-cal-hoy { outline: 1.5px solid #4F46E5; outline-offset: -1.5px; }
+    #view-preventas .p-cal-dia.p-cal-hoy { outline: 2px solid #4F46E5; outline-offset: -2px; }
     #view-preventas .p-cal-dia.p-cal-clickable { cursor: pointer; font-weight: 700; color: #fff; }
-    #view-preventas .p-cal-dia.p-cal-clickable:hover { transform: scale(1.08); }
+    #view-preventas .p-cal-dia.p-cal-clickable:hover { transform: scale(1.07); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
     #view-preventas .p-cal-dia.p-cal-dragover { outline: 2px dashed #fff; outline-offset: -3px; }
-    #view-preventas .p-cal-dia .p-cal-badge { font-size: 9px; font-weight: 700; opacity: .9; }
+    #view-preventas .p-cal-dia .p-cal-badge {
+      font-size: 10px; font-weight: 700; background: rgba(255,255,255,.28); border-radius: 100px;
+      padding: 0 5px; line-height: 1.4;
+    }
     #view-preventas .p-cal-roja { background: #C0392B; }
     #view-preventas .p-cal-amarilla { background: #B7860B; }
     #view-preventas .p-cal-verde { background: #1E8449; }
+    #view-preventas .p-cal-tooltip {
+      position: fixed; z-index: 50; background: #1F2937; color: #fff; border-radius: 8px;
+      padding: 8px 10px; font-size: 11.5px; max-width: 240px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+      pointer-events: none; display: none;
+    }
+    #view-preventas .p-cal-tooltip b { display: block; margin-bottom: 4px; font-size: 11px; opacity: .8; }
+    #view-preventas .p-cal-tooltip .p-cal-tt-row { padding: 2px 0; border-top: 1px solid rgba(255,255,255,.12); }
+    #view-preventas .p-cal-tooltip .p-cal-tt-row:first-of-type { border-top: none; }
     #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
     #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #E4E7EC; border-radius: 8px; }
     #view-preventas table.p-seg-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
@@ -99,6 +111,21 @@
       </div>
       <label>Estado requerido (opcional):</label>
       <input type="text" id="p_estadoRequerido" placeholder="Ej: Como nuevo, sin marcas"/>
+
+      <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+        <input type="checkbox" id="p_ppCheck" style="width:auto" onchange="preventasTogglePartePago()"/>
+        🔁 El cliente va a entregar un equipo en parte de pago
+      </label>
+      <div id="p_ppWrap" class="fila2" style="display:none;margin-top:6px">
+        <div>
+          <label style="font-size:11px">Equipo que entrega</label>
+          <input type="text" id="p_ppEquipo" placeholder="Ej: iPhone 8 64GB"/>
+        </div>
+        <div>
+          <label style="font-size:11px">Valor acordado (opcional)</label>
+          <input type="text" inputmode="numeric" id="p_ppValor" placeholder="$0" oninput="formatearInputMoneda(this)"/>
+        </div>
+      </div>
     </div>
 
     <div class="paso">
@@ -165,10 +192,11 @@
         <b id="p_calTitulo" style="font-size:13px"></b>
         <button type="button" class="btn" style="width:auto;padding:4px 10px;margin:0;background:#5D6D7E" onclick="preventasCalMes(1)">›</button>
       </div>
-      <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-size:11px;text-align:center"></div>
+      <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7B8794">
-        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>El numerito es cuántas entregan ese día</span>
+        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>El numerito es cuántas entregan ese día — pasá el mouse para ver cuáles</span>
       </div>
+      <div id="p_calTooltip" class="p-cal-tooltip"></div>
     </div>
 
     <hr style="border:none;border-top:1px solid #E4E7EC;margin:14px 0">
@@ -182,7 +210,7 @@
       <table class="p-seg-tabla">
         <thead>
           <tr>
-            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th>
+            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th><th>Toma</th>
           </tr>
         </thead>
         <tbody id="p_segLista"></tbody>
@@ -276,6 +304,15 @@
     });
   }
 
+  function preventasTogglePartePago(){
+    var on = document.getElementById("p_ppCheck").checked;
+    document.getElementById("p_ppWrap").style.display = on ? "flex" : "none";
+    if (!on) {
+      document.getElementById("p_ppEquipo").value = "";
+      document.getElementById("p_ppValor").value = "";
+    }
+  }
+
   function preventasCalcTotal(){
     var ef = valorNumerico(document.getElementById("p_efec"));
     var tr = valorNumerico(document.getElementById("p_transf"));
@@ -300,6 +337,11 @@
     document.getElementById("p_color").value       = datos["Color Solicitado"] || "";
     document.getElementById("p_estadoRequerido").value = datos["Estado Requerido"] || "";
     document.getElementById("p_tel").value         = datos["Teléfono"] || "";
+    var ppEquipo = datos["Equipo Parte De Pago"] || "";
+    document.getElementById("p_ppCheck").checked = !!ppEquipo;
+    document.getElementById("p_ppEquipo").value = ppEquipo;
+    setInputMoneda(document.getElementById("p_ppValor"), datos["Valor Parte De Pago"] || 0);
+    preventasTogglePartePago();
     _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
     setInputMoneda(document.getElementById("p_efec"), datos["Cobrado Efectivo"] || 0);
     setInputMoneda(document.getElementById("p_transf"), datos["Cobrado Transferencia"] || 0);
@@ -332,6 +374,9 @@
     if (!document.getElementById("p_modelo").value.trim()) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
     if (pv <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
     if (total <= 0) { mostrarToast("Debe registrarse al menos un cobro.", "error"); return; }
+    if (document.getElementById("p_ppCheck").checked && !document.getElementById("p_ppEquipo").value.trim()) {
+      mostrarToast("Indicá qué equipo entrega el cliente en parte de pago (o destildá la opción).", "error"); return;
+    }
 
     var d = {
       fecha: document.getElementById("p_fecha").value,
@@ -344,6 +389,8 @@
       imei: document.getElementById("p_imei").value.trim(),
       color: document.getElementById("p_color").value.trim(),
       estadoRequerido: document.getElementById("p_estadoRequerido").value.trim(),
+      partePagoEquipo: document.getElementById("p_ppCheck").checked ? document.getElementById("p_ppEquipo").value.trim() : "",
+      partePagoValor: document.getElementById("p_ppCheck").checked ? valorNumerico(document.getElementById("p_ppValor")) : 0,
       vendedor: document.getElementById("p_operador").value,
       precioVenta: pv,
       efec: ef, transf: tr, cuotas: cu, usd: us,
@@ -389,6 +436,7 @@
       despues: function(){
         preventasCalcTotal();
         preventasRecalcularPlazoEntrega(); // form.reset() no dispara "change" en p_fecha
+        preventasTogglePartePago(); // form.reset() no dispara "change" en el checkbox
       }
     });
     preventasSegCargar(); // refresca el panel de seguimiento con lo que se acaba de guardar
@@ -484,11 +532,32 @@
       var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (info ? " p-cal-clickable p-cal-" + info.sev : "");
       var attrs = " data-fecha='" + iso + "'" +
         " ondragover=\"preventasSegDragOver(event)\" ondragleave=\"preventasSegDragLeave(event)\" ondrop=\"preventasSegDrop(event,'" + iso + "')\"";
-      if (info) attrs += " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"";
+      if (info) {
+        attrs += " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"" +
+          " onmouseenter=\"preventasSegTooltipMostrar(event,'" + iso + "')\" onmouseleave=\"preventasSegTooltipOcultar()\"";
+      }
       var badge = info ? "<span class='p-cal-badge'>" + info.cant + "</span>" : "";
       celdas.push("<div class='" + clases + "'" + attrs + ">" + d + badge + "</div>");
     }
     document.getElementById("p_calGrid").innerHTML = celdas.join("");
+  }
+
+  function preventasSegTooltipMostrar(ev, isoFecha){
+    var deEseDia = _segPreventas.filter(function(p){ return p.fechaHasta === isoFecha; });
+    if (deEseDia.length === 0) return;
+    var partes = isoFecha.split("-");
+    var tt = document.getElementById("p_calTooltip");
+    tt.innerHTML = "<b>" + partes[2] + "/" + partes[1] + " — " + deEseDia.length + " entrega" + (deEseDia.length > 1 ? "s" : "") + "</b>" +
+      deEseDia.map(function(p){
+        return "<div class='p-cal-tt-row'><b style='margin:0;font-size:11.5px;font-weight:700;color:#fff'>" + esc_(p.cliente) + "</b> — " + esc_(p.modelo) + "</div>";
+      }).join("");
+    var rect = ev.currentTarget.getBoundingClientRect();
+    tt.style.display = "block";
+    tt.style.left = Math.min(rect.left, window.innerWidth - 260) + "px";
+    tt.style.top = (rect.bottom + 6) + "px";
+  }
+  function preventasSegTooltipOcultar(){
+    document.getElementById("p_calTooltip").style.display = "none";
   }
 
   function preventasSegDragOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add("p-cal-dragover"); }
@@ -518,14 +587,15 @@
       lista = lista.filter(function(p){
         return (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
                (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
-               (p.nPre||"").toLowerCase().indexOf(q) >= 0;
+               (p.nPre||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.partePagoEquipo||"").toLowerCase().indexOf(q) >= 0;
       });
     }
 
     document.getElementById("p_segCant").textContent = lista.length + (_segFiltroDia ? " ese día" : " en total");
 
     if (lista.length === 0) {
-      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='6' class='hint' style='margin:0'>" +
+      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='7' class='hint' style='margin:0'>" +
         (q ? "Sin resultados para \"" + esc_(q) + "\"." : (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.")) + "</td></tr>";
       return;
     }
@@ -539,6 +609,10 @@
       var fechaLinda = partesFecha[2] + "/" + partesFecha[1];
       var subDias = p.diasRestantes < 0 ? "hace " + Math.abs(p.diasRestantes) + " días" :
                     (p.diasRestantes === 0 ? "hoy" : "en " + p.diasRestantes + " días");
+      var toma = p.partePagoEquipo
+        ? "<div class='p-seg-nombre' style='font-size:11px'>🔁 " + esc_(p.partePagoEquipo) + "</div>" +
+          (p.partePagoValor > 0 ? "<div class='p-seg-sub'>" + fmtP(p.partePagoValor) + "</div>" : "")
+        : "<span class='p-seg-sub'>—</span>";
       return "<tr class='p-seg-fila-" + sev + "' draggable='true'" +
           " ondragstart=\"preventasSegDragStart(event,'" + p.nPre + "')\"" +
           " ondragend=\"preventasSegDragEnd(event)\"" +
@@ -549,6 +623,7 @@
         "<td>" + fmtP(p.precio) + "</td>" +
         "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
         "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
+        "<td class='p-seg-td-objeto'>" + toma + "</td>" +
       "</tr>";
     }).join("");
   }

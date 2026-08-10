@@ -89,7 +89,7 @@ function obtenerPreventasEntregables() {
   const cSP = getCol(preSheet, "Saldo Pendiente",       fE);
   const cES = getCol(preSheet, "Estado",                fE);
   const cNC = getCol(preSheet, "N° Compra Asociada",    fE);
-  let cEstReg = -1, cTL = -1, cED = -1, cEH = -1;
+  let cEstReg = -1, cTL = -1, cED = -1, cEH = -1, cPPE = -1, cPPV = -1;
   try { cEstReg = getCol(preSheet, "ESTADO_REGISTRO", fE); } catch (e) { /* columna opcional */ }
   try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
   // Fecha Prometida Desde/Hasta: usadas por el panel de seguimiento de
@@ -99,6 +99,11 @@ function obtenerPreventasEntregables() {
   // registrar la próxima preventa, ver procesarPreventa en Code.gs).
   try { cED = getCol(preSheet, "Fecha Prometida Desde", fE); } catch (e) { /* opcional */ }
   try { cEH = getCol(preSheet, "Fecha Prometida Hasta", fE); } catch (e) { /* opcional */ }
+  // Equipo/Valor Parte De Pago: si el cliente va a entregar un equipo como
+  // parte del pago de esta preventa, para que el panel de seguimiento lo
+  // muestre junto con el resto (mismo criterio de columna opcional).
+  try { cPPE = getCol(preSheet, "Equipo Parte De Pago", fE); } catch (e) { /* opcional */ }
+  try { cPPV = getCol(preSheet, "Valor Parte De Pago", fE); } catch (e) { /* opcional */ }
 
   const lastRow = preSheet.getLastRow();
   const opciones = [];
@@ -123,7 +128,9 @@ function obtenerPreventasEntregables() {
       estado:  estado,
       tel:     cTL > 0 ? String(row[cTL-1] || "") : "",
       fechaDesde: cED > 0 ? fISO(row[cED-1]) : "",
-      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : ""
+      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : "",
+      partePagoEquipo: cPPE > 0 ? String(row[cPPE-1] || "") : "",
+      partePagoValor:  cPPV > 0 ? (Number(row[cPPV-1]) || 0) : 0
     });
   });
   return opciones;
