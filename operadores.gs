@@ -240,6 +240,72 @@ function _entregarRegalosSiCorresponde_(nVta, modelo, cliente, vendedor, operado
 }
 
 /**
+ * Cupo de entregas por día (pedido del dueño: se le acumulaban demasiadas
+ * entregas juntas, sobre todo a fin de mes). Un día normal admite hasta 3
+ * equipos y $2.500.000 en total de valor a entregar ese día; en los
+ * últimos 5 días del mes el cupo baja a 1 equipo y $1.000.000, para
+ * repartir mejor la carga en vez de amontonar todo al cierre.
+ */
+function _capacidadEntregaPreventa_(fecha) {
+  const diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+  const esFinDeMes = (diasEnMes - fecha.getDate()) < 5; // últimos 5 días del mes
+  return esFinDeMes
+    ? { maxEquipos: 1, maxMonto: 1000000 }
+    : { maxEquipos: 3, maxMonto: 2500000 };
+}
+
+/**
+ * Si la "Fecha Prometida Hasta" pedida ya está topada (cupo de equipos o
+ * de valor, ver _capacidadEntregaPreventa_), busca día por día hacia
+ * adelante la primera fecha donde esta preventa entra sin romper el cupo.
+ * Nunca bloquea el registro: reprograma sola, como pidió el dueño.
+ * Cuenta solo preventas activas (ni ANULADO ni ya Entregada/Cancelada) —
+ * mismo criterio que obtenerPreventasEntregables() en webapp.gs.
+ */
+function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return fechaDeseada;
+  const fE = 2;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < fE + 1) return fechaDeseada;
+
+  const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idx = (n) => hdrs.findIndex(h => String(h).trim() === n.trim());
+  const cEH = idx("Fecha Prometida Hasta");
+  const cPV = idx("Precio Venta Pactado");
+  if (cEH === -1 || cPV === -1) return fechaDeseada; // hoja todavía sin esta columna (recién se crea al registrar)
+  const cES = idx("Estado");
+  const cEstReg = idx("ESTADO_REGISTRO");
+
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const tz = Session.getScriptTimeZone();
+  const porDia = {}; // "yyyy-MM-dd" -> { cant, monto }
+  datos.forEach(row => {
+    if (cEstReg >= 0 && String(row[cEstReg] || "").trim() === "ANULADO") return;
+    const estado = cES >= 0 ? String(row[cES] || "") : "";
+    if (estado.includes("Entregado") || estado.includes("Cancelado")) return;
+    const f = row[cEH];
+    if (!(f instanceof Date)) return;
+    const key = Utilities.formatDate(f, tz, "yyyy-MM-dd");
+    if (!porDia[key]) porDia[key] = { cant: 0, monto: 0 };
+    porDia[key].cant++;
+    porDia[key].monto += Number(row[cPV]) || 0;
+  });
+
+  const candidata = new Date(fechaDeseada.getFullYear(), fechaDeseada.getMonth(), fechaDeseada.getDate());
+  for (let i = 0; i < 120; i++) { // ~4 meses de margen, no debería hacer falta ni de cerca
+    const key = Utilities.formatDate(candidata, tz, "yyyy-MM-dd");
+    const limites = _capacidadEntregaPreventa_(candidata);
+    const usados = porDia[key] || { cant: 0, monto: 0 };
+    if (usados.cant < limites.maxEquipos && (usados.monto + montoNuevo) <= limites.maxMonto) {
+      return candidata;
+    }
+    candidata.setDate(candidata.getDate() + 1);
+  }
+  return candidata;
+}
+
+/**
  * Plazo de entrega (7 a 10 días hábiles): calcularRangoEntregaPreventa()
  * (dias_habiles.gs, sin modificar) sigue siendo la fuente del plazo
  * sugerido — se usa como default cuando el operador no cargó fechaDesde/
@@ -262,10 +328,20 @@ function procesarPreventaConOperador(d) {
     throw new Error("❌ La Fecha Prometida Hasta no puede ser anterior a la Fecha Prometida Desde.");
   }
 
+  // Cupo diario de entregas: si el día pedido ya está topado, se reprograma
+  // sola a la próxima fecha disponible (nunca bloquea el registro).
+  let notaCupo = "";
+  const fechaDisponible = _resolverFechaEntregaDisponible_(fHasta, Number(d.precioVenta) || 0);
+  if (fechaDisponible.getTime() !== fHasta.getTime()) {
+    const tz = Session.getScriptTimeZone();
+    notaCupo = `\n📦 Cupo de entregas de ${Utilities.formatDate(fHasta, tz, "dd/MM/yyyy")} completo (equipos o valor a entregar) — se reprogramó sola para el ${Utilities.formatDate(fechaDisponible, tz, "dd/MM/yyyy")}.`;
+    d.fechaHasta = Utilities.formatDate(fechaDisponible, tz, "yyyy-MM-dd");
+  }
+
   const msg = procesarPreventa(d);
   const nPre = _extraerNumero_(msg, /N°:\s*(\S+)/);
   if (nPre) _tagOperadorPorNumero_(nPre, d.operador);
-  return msg;
+  return msg + notaCupo;
 }
 
 function procesarEntregaPreventaConOperador(d) {
