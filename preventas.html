@@ -314,7 +314,17 @@
 
   document.addEventListener("click", function(ev){
     var wrap = document.querySelector("#view-preventas .p-fp-wrap");
-    if (wrap && !wrap.contains(ev.target)) document.getElementById("p_fechaEntregaCal").style.display = "none";
+    if (!wrap) return;
+    // composedPath() en vez de ev.target: los botones de mes (‹ ›) vuelven a
+    // dibujar el calendario en su propio click (preventasFechaEntregaMes →
+    // innerHTML nuevo), así que el <button> que se tocó queda desconectado
+    // del documento justo antes de que este listener se ejecute — con
+    // ev.target, wrap.contains(ev.target) daba false (nodo ya removido) y
+    // el calendario se cerraba solo en cada cambio de mes. composedPath()
+    // conserva la cadena de ancestros tal como estaba en el momento del
+    // click, sin importar qué se haya reemplazado después.
+    var path = ev.composedPath ? ev.composedPath() : [ev.target];
+    if (path.indexOf(wrap) === -1) document.getElementById("p_fechaEntregaCal").style.display = "none";
   });
 
   function _fpEsFinDeMes_(fecha){
