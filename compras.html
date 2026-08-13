@@ -21,6 +21,22 @@
     #view-compras .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
     #view-compras .paso { animation: gp-wizard-fade .22s ease; }
     @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Ventana más grande: el asistente de a un paso deja mucho lugar
+       libre en pantalla, así que el panel puede ocupar bastante más
+       ancho sin volverse difícil de leer. Solo #view-compras — el resto
+       del ERP sigue con el .panel angosto de siempre. */
+    #view-compras > .panel { max-width: 980px; padding: 34px 40px; }
+    #view-compras > .panel > h3 { font-size: 19px; margin-bottom: 18px; }
+    #view-compras .paso { padding: 24px 28px; }
+    #view-compras .paso-titulo { font-size: 15.5px; }
+    #view-compras .paso-num { width: 28px; height: 28px; font-size: 13px; }
+    #view-compras label { font-size: 13.5px; }
+    #view-compras input, #view-compras select, #view-compras textarea { font-size: 14.5px; padding: 10px 12px; }
+    #view-compras .gp-wizard-circulo { width: 32px; height: 32px; font-size: 13px; }
+    #view-compras .gp-wizard-etiqueta { font-size: 10.5px; max-width: 76px; }
+    #view-compras .gp-wizard-nav .btn { padding: 12px 28px; font-size: 14.5px; }
+    #view-compras .btn { font-size: 14.5px; padding: 12px 16px; }
   </style>
   <div class="panel">
     <h3>🛒 Registrar Compra / Consignación</h3>
