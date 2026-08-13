@@ -1,4 +1,27 @@
 <div id="view-compras" class="view">
+  <style>
+    /* Asistente paso a paso (función crearWizard, definida más abajo): muestra
+       los "paso" de a uno para no abrumar al operador con las 5-6
+       secciones juntas — mismo bloque .paso/.paso-titulo/.paso-num que ya
+       usa el resto del ERP (index.html), esto solo agrega la navegación. */
+    #view-compras .gp-wizard-barra { display: flex; align-items: flex-start; margin: 4px 0 16px; }
+    #view-compras .gp-wizard-punto { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex: 0 0 auto; }
+    #view-compras .gp-wizard-circulo {
+      width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 11.5px; font-weight: 700; background: #E4E7EC; color: #7B8794; transition: background .2s, color .2s;
+    }
+    #view-compras .gp-wizard-punto.activo .gp-wizard-circulo { background: linear-gradient(135deg, var(--azul), #6366F1); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.35); }
+    #view-compras .gp-wizard-punto.hecho .gp-wizard-circulo { background: #1E8449; color: #fff; }
+    #view-compras .gp-wizard-etiqueta { font-size: 9px; color: #9AA1B2; max-width: 62px; text-align: center; line-height: 1.15; }
+    #view-compras .gp-wizard-punto.activo .gp-wizard-etiqueta { color: var(--texto); font-weight: 700; }
+    #view-compras .gp-wizard-linea { flex: 1 1 auto; height: 2px; background: #E4E7EC; margin: 12px 3px 0; transition: background .2s; }
+    #view-compras .gp-wizard-linea.hecho { background: #1E8449; }
+    #view-compras .gp-wizard-nav { display: flex; gap: 10px; margin-top: 16px; }
+    #view-compras .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 10px 24px; margin: 0; }
+    #view-compras .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-compras .paso { animation: gp-wizard-fade .22s ease; }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
   <div class="panel">
     <h3>🛒 Registrar Compra / Consignación</h3>
 
@@ -141,10 +164,13 @@
       </div>
     </div>
 
-    <label>Observaciones:</label>
-    <textarea id="c_obs"></textarea>
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">6</span> Revisión y confirmación</p>
+      <label>Observaciones:</label>
+      <textarea id="c_obs"></textarea>
 
-    <button type="button" class="btn" onclick="comprasEnviar()">✅ Registrar compra</button>
+      <button type="button" class="btn" onclick="comprasEnviar()">✅ Registrar compra</button>
+    </div>
     </div>
 
     <div id="c_bloqueAccesorios" style="display:none">
@@ -200,16 +226,88 @@
         <div class="total" id="ca_totalPagadoDiv">Total pagado: $0</div>
       </div>
 
-      <label>Observaciones:</label>
-      <textarea id="ca_obs"></textarea>
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">5</span> Revisión y confirmación</p>
+        <label>Observaciones:</label>
+        <textarea id="ca_obs"></textarea>
 
-      <button type="button" class="btn" onclick="comprasAccEnviar()">✅ Registrar compra de accesorios</button>
+        <button type="button" class="btn" onclick="comprasAccEnviar()">✅ Registrar compra de accesorios</button>
+      </div>
     </div>
     </form>
   </div>
 </div>
 
 <script>
+  // ============================================================
+  //  ASISTENTE PASO A PASO — antes se veían las 5-6 secciones de compras
+  //  todas juntas (el operador se sentía abrumado con tantos campos de
+  //  entrada); ahora se muestran de a una, con una barra de progreso
+  //  arriba (clickeable para volver a un paso ya visto) y botones
+  //  Atrás/Siguiente. "Siguiente" valida lo mínimo de ese paso antes de
+  //  dejar avanzar — la validación completa de siempre sigue estando en
+  //  comprasEnviar()/comprasAccEnviar() al confirmar, esto es solo para
+  //  no dejar avanzar con lo obviamente incompleto.
+  //  Reutilizable: recibe los .paso ya existentes en el DOM, no duplica
+  //  ningún campo ni lógica de negocio.
+  // ============================================================
+  function crearWizard(pasos, opts){
+    opts = opts || {};
+    var etiquetas = opts.etiquetas || [];
+    var actual = 0;
+
+    var barra = document.createElement("div");
+    barra.className = "gp-wizard-barra";
+    pasos[0].parentNode.insertBefore(barra, pasos[0]);
+
+    var nav = document.createElement("div");
+    nav.className = "gp-wizard-nav";
+    nav.innerHTML =
+      '<button type="button" class="btn gp-wizard-atras" style="background:#5D6D7E">‹ Atrás</button>' +
+      '<button type="button" class="btn gp-wizard-siguiente">Siguiente ›</button>';
+    pasos[pasos.length - 1].parentNode.insertBefore(nav, pasos[pasos.length - 1].nextSibling);
+    var btnAtras = nav.querySelector(".gp-wizard-atras");
+    var btnSiguiente = nav.querySelector(".gp-wizard-siguiente");
+
+    barra.addEventListener("click", function(ev){
+      var punto = ev.target.closest(".gp-wizard-punto");
+      if (punto) ir(parseInt(punto.dataset.i, 10));
+    });
+    btnAtras.addEventListener("click", function(){ ir(actual - 1); });
+    btnSiguiente.addEventListener("click", function(){
+      var r = opts.validar ? opts.validar(actual) : null;
+      if (r && r.ok === false) { mostrarToast(r.msg || "Completá los datos de este paso.", "error"); return; }
+      ir(actual + 1);
+    });
+
+    function renderBarra(){
+      barra.innerHTML = pasos.map(function(p, i){
+        var estado = i < actual ? "hecho" : (i === actual ? "activo" : "");
+        var circulo = i < actual ? "✓" : (i + 1);
+        var punto = "<div class='gp-wizard-punto " + estado + "' data-i='" + i + "'>" +
+          "<span class='gp-wizard-circulo'>" + circulo + "</span>" +
+          "<span class='gp-wizard-etiqueta'>" + (etiquetas[i] || ("Paso " + (i + 1))) + "</span>" +
+        "</div>";
+        var linea = (i < pasos.length - 1) ? "<div class='gp-wizard-linea " + (i < actual ? "hecho" : "") + "'></div>" : "";
+        return punto + linea;
+      }).join("");
+    }
+
+    function ir(i){
+      if (i < 0 || i >= pasos.length) return;
+      actual = i;
+      pasos.forEach(function(p, idx){ p.style.display = (idx === actual) ? "" : "none"; });
+      btnAtras.style.display = (actual === 0) ? "none" : "inline-block";
+      btnSiguiente.style.display = (actual === pasos.length - 1) ? "none" : "inline-block";
+      renderBarra();
+      if (opts.onCambiar) opts.onCambiar(actual);
+      pasos[actual].scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    ir(0);
+    return { ir: ir, actual: function(){ return actual; } };
+  }
+
   document.getElementById("c_fecha").value = new Date().toISOString().split("T")[0];
   document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
 
@@ -468,6 +566,7 @@
         ["ca_pagEfec","ca_pagTransf","ca_pagUsd"].forEach(function(id){ document.getElementById(id).value = 0; });
         document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
         comprasAccLineaAgregar();
+        if (_wizardAccesorios) _wizardAccesorios.ir(0);
       });
     });
   }
@@ -614,5 +713,63 @@
         comprasActualizarVisibilidad();
       }
     });
+    if (_wizardEquipo) _wizardEquipo.ir(0);
   }
+
+  /** Validación mínima antes de dejar avanzar de paso (equipo) — la validación completa de siempre sigue en comprasEnviar() al confirmar. */
+  function _comprasValidarPasoEquipo(i){
+    if (i === 0 && !document.getElementById("c_operador").value) {
+      return { ok: false, msg: "Seleccioná el operador." };
+    }
+    if (i === 1 && !document.getElementById("c_modelo").value.trim()) {
+      return { ok: false, msg: "Ingresá el equipo/modelo." };
+    }
+    if (i === 2) {
+      var esCompra = document.getElementById("c_tipo").value === "COMPRA";
+      var precio = esCompra
+        ? valorNumerico(document.getElementById("c_precioCompra"))
+        : valorNumerico(document.getElementById("c_precioConsig"));
+      if (precio <= 0) return { ok: false, msg: "Ingresá el precio " + (esCompra ? "de compra" : "acordado de consignación") + "." };
+    }
+    if (i === 4 && document.getElementById("c_esPreventa").value === "Si" && !document.getElementById("c_nPreAsociada").value) {
+      return { ok: false, msg: "Seleccioná la preventa a vincular (o poné \"No\" si no corresponde)." };
+    }
+    return { ok: true };
+  }
+
+  /** Ídem para accesorios: paso 3 reutiliza comprasAccLeerLineas() (ya valida modelo-por-categoría) para no duplicar esa lógica. */
+  function _comprasValidarPasoAccesorios(i){
+    if (i === 0 && !document.getElementById("ca_operador").value) {
+      return { ok: false, msg: "Seleccioná el operador." };
+    }
+    if (i === 2) {
+      var lineas = comprasAccLeerLineas();
+      if (lineas._errores && lineas._errores.length > 0) return { ok: false, msg: lineas._errores.join("\n") };
+      if (lineas.length === 0) return { ok: false, msg: "Agregá al menos una línea con producto." };
+    }
+    return { ok: true };
+  }
+
+  var _wizardEquipo = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#c_bloqueEquipo > .paso")),
+    {
+      etiquetas: ["Operador", "Equipo", "Precio", "Reparación", "Preventa", "Confirmar"],
+      validar: _comprasValidarPasoEquipo
+    }
+  );
+  var _wizardAccesorios = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#c_bloqueAccesorios > .paso")),
+    {
+      etiquetas: ["Operador", "Proveedor", "Productos", "Pago", "Confirmar"],
+      validar: _comprasValidarPasoAccesorios
+    }
+  );
+
+  /** Al cambiar de modo (Equipo/Accesorios), cada bloque arranca de nuevo desde el paso 1 — evita que quede "a mitad de camino" en un bloque que se dejó de lado. */
+  var _comprasToggleModoOriginal = comprasToggleModo;
+  comprasToggleModo = function(){
+    _comprasToggleModoOriginal();
+    if (_wizardEquipo) _wizardEquipo.ir(0);
+    if (_wizardAccesorios) _wizardAccesorios.ir(0);
+  };
 </script>
