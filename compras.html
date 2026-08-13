@@ -1,42 +1,106 @@
 <div id="view-compras" class="view">
   <style>
-    /* Asistente paso a paso (función crearWizard, definida más abajo): muestra
-       los "paso" de a uno para no abrumar al operador con las 5-6
-       secciones juntas — mismo bloque .paso/.paso-titulo/.paso-num que ya
-       usa el resto del ERP (index.html), esto solo agrega la navegación. */
-    #view-compras .gp-wizard-barra { display: flex; align-items: flex-start; margin: 4px 0 16px; }
-    #view-compras .gp-wizard-punto { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; flex: 0 0 auto; }
-    #view-compras .gp-wizard-circulo {
-      width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 11.5px; font-weight: 700; background: #E4E7EC; color: #7B8794; transition: background .2s, color .2s;
+    /* ============================================================
+       REDISEÑO VISUAL — asistente paso a paso de Compras, con un
+       lenguaje mucho más limpio: menos "caja dentro de caja", tipografía
+       grande y clara, barra de progreso fina + puntos (en vez de
+       círculos numerados con etiquetas), botones tipo píldora, campos
+       sin bordes duros. Todo escapado a #view-compras — el resto del
+       ERP no cambia. No toca ningún id/función existente, solo el CSS
+       y la forma en que crearWizard() arma su propia navegación.
+       ============================================================ */
+    #view-compras {
+      --gpw-texto: #1D1D1F; --gpw-texto-sua: #86868B; --gpw-borde: rgba(0,0,0,.07);
+      --gpw-fondo-campo: #F5F5F7; --gpw-azul: #0071E3; --gpw-azul-osc: #0058B0;
+      --gpw-verde: #1FAB55; --gpw-radio: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", sans-serif;
     }
-    #view-compras .gp-wizard-punto.activo .gp-wizard-circulo { background: linear-gradient(135deg, var(--azul), #6366F1); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.35); }
-    #view-compras .gp-wizard-punto.hecho .gp-wizard-circulo { background: #1E8449; color: #fff; }
-    #view-compras .gp-wizard-etiqueta { font-size: 9px; color: #9AA1B2; max-width: 62px; text-align: center; line-height: 1.15; }
-    #view-compras .gp-wizard-punto.activo .gp-wizard-etiqueta { color: var(--texto); font-weight: 700; }
-    #view-compras .gp-wizard-linea { flex: 1 1 auto; height: 2px; background: #E4E7EC; margin: 12px 3px 0; transition: background .2s; }
-    #view-compras .gp-wizard-linea.hecho { background: #1E8449; }
-    #view-compras .gp-wizard-nav { display: flex; gap: 10px; margin-top: 16px; }
-    #view-compras .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 10px 24px; margin: 0; }
-    #view-compras .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
-    #view-compras .paso { animation: gp-wizard-fade .22s ease; }
-    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Ventana más grande: el asistente de a un paso deja mucho lugar
-       libre en pantalla, así que el panel puede ocupar bastante más
-       ancho sin volverse difícil de leer. Solo #view-compras — el resto
-       del ERP sigue con el .panel angosto de siempre. */
-    #view-compras > .panel { max-width: 980px; padding: 34px 40px; }
-    #view-compras > .panel > h3 { font-size: 19px; margin-bottom: 18px; }
-    #view-compras .paso { padding: 24px 28px; }
-    #view-compras .paso-titulo { font-size: 15.5px; }
-    #view-compras .paso-num { width: 28px; height: 28px; font-size: 13px; }
-    #view-compras label { font-size: 13.5px; }
-    #view-compras input, #view-compras select, #view-compras textarea { font-size: 14.5px; padding: 10px 12px; }
-    #view-compras .gp-wizard-circulo { width: 32px; height: 32px; font-size: 13px; }
-    #view-compras .gp-wizard-etiqueta { font-size: 10.5px; max-width: 76px; }
-    #view-compras .gp-wizard-nav .btn { padding: 12px 28px; font-size: 14.5px; }
-    #view-compras .btn { font-size: 14.5px; padding: 12px 16px; }
+    #view-compras > .panel {
+      max-width: 640px; margin: 0 auto; padding: 44px 48px 40px;
+      border: none; border-radius: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04), 0 20px 48px rgba(0,0,0,.09);
+    }
+    #view-compras > .panel > h3 {
+      font-size: 22px; font-weight: 700; letter-spacing: -.4px; color: var(--gpw-texto);
+      text-align: center; margin-bottom: 22px; font-family: inherit;
+    }
+    #view-compras > .panel > label:first-of-type { font-size: 13px; font-weight: 600; color: var(--gpw-texto-sua); text-transform: uppercase; letter-spacing: .4px; }
+    #view-compras > .panel > select#c_modo { text-align: center; font-weight: 600; }
+
+    /* ---- Cabecera del paso: "PASO X DE N" + barra fina + puntos ---- */
+    #view-compras .gp-wizard-eyebrow {
+      font-size: 11.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+      color: var(--gpw-azul); text-align: center; margin: 26px 0 8px;
+    }
+    #view-compras .gp-wizard-progreso {
+      height: 4px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 14px;
+    }
+    #view-compras .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-azul), #47A6FF);
+      transition: width .35s cubic-bezier(.4,0,.2,1);
+    }
+    #view-compras .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-compras .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-compras .gp-wizard-dot:hover { background: #C7C7CC; }
+    #view-compras .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-compras .gp-wizard-dot.activo { width: 20px; background: var(--gpw-azul); }
+
+    /* ---- El "paso" pasa a ser contenido suelto, sin caja propia ---- */
+    #view-compras .paso {
+      background: transparent; border: none; padding: 0; margin-top: 28px; box-shadow: none;
+      animation: gp-wizard-fade .28s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    #view-compras .paso-titulo {
+      font-size: 21px; font-weight: 700; letter-spacing: -.3px; color: var(--gpw-texto);
+      justify-content: center; text-align: center; margin-bottom: 22px;
+    }
+    #view-compras .paso-num { display: none; } /* el número ya lo dice el eyebrow */
+
+    /* ---- Campos: sin borde, fondo gris clarito, foco en azul ---- */
+    #view-compras label { font-size: 13px; font-weight: 600; color: var(--gpw-texto-sua); margin-top: 14px; }
+    #view-compras .paso > label:first-child,
+    #view-compras .paso > .fila2:first-child label,
+    #view-compras .paso > .fila4:first-child label { margin-top: 0; }
+    #view-compras input, #view-compras select, #view-compras textarea {
+      font-size: 15px; padding: 12px 14px; border: 1px solid transparent; border-radius: 12px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-compras input::placeholder, #view-compras textarea::placeholder { color: #AEAEB2; }
+    #view-compras input:focus, #view-compras select:focus, #view-compras textarea:focus {
+      background: #fff; border-color: var(--gpw-azul); box-shadow: 0 0 0 4px rgba(0,113,227,.12); outline: none;
+    }
+    #view-compras .req { color: #FF3B30; }
+    #view-compras .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.5; margin-top: 6px; }
+    #view-compras .box { background: var(--gpw-fondo-campo); border: none; border-radius: 14px; padding: 16px 18px; }
+    #view-compras .box-info { background: #EAF4FE; }
+    #view-compras .total { background: #E9F9EF; border: none; border-radius: 14px; color: #0D7A3B; }
+
+    /* ---- Botones: píldora, sin gradiente violeta por defecto ---- */
+    #view-compras .btn {
+      font-size: 15px; font-weight: 600; padding: 13px 20px; border-radius: 100px;
+      background: var(--gpw-azul); box-shadow: none; letter-spacing: -.1px;
+      transition: transform .12s ease, background .15s ease, opacity .15s ease;
+    }
+    #view-compras .btn:hover { background: var(--gpw-azul-osc); transform: none; box-shadow: none; }
+    #view-compras .btn:active { transform: scale(.97); }
+
+    #view-compras .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 30px; }
+    #view-compras .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-compras .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-azul); padding: 13px 10px;
+    }
+    #view-compras .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); }
+    #view-compras .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+
+    /* Botón final de confirmación: ancho completo, más presencia */
+    #view-compras .gp-wizard-paso-final > .btn { width: 100%; margin-top: 18px; background: var(--gpw-verde); padding: 15px; font-size: 16px; }
+    #view-compras .gp-wizard-paso-final > .btn:hover { background: #17954A; }
   </style>
   <div class="panel">
     <h3>🛒 Registrar Compra / Consignación</h3>
@@ -269,24 +333,35 @@
   // ============================================================
   function crearWizard(pasos, opts){
     opts = opts || {};
-    var etiquetas = opts.etiquetas || [];
     var actual = 0;
 
-    var barra = document.createElement("div");
-    barra.className = "gp-wizard-barra";
-    pasos[0].parentNode.insertBefore(barra, pasos[0]);
+    // Cabecera: "PASO X DE N" + barra fina de progreso + puntos (clickeables,
+    // para saltar a un paso ya visto) — reemplaza los círculos numerados con
+    // etiqueta de antes por algo más parecido a un onboarding de app: menos
+    // texto en pantalla, la jerarquía la da el tamaño/orden, no las cajas.
+    var eyebrow = document.createElement("div");
+    eyebrow.className = "gp-wizard-eyebrow";
+    var progreso = document.createElement("div");
+    progreso.className = "gp-wizard-progreso";
+    progreso.innerHTML = "<div class='gp-wizard-progreso-fill'></div>";
+    var dots = document.createElement("div");
+    dots.className = "gp-wizard-dots";
+    pasos[0].parentNode.insertBefore(eyebrow, pasos[0]);
+    pasos[0].parentNode.insertBefore(progreso, pasos[0]);
+    pasos[0].parentNode.insertBefore(dots, pasos[0]);
+    pasos[pasos.length - 1].classList.add("gp-wizard-paso-final"); // botón final en verde (ver CSS)
 
     var nav = document.createElement("div");
     nav.className = "gp-wizard-nav";
     nav.innerHTML =
-      '<button type="button" class="btn gp-wizard-atras" style="background:#5D6D7E">‹ Atrás</button>' +
+      '<button type="button" class="btn gp-wizard-atras">‹ Atrás</button>' +
       '<button type="button" class="btn gp-wizard-siguiente">Siguiente ›</button>';
     pasos[pasos.length - 1].parentNode.insertBefore(nav, pasos[pasos.length - 1].nextSibling);
     var btnAtras = nav.querySelector(".gp-wizard-atras");
     var btnSiguiente = nav.querySelector(".gp-wizard-siguiente");
 
-    barra.addEventListener("click", function(ev){
-      var punto = ev.target.closest(".gp-wizard-punto");
+    dots.addEventListener("click", function(ev){
+      var punto = ev.target.closest(".gp-wizard-dot");
       if (punto) ir(parseInt(punto.dataset.i, 10));
     });
     btnAtras.addEventListener("click", function(){ ir(actual - 1); });
@@ -296,16 +371,12 @@
       ir(actual + 1);
     });
 
-    function renderBarra(){
-      barra.innerHTML = pasos.map(function(p, i){
+    function renderCabecera(){
+      eyebrow.textContent = "Paso " + (actual + 1) + " de " + pasos.length;
+      progreso.querySelector(".gp-wizard-progreso-fill").style.width = (((actual + 1) / pasos.length) * 100) + "%";
+      dots.innerHTML = pasos.map(function(p, i){
         var estado = i < actual ? "hecho" : (i === actual ? "activo" : "");
-        var circulo = i < actual ? "✓" : (i + 1);
-        var punto = "<div class='gp-wizard-punto " + estado + "' data-i='" + i + "'>" +
-          "<span class='gp-wizard-circulo'>" + circulo + "</span>" +
-          "<span class='gp-wizard-etiqueta'>" + (etiquetas[i] || ("Paso " + (i + 1))) + "</span>" +
-        "</div>";
-        var linea = (i < pasos.length - 1) ? "<div class='gp-wizard-linea " + (i < actual ? "hecho" : "") + "'></div>" : "";
-        return punto + linea;
+        return "<span class='gp-wizard-dot " + estado + "' data-i='" + i + "'></span>";
       }).join("");
     }
 
@@ -315,7 +386,7 @@
       pasos.forEach(function(p, idx){ p.style.display = (idx === actual) ? "" : "none"; });
       btnAtras.style.display = (actual === 0) ? "none" : "inline-block";
       btnSiguiente.style.display = (actual === pasos.length - 1) ? "none" : "inline-block";
-      renderBarra();
+      renderCabecera();
       if (opts.onCambiar) opts.onCambiar(actual);
       pasos[actual].scrollIntoView({ behavior: "smooth", block: "start" });
     }
