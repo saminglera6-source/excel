@@ -1,4 +1,173 @@
 <div id="view-dashboard" class="view activa">
+  <style>
+    /* ============================================================
+       PANEL PROTAGONISTA DE PREVENTAS — lo principal del negocio son
+       las preventas, así que van arriba de todo en el Dashboard, como
+       tarjetas con filtros/búsqueda y edición al toque (modal propio,
+       sin salir de la pantalla). El guardado sigue pasando 100% por
+       corregirPreventa() (operadores.gs) — mismo mecanismo de siempre
+       (motivo + operador + auditoría), el modal solo arma el payload y
+       lo manda; no escribe nada por su cuenta.
+       ============================================================ */
+    #view-dashboard .gp-pre-hero {
+      background: linear-gradient(155deg, #1E1B4B, #312C85 55%, #4F46E5);
+      border-radius: 24px; padding: 26px 28px 22px; margin-bottom: 26px; color: #fff;
+      box-shadow: 0 20px 50px rgba(49,44,133,.35);
+    }
+    #view-dashboard .gp-pre-hero-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+    #view-dashboard .gp-pre-hero-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -.4px; }
+    #view-dashboard .gp-pre-hero-sub { font-size: 12.5px; color: rgba(255,255,255,.65); margin-top: 3px; }
+    #view-dashboard .gp-pre-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    #view-dashboard .gp-pre-stat {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+      padding: 8px 16px; text-align: center; min-width: 84px;
+    }
+    #view-dashboard .gp-pre-stat b { display: block; font-family: "Manrope", sans-serif; font-size: 19px; font-weight: 800; }
+    #view-dashboard .gp-pre-stat span { font-size: 10px; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .4px; }
+    #view-dashboard .gp-pre-stat-rojo b { color: #FF8A80; }
+    #view-dashboard .gp-pre-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    #view-dashboard .gp-pre-buscar {
+      flex: 1 1 220px; padding: 10px 14px; border-radius: 100px; border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.1); color: #fff; font-size: 13.5px; outline: none;
+    }
+    #view-dashboard .gp-pre-buscar::placeholder { color: rgba(255,255,255,.55); }
+    #view-dashboard .gp-pre-buscar:focus { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); }
+    #view-dashboard .gp-pre-filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+    #view-dashboard .gp-pre-filtro {
+      border: 1px solid rgba(255,255,255,.18); background: transparent; color: rgba(255,255,255,.8);
+      border-radius: 100px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s;
+    }
+    #view-dashboard .gp-pre-filtro:hover { background: rgba(255,255,255,.1); }
+    #view-dashboard .gp-pre-filtro.activo { background: #fff; color: #312C85; border-color: #fff; }
+    #view-dashboard .gp-pre-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
+      max-height: 460px; overflow-y: auto; padding-right: 2px;
+    }
+    #view-dashboard .gp-pre-grid .hint { color: rgba(255,255,255,.65); grid-column: 1/-1; }
+    #view-dashboard .gp-pre-card {
+      background: #fff; border-radius: 16px; padding: 14px 15px; cursor: pointer; color: #191B2E;
+      border-left: 5px solid #9AA1B2; transition: transform .12s ease, box-shadow .12s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    #view-dashboard .gp-pre-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.22); }
+    #view-dashboard .gp-pre-card.gp-pre-card-vencida { border-left-color: #DC2626; }
+    #view-dashboard .gp-pre-card.gp-pre-card-proxima { border-left-color: #D97706; }
+    #view-dashboard .gp-pre-card.gp-pre-card-plazo   { border-left-color: #16A34A; }
+    #view-dashboard .gp-pre-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-card-num { font-size: 10px; color: #AEB0C4; }
+    #view-dashboard .gp-pre-card-cliente { font-weight: 800; font-size: 14.5px; letter-spacing: -.2px; }
+    #view-dashboard .gp-pre-card-modelo { font-size: 12px; color: #767A94; margin-top: 1px; }
+    #view-dashboard .gp-pre-card-money { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11.5px; color: #767A94; }
+    #view-dashboard .gp-pre-card-money b { font-size: 14px; color: #191B2E; }
+    #view-dashboard .gp-pre-card-toma { font-size: 10.5px; color: #4F46E5; margin-top: 5px; }
+
+    /* ---- Modal de edición ---- */
+    #view-dashboard .gp-pre-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 200;
+      display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px);
+    }
+    #view-dashboard .gp-pre-modal {
+      background: #fff; border-radius: 22px; width: 100%; max-width: 480px; max-height: 88vh;
+      display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+    }
+    #view-dashboard .gp-pre-modal-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 18px 22px;
+      background: linear-gradient(135deg, #4F46E5, #7C6FF0); color: #fff; flex-shrink: 0;
+    }
+    #view-dashboard .gp-pre-modal-header b { font-family: "Manrope", sans-serif; font-size: 16px; }
+    #view-dashboard .gp-pre-modal-header button {
+      background: rgba(255,255,255,.18); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%;
+      cursor: pointer; font-size: 13px; line-height: 1;
+    }
+    #view-dashboard .gp-pre-modal-body { padding: 18px 22px; overflow-y: auto; }
+    #view-dashboard .gp-pre-modal-body label { display: block; font-size: 12px; font-weight: 700; color: #767A94; margin-top: 12px; margin-bottom: 4px; }
+    #view-dashboard .gp-pre-modal-body label:first-child { margin-top: 0; }
+    #view-dashboard .gp-pre-modal-body input, #view-dashboard .gp-pre-modal-body textarea {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid #E4E5F0;
+      background: #F7F7FB; font-size: 14px; font-family: inherit; color: #191B2E;
+    }
+    #view-dashboard .gp-pre-modal-body input:focus, #view-dashboard .gp-pre-modal-body textarea:focus {
+      outline: none; border-color: #4F46E5; background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+    #view-dashboard .gp-pre-modal-body textarea { min-height: 54px; resize: vertical; }
+    #view-dashboard .gp-pre-cobros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    #view-dashboard .gp-pre-modal-motivo-box { background: #FFF7ED; border: 1px solid #FDE0B0; border-radius: 13px; padding: 12px 14px; margin-top: 16px; }
+    #view-dashboard .gp-pre-modal-footer { display: flex; gap: 10px; padding: 16px 22px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+    #view-dashboard .gp-pre-modal-footer button {
+      flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-btn-cancelar { background: #F0F0F6; color: #4B4D63; }
+    #view-dashboard .gp-pre-btn-guardar { background: linear-gradient(135deg, #4F46E5, #7C6FF0); color: #fff; box-shadow: 0 6px 16px rgba(79,70,229,.35); }
+  </style>
+
+  <div class="gp-pre-hero">
+    <div class="gp-pre-hero-header">
+      <div>
+        <div class="gp-pre-hero-title">🟡 Preventas</div>
+        <div class="gp-pre-hero-sub">Lo más importante del local — tocá cualquier tarjeta para editarla al toque</div>
+      </div>
+      <div class="gp-pre-stats">
+        <div class="gp-pre-stat"><b id="gp-pre-cant">…</b><span>Pendientes</span></div>
+        <div class="gp-pre-stat gp-pre-stat-rojo"><b id="gp-pre-venc">…</b><span>Vencidas</span></div>
+        <div class="gp-pre-stat"><b id="gp-pre-monto">…</b><span>Saldo total</span></div>
+      </div>
+    </div>
+    <div class="gp-pre-toolbar">
+      <input type="text" id="gp-pre-buscar" class="gp-pre-buscar" placeholder="🔎 Buscar por cliente, modelo o N°..." oninput="dashPreRender()"/>
+      <div class="gp-pre-filtros">
+        <button type="button" class="gp-pre-filtro activo" data-f="todas" onclick="dashPreFiltrar('todas')">Todas</button>
+        <button type="button" class="gp-pre-filtro" data-f="vencida" onclick="dashPreFiltrar('vencida')">🔴 Vencidas</button>
+        <button type="button" class="gp-pre-filtro" data-f="proxima" onclick="dashPreFiltrar('proxima')">🟡 Próximas</button>
+        <button type="button" class="gp-pre-filtro" data-f="plazo" onclick="dashPreFiltrar('plazo')">🟢 En plazo</button>
+      </div>
+    </div>
+    <div class="gp-pre-grid" id="gp-pre-grid">Cargando…</div>
+  </div>
+
+  <div id="gp-pre-modal-overlay" class="gp-pre-modal-overlay" style="display:none" onclick="if(event.target===this) dashPreModalCerrar()">
+    <div class="gp-pre-modal">
+      <div class="gp-pre-modal-header">
+        <b id="gp-pre-modal-titulo">Editar preventa</b>
+        <button type="button" onclick="dashPreModalCerrar()">✕</button>
+      </div>
+      <div class="gp-pre-modal-body">
+        <label>Cliente</label>
+        <input type="text" id="gpm_cliente"/>
+        <label>Teléfono</label>
+        <input type="text" id="gpm_tel"/>
+        <label>Modelo</label>
+        <input type="text" id="gpm_modelo"/>
+        <label>Precio pactado ($)</label>
+        <input type="text" inputmode="numeric" id="gpm_precio" oninput="formatearInputMoneda(this)"/>
+        <label>Cobrado</label>
+        <div class="gp-pre-cobros">
+          <div><label style="margin-top:0">Efectivo</label><input type="text" inputmode="numeric" id="gpm_efec" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">Transf.</label><input type="text" inputmode="numeric" id="gpm_transf" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">Cuotas</label><input type="text" inputmode="numeric" id="gpm_cuotas" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">USD</label><input type="number" id="gpm_usd" min="0"/></div>
+        </div>
+        <label>Fecha de entrega</label>
+        <input type="date" id="gpm_fecha"/>
+        <label>Observaciones</label>
+        <textarea id="gpm_obs"></textarea>
+
+        <div class="gp-pre-modal-motivo-box">
+          <label style="margin-top:0">Operador que corrige: <span class="req">*</span></label>
+          <select id="gpm_operador">
+            <option value="" disabled selected>Seleccionar...</option>
+            <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+          </select>
+          <label>Motivo de la corrección: <span class="req">*</span></label>
+          <textarea id="gpm_motivo" placeholder="Ej: el cliente pidió cambiar la fecha de entrega"></textarea>
+        </div>
+      </div>
+      <div class="gp-pre-modal-footer">
+        <button type="button" class="gp-pre-btn-cancelar" onclick="dashPreModalCerrar()">Cancelar</button>
+        <button type="button" class="gp-pre-btn-guardar" onclick="dashPreModalGuardar()">✅ Guardar cambios</button>
+      </div>
+    </div>
+  </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
     <div>
@@ -124,7 +293,188 @@
 </div>
 
 <script>
+  // ============================================================
+  //  PANEL PROTAGONISTA DE PREVENTAS (Dashboard) — tarjetas + filtros +
+  //  búsqueda + edición en un modal propio, sin salir de la pantalla.
+  //  Los datos vienen de obtenerPreventasEntregables() (webapp.gs, ya
+  //  usada por el panel de seguimiento de preventas.html — no duplica
+  //  lectura de la hoja). La edición carga la operación completa con
+  //  obtenerOperacionParaCorregirWeb() (la misma que usa "Mis
+  //  Operaciones" → Editar) y guarda con corregirPreventa()
+  //  (operadores.gs): motivo + operador quedan igual de auditados que
+  //  si se editara desde cualquier otro lado del ERP. Los campos que no
+  //  se muestran en este modal compacto (CUIL, domicilio, email, IMEI,
+  //  color, estado requerido, parte de pago) se mandan tal cual estaban
+  //  — el modal no los toca ni los borra.
+  // ============================================================
+  var _dashPreventas = [];
+  var _dashPreFiltro = "todas";
+  var _dashPreEditando = null; // { numero, datos } de obtenerOperacionParaCorregirWeb
+
+  function dashPreCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var hoy = new Date(); hoy.setHours(0,0,0,0);
+        _dashPreventas = (datos || []).filter(function(p){ return p.fechaHasta; }).map(function(p){
+          var partes = p.fechaHasta.split("-");
+          var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+          var dias = Math.round((limite - hoy) / 86400000);
+          p.diasRestantes = dias;
+          p.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
+          return p;
+        });
+        dashPreRenderStats();
+        dashPreRender();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregables();
+  }
+
+  function dashPreRenderStats(){
+    var vencidas = _dashPreventas.filter(function(p){ return p.severidad === "vencida"; }).length;
+    var montoTotal = _dashPreventas.reduce(function(s,p){ return s + (Number(p.saldo) || 0); }, 0);
+    document.getElementById("gp-pre-cant").textContent = _dashPreventas.length;
+    document.getElementById("gp-pre-venc").textContent = vencidas;
+    document.getElementById("gp-pre-monto").textContent = fmtP(montoTotal);
+  }
+
+  function dashPreFiltrar(f){
+    _dashPreFiltro = f;
+    document.querySelectorAll("#view-dashboard .gp-pre-filtro").forEach(function(b){
+      b.classList.toggle("activo", b.dataset.f === f);
+    });
+    dashPreRender();
+  }
+
+  function _dashEsc(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function dashPreRender(){
+    var q = (document.getElementById("gp-pre-buscar").value || "").trim().toLowerCase();
+    var lista = _dashPreventas.filter(function(p){
+      if (_dashPreFiltro !== "todas" && p.severidad !== _dashPreFiltro) return false;
+      if (q) {
+        var enTexto = (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
+                      (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
+                      (p.nPre||"").toLowerCase().indexOf(q) >= 0;
+        if (!enTexto) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return a.fechaHasta.localeCompare(b.fechaHasta); });
+
+    var grid = document.getElementById("gp-pre-grid");
+    if (lista.length === 0) {
+      grid.innerHTML = "<div class='hint'>" + (q || _dashPreFiltro !== "todas" ? "Nada para mostrar con ese filtro." : "No hay preventas pendientes de entrega.") + "</div>";
+      return;
+    }
+
+    var ETIQUETAS = { vencida: "Vencida", proxima: "Próxima", plazo: "En plazo" };
+    grid.innerHTML = lista.map(function(p){
+      var partes = p.fechaHasta.split("-");
+      var fechaLinda = partes[2] + "/" + partes[1];
+      var toma = p.partePagoEquipo ? "<div class='gp-pre-card-toma'>🔁 " + _dashEsc(p.partePagoEquipo) + "</div>" : "";
+      return "<div class='gp-pre-card gp-pre-card-" + p.severidad + "' onclick=\"dashPreEditar('" + p.nPre + "')\">" +
+        "<div class='gp-pre-card-top'><span class='gp-pre-card-fecha'>" + fechaLinda + " · " + ETIQUETAS[p.severidad] + "</span><span class='gp-pre-card-num'>" + p.nPre + "</span></div>" +
+        "<div class='gp-pre-card-cliente'>" + _dashEsc(p.cliente) + "</div>" +
+        "<div class='gp-pre-card-modelo'>" + _dashEsc(p.modelo) + "</div>" +
+        "<div class='gp-pre-card-money'><span>Saldo</span><b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b></div>" +
+        toma +
+      "</div>";
+    }).join("");
+  }
+
+  /** Abre el modal con la preventa completa (todos los campos, aunque el modal solo muestre/edite algunos) para no perder datos al guardar. */
+  function dashPreEditar(nPre){
+    llamarBackend("obtenerOperacionParaCorregirWeb", nPre, function(op){
+      if (!op || op.tipo !== "PREVENTA") { mostrarToast("❌ No se pudo abrir esa preventa para editar.", "error"); return; }
+      if (op.operacionOrigen) { mostrarToast("Esta preventa ya fue corregida antes — editala desde Mis Operaciones para ver la cadena completa.", "error"); return; }
+      _dashPreEditando = op;
+      var d = op.datos;
+      document.getElementById("gpm_cliente").value = d["Cliente"] || "";
+      document.getElementById("gpm_tel").value = d["Teléfono"] || "";
+      document.getElementById("gpm_modelo").value = d["Modelo Solicitado"] || "";
+      setInputMoneda(document.getElementById("gpm_precio"), d["Precio Venta Pactado"] || 0);
+      setInputMoneda(document.getElementById("gpm_efec"), d["Cobrado Efectivo"] || 0);
+      setInputMoneda(document.getElementById("gpm_transf"), d["Cobrado Transferencia"] || 0);
+      setInputMoneda(document.getElementById("gpm_cuotas"), d["Cobrado Cuotas"] || 0);
+      document.getElementById("gpm_usd").value = d["Cobrado USD"] || "";
+      document.getElementById("gpm_fecha").value = fechaParaInput(d["Fecha Prometida Hasta"]) || "";
+      document.getElementById("gpm_obs").value = d["Observaciones"] || "";
+      document.getElementById("gpm_operador").value = "";
+      document.getElementById("gpm_motivo").value = "";
+      document.getElementById("gp-pre-modal-titulo").textContent = "Editar " + nPre;
+      document.getElementById("gp-pre-modal-overlay").style.display = "flex";
+    });
+  }
+
+  function dashPreModalCerrar(){
+    document.getElementById("gp-pre-modal-overlay").style.display = "none";
+    _dashPreEditando = null;
+  }
+
+  function dashPreModalGuardar(){
+    if (!_dashPreEditando) return;
+    var operador = document.getElementById("gpm_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador que corrige.", "error"); return; }
+    var motivo = document.getElementById("gpm_motivo").value.trim();
+    if (!motivo) { mostrarToast("Ingresá el motivo de la corrección.", "error"); return; }
+
+    var cliente = document.getElementById("gpm_cliente").value.trim();
+    var modelo = document.getElementById("gpm_modelo").value.trim();
+    var precio = valorNumerico(document.getElementById("gpm_precio"));
+    if (!cliente) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
+    if (!modelo) { mostrarToast("Ingresá el modelo.", "error"); return; }
+    if (precio <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
+
+    var original = _dashPreEditando.datos;
+    var fechaEntrega = document.getElementById("gpm_fecha").value || fechaParaInput(original["Fecha Prometida Hasta"]) || "";
+
+    // Campos no editables en este modal compacto: se mandan tal cual
+    // estaban en la preventa original, para no perderlos ni pisarlos.
+    var datosNuevos = {
+      fecha: fechaParaInput(original["Fecha Preventa"]) || "",
+      modelo: modelo,
+      cliente: cliente,
+      cuil: original["CUIL Cliente"] || "",
+      tel: document.getElementById("gpm_tel").value.trim(),
+      domicilio: original["Domicilio Cliente"] || "",
+      email: original["Email Cliente"] || "",
+      imei: original["IMEI Solicitado"] || "",
+      color: original["Color Solicitado"] || "",
+      estadoRequerido: original["Estado Requerido"] || "",
+      partePagoEquipo: original["Equipo Parte De Pago"] || "",
+      partePagoValor: Number(original["Valor Parte De Pago"]) || 0,
+      vendedor: original["OPERADOR"] || "",
+      precioVenta: precio,
+      efec: valorNumerico(document.getElementById("gpm_efec")),
+      transf: valorNumerico(document.getElementById("gpm_transf")),
+      cuotas: valorNumerico(document.getElementById("gpm_cuotas")),
+      usd: parseFloat(document.getElementById("gpm_usd").value) || 0,
+      fechaDesde: fechaEntrega,
+      fechaHasta: fechaEntrega,
+      obs: document.getElementById("gpm_obs").value.trim(),
+      operador: original["OPERADOR"] || ""
+    };
+
+    confirmarAccion("¿Confirmás guardar los cambios de " + _dashPreEditando.numero + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("corregirPreventa", {
+        numeroOriginal: _dashPreEditando.numero,
+        datosNuevos: datosNuevos,
+        motivo: motivo,
+        operador: operador
+      }, function(msg){
+        mostrarToastOperacion(msg);
+        dashPreModalCerrar();
+        dashPreCargar();
+        cargarDashboard();
+      });
+    });
+  }
+
   function cargarDashboard(){
+    dashPreCargar();
     google.script.run
       .withSuccessHandler(function(d){
         document.getElementById("dash-stock").textContent      = d.stockCantidad;
