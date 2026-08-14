@@ -395,6 +395,25 @@
     return { ir: ir, actual: function(){ return actual; } };
   }
 
+  /**
+   * Corre `fn` ya mismo si la página ya terminó de cargar del todo, o la
+   * deja pendiente hasta que termine (evento "load"). Apps Script arma la
+   * página final uniendo varios archivos, y el orden real en que cada
+   * <script> se ejecuta puede no ser el que uno espera — comprobado en
+   * producción: comprasActualizarVisibilidad() y comprasAccLineaAgregar()
+   * usan funciones definidas en el <script> de index.html
+   * (setInputMoneda/fmtP/cotizacionActual) que a veces todavía no existen
+   * en el instante exacto en que el navegador llega a esta parte del
+   * archivo. setTimeout(fn, 0) NO alcanza para esto — se probó y el error
+   * seguía apareciendo, el navegador puede disparar el timer antes de que
+   * terminen de correr los demás <script> de la página. El evento "load"
+   * sí espera a que la página esté 100% lista, sea cual sea el orden real.
+   */
+  function _comprasCuandoListo(fn){
+    if (document.readyState === "complete") fn();
+    else window.addEventListener("load", fn);
+  }
+
   document.getElementById("c_fecha").value = new Date().toISOString().split("T")[0];
   document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
 
@@ -460,7 +479,18 @@
       setInputMoneda(document.getElementById("c_precioVenta"), 0);
     }
   }
-  comprasActualizarVisibilidad();
+  // Se difiere con setTimeout(...,0) en vez de llamarla directo acá: esta
+  // función usa setInputMoneda(), definida en el <script> de index.html —
+  // en algunos ordenes de carga real (Apps Script arma la página uniendo
+  // varios archivos, y el <script> de index.html puede terminar de
+  // ejecutarse después que el de compras.html) esa función todavía no
+  // existe en el instante exacto en que el navegador llega a esta línea,
+  // y tirar ReferenceError acá cortaba la ejecución de TODO lo que venía
+  // después en este mismo <script> — incluida la puesta en marcha del
+  // asistente paso a paso más abajo. setTimeout(fn, 0) pospone la llamada
+  // hasta que termine de correr el resto de los <script> de la página
+  // (sea cual sea el orden real), sin depender de adivinar ese orden.
+  _comprasCuandoListo(comprasActualizarVisibilidad);
 
   /** Escapa para uso seguro dentro de un atributo value="..." armado con concatenación de strings (duplicar línea/defaults pueden traer texto con comillas). */
   function _escAttr(s){
@@ -657,7 +687,10 @@
       });
     });
   }
-  comprasAccLineaAgregar();
+  // Mismo motivo que el setTimeout de comprasActualizarVisibilidad más
+  // arriba: comprasAccLineaAgregar() → comprasAccCalcTotal() usa
+  // cotizacionActual y fmtP, definidas en index.html.
+  _comprasCuandoListo(comprasAccLineaAgregar);
 
   function comprasTogglePreventa(){
     var val = document.getElementById("c_esPreventa").value;
