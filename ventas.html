@@ -1,5 +1,111 @@
 <div id="view-ventas" class="view">
-  <div class="panel" style="max-width:760px">
+  <style>
+    /* Mismo lenguaje visual del asistente de Compras (compras.html) —
+       escapado a #view-ventas, no toca el resto del ERP. */
+    #view-ventas {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #view-ventas > .panel {
+      max-width: 640px; margin: 0 auto; padding: 4px 48px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-ventas > .panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-ventas > .panel > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+    #view-ventas > .panel > label:first-of-type { font-size: 12px; font-weight: 700; color: var(--gpw-texto-sua); text-transform: uppercase; letter-spacing: .6px; }
+    #view-ventas > .panel > select#v_modo { text-align: center; font-weight: 700; }
+
+    #view-ventas .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-ventas .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-ventas .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-ventas .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-ventas .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-ventas .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-ventas .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-ventas .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+
+    #view-ventas .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-ventas .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-ventas .paso-num { display: none; }
+    #view-ventas .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+
+    #view-ventas label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-ventas .paso > label:first-child,
+    #view-ventas .paso > .fila2:first-child label,
+    #view-ventas .paso > .fila4:first-child label { margin-top: 0; }
+    #view-ventas input, #view-ventas select, #view-ventas textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-ventas input::placeholder, #view-ventas textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-ventas input:focus, #view-ventas select:focus, #view-ventas textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-ventas .req { color: #E11D48; }
+    #view-ventas .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-ventas .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-ventas .box-info { background: #EEECFD; }
+    #view-ventas .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+
+    #view-ventas .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-ventas .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-ventas .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+
+    #view-ventas .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-ventas .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-ventas .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-ventas .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-ventas .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+
+    #view-ventas .gp-wizard-paso-final > .btn:not(.gp-wizard-secundario) {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-ventas .gp-wizard-paso-final > .btn:not(.gp-wizard-secundario):hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="panel">
     <h3>💰 Registrar Venta</h3>
 
     <label>¿Qué querés registrar?</label>
@@ -56,11 +162,8 @@
     </div>
 
     <div class="paso paso-opcional">
-      <div class="plegable-cabecera" onclick="ventasToggleAccesoriosBox()">
-        <p class="paso-titulo" style="margin:0"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con el equipo? (opcional)</p>
-        <span class="plegable-flecha" id="v_accFlecha">▾</span>
-      </div>
-      <div id="v_accesoriosBody" style="display:none;margin-top:10px">
+      <p class="paso-titulo"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con el equipo? (opcional)</p>
+      <div id="v_accesoriosBody" style="margin-top:10px">
         <div class="hint">Elegí el producto real del stock — así se descuenta solo, igual que una venta de accesorios sueltos. "Otro (no descuenta stock)" queda para algo que no está cargado en el catálogo.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
           <div><label style="font-size:11px">Accesorio 1</label><select id="v_acc1" onchange="ventasAccInlineToggleOtro(1)"></select><input type="text" id="v_acc1_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
@@ -110,9 +213,9 @@
 
       <label>Observaciones:</label>
       <input type="text" id="v_obs" placeholder="Opcional"/>
-    </div>
 
-    <button type="button" class="btn" onclick="ventasEnviar()">✅ Confirmar venta</button>
+      <button type="button" class="btn" onclick="ventasEnviar()">✅ Confirmar venta</button>
+    </div>
     </div>
 
     <div id="v_bloqueAccesorios" style="display:none">
@@ -157,12 +260,12 @@
           <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="" placeholder="0" min="0" oninput="ventasAccCalcTotal()"/></div>
         </div>
         <div class="total" id="va_totalCobradoDiv">Total cobrado: $0</div>
+
+        <label>Observaciones:</label>
+        <input type="text" id="va_obs" placeholder="Opcional"/>
+
+        <button type="button" class="btn" onclick="ventasAccEnviar()">✅ Confirmar venta de accesorios</button>
       </div>
-
-      <label>Observaciones:</label>
-      <input type="text" id="va_obs" placeholder="Opcional"/>
-
-      <button type="button" class="btn" onclick="ventasAccEnviar()">✅ Confirmar venta de accesorios</button>
     </div>
     </form>
   </div>
@@ -223,13 +326,29 @@
   document.getElementById("va_fecha").value = new Date().toISOString().split("T")[0];
   ventasAccLineaAgregar();
 
-  /** Sección "Accesorios vendidos junto con el equipo": colapsada por defecto (es opcional y la mayoría de las ventas no la usa) — se abre con un clic en el título. Los valores no se pierden al colapsar/expandir. */
-  var _ventasAccesoriosAbierto = false;
-  function ventasToggleAccesoriosBox(){
-    _ventasAccesoriosAbierto = !_ventasAccesoriosAbierto;
-    document.getElementById("v_accesoriosBody").style.display = _ventasAccesoriosAbierto ? "block" : "none";
-    document.getElementById("v_accFlecha").classList.toggle("abierto", _ventasAccesoriosAbierto);
-  }
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardVentaEquipo = crearWizard(
+    document.querySelectorAll("#v_bloqueEquipo .paso"),
+    { validar: function(i){
+        if (i === 0) {
+          if (!document.getElementById("v_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+          if (!document.getElementById("v_nOp").value) return { ok:false, msg:"Elegí el equipo a vender." };
+        }
+        if (i === 1 && !document.getElementById("v_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
+        if (i === 3 && valorNumerico(document.getElementById("v_precioVenta")) <= 0) return { ok:false, msg:"Ingresá el precio del celular." };
+        return { ok:true };
+      }
+    }
+  );
+  var _wizardVentaAccesorios = crearWizard(
+    document.querySelectorAll("#v_bloqueAccesorios .paso"),
+    { validar: function(i){
+        if (i === 0 && !document.getElementById("va_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+        return { ok:true };
+      }
+    }
+  );
 
   // Precio Inteligente (precio_automatico.html, mismo helper que Preventas):
   // autocompleta Precio del Celular al cambiar de equipo SOLO si el vendedor
@@ -319,10 +438,9 @@
       if (acc) ventasAccInlineSetOtro(n, acc.producto);
       setInputMoneda(document.getElementById("v_acc" + n + "p"), acc ? acc.precio : 0);
     });
-    if (accs.length > 0 && !_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
-
     ventasCalcTotalOperacion();
     ventasCalcTotal();
+    if (_wizardVentaEquipo) _wizardVentaEquipo.ir(0);
   }
 
   function ventasTotalOperacion(){
@@ -435,7 +553,7 @@
       despues: ventasInit
     });
     [1,2,3].forEach(function(n){ document.getElementById("v_acc" + n + "_otro").style.display = "none"; });
-    if (_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
+    if (_wizardVentaEquipo) _wizardVentaEquipo.ir(0);
   }
 
   // ============================================================
@@ -627,6 +745,7 @@
         _vaStockCache = [];
         ventasAccLineaAgregar();
         ventasAccCargarStock();
+        if (_wizardVentaAccesorios) _wizardVentaAccesorios.ir(0);
       });
     });
   }

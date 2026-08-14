@@ -1,5 +1,104 @@
 <div id="view-entregar_preventa" class="view">
-  <div class="panel" style="max-width:760px">
+  <style>
+    /* Mismo lenguaje visual del asistente de Compras (compras.html) —
+       escapado a #view-entregar_preventa, no toca el resto del ERP. */
+    #view-entregar_preventa {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #view-entregar_preventa > .panel {
+      max-width: 640px; margin: 0 auto; padding: 4px 48px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-entregar_preventa > .panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-entregar_preventa > .panel > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+    #view-entregar_preventa .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-entregar_preventa .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-entregar_preventa .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-entregar_preventa .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-entregar_preventa .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-entregar_preventa .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-entregar_preventa .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-entregar_preventa .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+    #view-entregar_preventa .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-entregar_preventa .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-entregar_preventa .paso-num { display: none; }
+    #view-entregar_preventa .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+    #view-entregar_preventa label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-entregar_preventa .paso > label:first-child,
+    #view-entregar_preventa .paso > .fila2:first-child label,
+    #view-entregar_preventa .paso > .fila4:first-child label { margin-top: 0; }
+    #view-entregar_preventa input, #view-entregar_preventa select, #view-entregar_preventa textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-entregar_preventa input::placeholder, #view-entregar_preventa textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-entregar_preventa input:focus, #view-entregar_preventa select:focus, #view-entregar_preventa textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-entregar_preventa .req { color: #E11D48; }
+    #view-entregar_preventa .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-entregar_preventa .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-entregar_preventa .box-info { background: #EEECFD; }
+    #view-entregar_preventa .box-warn { background: #FEF6E0; }
+    #view-entregar_preventa .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+    #view-entregar_preventa .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-entregar_preventa .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-entregar_preventa .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    #view-entregar_preventa .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-entregar_preventa .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-entregar_preventa .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-entregar_preventa .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-entregar_preventa .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-entregar_preventa .gp-wizard-paso-final > .btn {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-entregar_preventa .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="panel">
     <h3>📦 Entregar Preventa</h3>
 
     <div class="paso">
@@ -14,19 +113,18 @@
       <select id="e_nPre" onchange="entregaActualizarInfo()"><option value="">Cargando preventas...</option></select>
 
       <div class="box box-info" id="e_infoDiv" style="margin-top:10px"></div>
-    </div>
 
-    <div class="box box-info" id="e_compraBox" style="display:none">
-      <label style="margin-top:0">🛒 Esta preventa todavía no tiene compra registrada. Es opcional: si dejás estos datos vacíos, la entrega se registra igual y se crea una compra placeholder con costo $0 que podés completar después.</label>
-      <div class="fila2">
-        <div><label style="font-size:11px">IMEI</label><input type="text" id="e_imeiCompra" placeholder="15 dígitos"/></div>
-        <div><label style="font-size:11px">Costo del equipo ($)</label><input type="text" inputmode="numeric" id="e_costoCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+      <div class="box box-info" id="e_compraBox" style="display:none;margin-top:10px">
+        <label style="margin-top:0">🛒 Esta preventa todavía no tiene compra registrada. Es opcional: si dejás estos datos vacíos, la entrega se registra igual y se crea una compra placeholder con costo $0 que podés completar después.</label>
+        <div class="fila2">
+          <div><label style="font-size:11px">IMEI</label><input type="text" id="e_imeiCompra" placeholder="15 dígitos"/></div>
+          <div><label style="font-size:11px">Costo del equipo ($)</label><input type="text" inputmode="numeric" id="e_costoCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+        </div>
+        <div class="fila2">
+          <div><label style="font-size:11px">Proveedor</label><input type="text" id="e_proveedorCompra" placeholder="Ej: Juan Pérez, Particular"/></div>
+          <div><label style="font-size:11px">Fecha de compra</label><input type="date" id="e_fechaCompra"/></div>
+        </div>
       </div>
-      <div class="fila2">
-        <div><label style="font-size:11px">Proveedor</label><input type="text" id="e_proveedorCompra" placeholder="Ej: Juan Pérez, Particular"/></div>
-        <div><label style="font-size:11px">Fecha de compra</label><input type="date" id="e_fechaCompra"/></div>
-      </div>
-      <div class="hint">"Costo del equipo" es lo que se pagó (o se va a pagar) para conseguirlo. Si no tenés ese dato a mano, consultá antes de confirmar la entrega — sin esto no se puede completar.</div>
     </div>
 
     <div class="paso">
@@ -45,11 +143,8 @@
     </div>
 
     <div class="paso paso-opcional">
-      <div class="plegable-cabecera" onclick="entregaToggleAccesoriosBox()">
-        <p class="paso-titulo" style="margin:0"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con la entrega? (opcional)</p>
-        <span class="plegable-flecha" id="e_accFlecha">▾</span>
-      </div>
-      <div id="e_accesoriosBody" style="display:none;margin-top:10px">
+      <p class="paso-titulo"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con la entrega? (opcional)</p>
+      <div id="e_accesoriosBody" style="margin-top:10px">
         <div class="hint">Elegí el producto real del stock — así se descuenta solo. "Otro (no descuenta stock)" queda para algo que no está en el catálogo. El pago se prorratea entre el saldo del celular y los accesorios.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
           <div><label style="font-size:11px">Accesorio 1</label><select id="e_acc1" onchange="entregaAccInlineToggleOtro(1)"></select><input type="text" id="e_acc1_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
@@ -87,9 +182,9 @@
         Preguntar por el comprobante de entrega al confirmar
       </label>
       <div class="hint">Destildá esto si muchas veces no hace falta mandarle nada al cliente — la entrega se registra igual, solo que no te va a interrumpir con el cartel de "¿imprimir o enviar?" cada vez. Siempre podés reimprimir o enviar el comprobante después desde "Mis Operaciones".</div>
-    </div>
 
-    <button class="btn" onclick="entregaEnviar()">✅ Confirmar entrega</button>
+      <button type="button" class="btn" onclick="entregaEnviar()">✅ Confirmar entrega</button>
+    </div>
   </div>
 </div>
 
@@ -97,13 +192,19 @@
   document.getElementById("e_fecha").value = new Date().toISOString().split("T")[0];
   document.getElementById("e_fechaCompra").value = new Date().toISOString().split("T")[0];
 
-  /** Sección "Accesorios vendidos en la entrega": colapsada por defecto (opcional, no siempre aplica) — se abre con un clic en el título. */
-  var _entregaAccesoriosAbierto = false;
-  function entregaToggleAccesoriosBox(){
-    _entregaAccesoriosAbierto = !_entregaAccesoriosAbierto;
-    document.getElementById("e_accesoriosBody").style.display = _entregaAccesoriosAbierto ? "block" : "none";
-    document.getElementById("e_accFlecha").classList.toggle("abierto", _entregaAccesoriosAbierto);
-  }
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardEntregaPreventa = crearWizard(
+    document.querySelectorAll("#view-entregar_preventa .paso"),
+    { validar: function(i){
+        if (i === 0) {
+          if (!document.getElementById("e_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+          if (!document.getElementById("e_nPre").value) return { ok:false, msg:"Elegí la preventa a entregar." };
+        }
+        return { ok:true };
+      }
+    }
+  );
 
   var _entregaPreventas = [];
   var _epStockCache = [];
@@ -361,6 +462,7 @@
           setInputMoneda(document.getElementById("e_acc"+n+"p"), 0);
         });
         entregaInit();
+        if (_wizardEntregaPreventa) _wizardEntregaPreventa.ir(0);
       });
     });
   }
