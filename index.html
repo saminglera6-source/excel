@@ -524,7 +524,7 @@
     document.getElementById("gp-er-camposCobro").style.display = "block";
     document.getElementById("gp-er-btnConfirmar").style.display = "inline-block";
 
-    document.getElementById("er_operador").value = "";
+    document.getElementById("er_operador").value = "Martin";
     var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
     setInputMoneda(document.getElementById("er_efec"), saldo);
     setInputMoneda(document.getElementById("er_transf"), 0);
@@ -572,8 +572,7 @@
   function entregaRapidaConfirmar(){
     if (!_entregaRapidaActual) return;
     var p = _entregaRapidaActual;
-    var operador = document.getElementById("er_operador").value;
-    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var operador = document.getElementById("er_operador").value || "Martin";
 
     var ef = valorNumerico(document.getElementById("er_efec"));
     var tr = valorNumerico(document.getElementById("er_transf"));
