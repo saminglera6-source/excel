@@ -238,21 +238,8 @@
       <p class="paso-titulo"><span class="paso-num">5</span> 🔧 Reparación y preventa</p>
 
       <label>¿Necesita arreglo antes de ponerlo a la venta?</label>
-      <select id="c_reparacion" onchange="comprasActualizarVisibilidad()"><option>No</option><option>Sí</option></select>
-
-      <div id="c_wrapReparacionEstimados" style="display:none;margin-top:10px">
-        <div class="hint">Son estimaciones para uso interno — no bloquean el registro de la compra. Cuando el equipo quede reparado, se marca desde "Mis Operaciones" (botón "🔧 Reparación lista") para que pase a estar disponible en la venta.</div>
-        <div class="fila2">
-          <div>
-            <label>Costo reparación estimado ($):</label>
-            <input type="text" inputmode="numeric" id="c_costoRep" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
-          </div>
-          <div>
-            <label>Precio estimado de venta ($):</label>
-            <input type="text" inputmode="numeric" id="c_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
-          </div>
-        </div>
-      </div>
+      <select id="c_reparacion"><option>No</option><option>Sí</option></select>
+      <div class="hint">Cuando el equipo quede reparado, se marca desde "Mis Operaciones" (botón "🔧 Reparación lista") para que pase a estar disponible en la venta.</div>
 
       <label style="margin-top:20px">¿Es para una preventa ya pactada?</label>
       <select id="c_esPreventa" onchange="comprasTogglePreventa()">
@@ -480,11 +467,10 @@
 
   /**
    * Muestra solo el campo de precio que corresponde al tipo de ingreso
-   * elegido (COMPRA vs CONSIGNACION), y solo los campos de estimación de
-   * reparación si "¿Necesita arreglo?" está en "Sí". El campo que se oculta
-   * se resetea a 0 para no dejar un valor viejo cargado por error en un
-   * campo que ya no aplica (riesgo detectado en la auditoría de usabilidad:
-   * antes los dos precios quedaban siempre visibles y editables).
+   * elegido (COMPRA vs CONSIGNACION). El campo que se oculta se resetea a 0
+   * para no dejar un valor viejo cargado por error en un campo que ya no
+   * aplica (riesgo detectado en la auditoría de usabilidad: antes los dos
+   * precios quedaban siempre visibles y editables).
    */
   function comprasActualizarVisibilidad(){
     var tipo = document.getElementById("c_tipo").value;
@@ -493,13 +479,6 @@
     document.getElementById("c_wrapPrecioConsig").style.display = esCompra ? "none" : "block";
     if (esCompra) setInputMoneda(document.getElementById("c_precioConsig"), 0);
     else setInputMoneda(document.getElementById("c_precioCompra"), 0);
-
-    var necesitaRep = document.getElementById("c_reparacion").value === "Sí";
-    document.getElementById("c_wrapReparacionEstimados").style.display = necesitaRep ? "block" : "none";
-    if (!necesitaRep) {
-      setInputMoneda(document.getElementById("c_costoRep"), 0);
-      setInputMoneda(document.getElementById("c_precioVenta"), 0);
-    }
   }
   // Se difiere con setTimeout(...,0) en vez de llamarla directo acá: esta
   // función usa setInputMoneda(), definida en el <script> de index.html —
@@ -760,8 +739,6 @@
     setInputMoneda(document.getElementById("c_precioConsig"), datos["Precio Acordado Consignación"] || 0);
     document.getElementById("c_formaPago").value     = datos["Forma de Pago Compra"] || "Efectivo";
     document.getElementById("c_reparacion").value    = datos["¿Necesita Reparación?"] || "No";
-    setInputMoneda(document.getElementById("c_costoRep"), datos["Costo Reparación Estimado"] || 0);
-    setInputMoneda(document.getElementById("c_precioVenta"), datos["Precio Estimado Venta"] || 0);
     document.getElementById("c_obs").value           = datos["Observaciones"] || "";
     comprasActualizarVisibilidad();
   }
@@ -784,8 +761,11 @@
       precioConsig: valorNumerico(document.getElementById("c_precioConsig")),
       formaPago: document.getElementById("c_formaPago").value,
       reparacion: document.getElementById("c_reparacion").value,
-      costoRep: valorNumerico(document.getElementById("c_costoRep")),
-      precioVenta: valorNumerico(document.getElementById("c_precioVenta")),
+      // Costo/Precio estimados de reparación se sacaron del cuestionario —
+      // el backend (Code.gs) sigue teniendo esas dos columnas opcionales en
+      // "Compras", se mandan en 0 para no romper esa estructura.
+      costoRep: 0,
+      precioVenta: 0,
       obs: document.getElementById("c_obs").value.trim(),
       esPreventa: document.getElementById("c_esPreventa").value,
       nPreAsociada: document.getElementById("c_esPreventa").value === "Si"
