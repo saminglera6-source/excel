@@ -17,13 +17,13 @@
     </div>
 
     <div class="box box-info" id="e_compraBox" style="display:none">
-      <label style="margin-top:0">🛒 Esta preventa todavía no tiene compra registrada — completá los datos del equipo para crearla automáticamente:</label>
+      <label style="margin-top:0">🛒 Esta preventa todavía no tiene compra registrada. Es opcional: si dejás estos datos vacíos, la entrega se registra igual y se crea una compra placeholder con costo $0 que podés completar después.</label>
       <div class="fila2">
         <div><label style="font-size:11px">IMEI</label><input type="text" id="e_imeiCompra" placeholder="15 dígitos"/></div>
-        <div><label style="font-size:11px">Costo del equipo ($) *</label><input type="text" inputmode="numeric" id="e_costoCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+        <div><label style="font-size:11px">Costo del equipo ($)</label><input type="text" inputmode="numeric" id="e_costoCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
       </div>
       <div class="fila2">
-        <div><label style="font-size:11px">Proveedor *</label><input type="text" id="e_proveedorCompra" placeholder="Ej: Juan Pérez, Particular"/></div>
+        <div><label style="font-size:11px">Proveedor</label><input type="text" id="e_proveedorCompra" placeholder="Ej: Juan Pérez, Particular"/></div>
         <div><label style="font-size:11px">Fecha de compra</label><input type="date" id="e_fechaCompra"/></div>
       </div>
       <div class="hint">"Costo del equipo" es lo que se pagó (o se va a pagar) para conseguirlo. Si no tenés ese dato a mano, consultá antes de confirmar la entrega — sin esto no se puede completar.</div>
@@ -284,8 +284,8 @@
       costoCompra = valorNumerico(document.getElementById("e_costoCompra"));
       proveedorCompra = document.getElementById("e_proveedorCompra").value.trim();
       fechaCompra = document.getElementById("e_fechaCompra").value;
-      if (costoCompra <= 0) { mostrarToast("Esta preventa no tiene compra registrada: ingresá el costo del equipo.", "error"); return; }
-      if (!proveedorCompra) { mostrarToast("Ingresá el proveedor del equipo.", "error"); return; }
+      // Por ahora la compra del equipo es opcional: si no se completa, se genera
+      // una compra placeholder con costo $0 que se puede corregir más adelante.
     }
 
     var saldo = p ? p.saldo : 0;

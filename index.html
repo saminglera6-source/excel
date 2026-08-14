@@ -469,8 +469,8 @@
       <div id="gp-er-resumen"></div>
 
       <div id="gp-er-sinCompra" style="display:none" class="gp-er-aviso">
-        Esta preventa todavía no tiene una compra registrada (falta el costo del equipo), así que no se puede entregar en un paso — hace falta completar esos datos.
-        <button type="button" onclick="entregaRapidaIrCompleta()">Ir a "Entregar Preventa" completo →</button>
+        Esta preventa todavía no tiene una compra registrada. Por ahora podés entregarla igual: se va a crear una compra placeholder con costo $0 que podés completar más adelante desde "Entregar Preventa" completo.
+        <button type="button" onclick="entregaRapidaIrCompleta()">Completar datos de la compra ahora →</button>
       </div>
 
       <div id="gp-er-camposCobro">
@@ -521,18 +521,16 @@
 
     var sinCompra = !p.nComp;
     document.getElementById("gp-er-sinCompra").style.display = sinCompra ? "block" : "none";
-    document.getElementById("gp-er-camposCobro").style.display = sinCompra ? "none" : "block";
-    document.getElementById("gp-er-btnConfirmar").style.display = sinCompra ? "none" : "inline-block";
+    document.getElementById("gp-er-camposCobro").style.display = "block";
+    document.getElementById("gp-er-btnConfirmar").style.display = "inline-block";
 
-    if (!sinCompra) {
-      document.getElementById("er_operador").value = "";
-      var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
-      setInputMoneda(document.getElementById("er_efec"), saldo);
-      setInputMoneda(document.getElementById("er_transf"), 0);
-      setInputMoneda(document.getElementById("er_cuotas"), 0);
-      document.getElementById("er_usd").value = "";
-      entregaRapidaCalcTotal();
-    }
+    document.getElementById("er_operador").value = "";
+    var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+    setInputMoneda(document.getElementById("er_efec"), saldo);
+    setInputMoneda(document.getElementById("er_transf"), 0);
+    setInputMoneda(document.getElementById("er_cuotas"), 0);
+    document.getElementById("er_usd").value = "";
+    entregaRapidaCalcTotal();
     document.getElementById("gp-er-overlay").classList.add("activo");
   }
 
