@@ -195,7 +195,7 @@
   // Asistente paso a paso, mismo patrón que Compras (compras.html define
   // crearWizard() — se incluye antes que esta vista, ver index.html).
   var _wizardEntregaPreventa = crearWizard(
-    document.querySelectorAll("#view-entregar_preventa .paso"),
+    Array.prototype.slice.call(document.querySelectorAll("#view-entregar_preventa .paso")),
     { validar: function(i){
         if (i === 0) {
           if (!document.getElementById("e_operador").value) return { ok:false, msg:"Seleccioná el operador." };

@@ -3,7 +3,7 @@
     /* Mismo lenguaje visual del asistente de Compras (compras.html) —
        escapado al primer panel (formulario de entrega); el panel de
        "Estado de Reparaciones" de abajo no lo usa. */
-    #view-entregar_reparacion > .panel:first-child {
+    #view-entregar_reparacion > .panel:first-of-type {
       --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
       --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
       --gpw-verde: #0F9D58; --gpw-radio: 20px;
@@ -12,90 +12,90 @@
       border: none; border-radius: 26px;
       box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
     }
-    #view-entregar_reparacion > .panel:first-child::before {
+    #view-entregar_reparacion > .panel:first-of-type::before {
       content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
       background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
     }
-    #view-entregar_reparacion > .panel:first-child > h3 {
+    #view-entregar_reparacion > .panel:first-of-type > h3 {
       font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
       color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-eyebrow {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-eyebrow {
       font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
       background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
       -webkit-background-clip: text; background-clip: text; color: transparent;
       text-align: center; margin: 26px 0 9px;
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-progreso {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-progreso {
       height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
       box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-progreso-fill {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-progreso-fill {
       height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
       box-shadow: 0 0 10px rgba(79,70,229,.5);
       transition: width .4s cubic-bezier(.4,0,.2,1);
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-dot {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot {
       width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
       transition: all .25s cubic-bezier(.4,0,.2,1);
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-dot:hover { background: #C2C4DB; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-dot.hecho { background: var(--gpw-verde); }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
-    #view-entregar_reparacion > .panel:first-child .paso {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+    #view-entregar_reparacion > .panel:first-of-type .paso {
       background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
       animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
     }
     @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    #view-entregar_reparacion > .panel:first-child .paso-titulo {
+    #view-entregar_reparacion > .panel:first-of-type .paso-titulo {
       font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
       color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
     }
-    #view-entregar_reparacion > .panel:first-child .paso-num { display: none; }
-    #view-entregar_reparacion > .panel:first-child .paso-titulo::after {
+    #view-entregar_reparacion > .panel:first-of-type .paso-num { display: none; }
+    #view-entregar_reparacion > .panel:first-of-type .paso-titulo::after {
       content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
       background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
     }
-    #view-entregar_reparacion > .panel:first-child label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
-    #view-entregar_reparacion > .panel:first-child .paso > label:first-child,
-    #view-entregar_reparacion > .panel:first-child .paso > .fila2:first-child label { margin-top: 0; }
-    #view-entregar_reparacion > .panel:first-child input,
-    #view-entregar_reparacion > .panel:first-child select {
+    #view-entregar_reparacion > .panel:first-of-type label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-entregar_reparacion > .panel:first-of-type .paso > label:first-child,
+    #view-entregar_reparacion > .panel:first-of-type .paso > .fila2:first-child label { margin-top: 0; }
+    #view-entregar_reparacion > .panel:first-of-type input,
+    #view-entregar_reparacion > .panel:first-of-type select {
       font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
       background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
       transition: background .15s, box-shadow .15s, border-color .15s;
     }
-    #view-entregar_reparacion > .panel:first-child input::placeholder { color: #A6A9C2; font-weight: 400; }
-    #view-entregar_reparacion > .panel:first-child input:focus,
-    #view-entregar_reparacion > .panel:first-child select:focus {
+    #view-entregar_reparacion > .panel:first-of-type input::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-entregar_reparacion > .panel:first-of-type input:focus,
+    #view-entregar_reparacion > .panel:first-of-type select:focus {
       background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
     }
-    #view-entregar_reparacion > .panel:first-child .req { color: #E11D48; }
-    #view-entregar_reparacion > .panel:first-child .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
-    #view-entregar_reparacion > .panel:first-child .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
-    #view-entregar_reparacion > .panel:first-child .box-info { background: #EEECFD; }
-    #view-entregar_reparacion > .panel:first-child .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
-    #view-entregar_reparacion > .panel:first-child .btn {
+    #view-entregar_reparacion > .panel:first-of-type .req { color: #E11D48; }
+    #view-entregar_reparacion > .panel:first-of-type .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-entregar_reparacion > .panel:first-of-type .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-entregar_reparacion > .panel:first-of-type .box-info { background: #EEECFD; }
+    #view-entregar_reparacion > .panel:first-of-type .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+    #view-entregar_reparacion > .panel:first-of-type .btn {
       font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
       background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
       box-shadow: 0 4px 14px rgba(79,70,229,.32);
       transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
     }
-    #view-entregar_reparacion > .panel:first-child .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
-    #view-entregar_reparacion > .panel:first-child .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-nav .gp-wizard-atras {
+    #view-entregar_reparacion > .panel:first-of-type .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-entregar_reparacion > .panel:first-of-type .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-atras {
       background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-paso-final > .btn {
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-paso-final > .btn {
       width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
       background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
     }
-    #view-entregar_reparacion > .panel:first-child .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
   </style>
   <div class="panel">
     <h3>✅ Registrar Entrega</h3>
@@ -187,7 +187,7 @@
   // Asistente paso a paso, mismo patrón que Compras (compras.html define
   // crearWizard() — se incluye antes que esta vista, ver index.html).
   var _wizardEntregaReparacion = crearWizard(
-    document.querySelectorAll("#view-entregar_reparacion > .panel:first-child .paso"),
+    Array.prototype.slice.call(document.querySelectorAll("#view-entregar_reparacion > .panel:first-of-type .paso")),
     { validar: function(i){
         if (i === 0) {
           if (!document.getElementById("er_operador").value) return { ok:false, msg:"Seleccioná el operador." };

@@ -329,7 +329,7 @@
   // Asistente paso a paso, mismo patrón que Compras (compras.html define
   // crearWizard() — se incluye antes que esta vista, ver index.html).
   var _wizardVentaEquipo = crearWizard(
-    document.querySelectorAll("#v_bloqueEquipo .paso"),
+    Array.prototype.slice.call(document.querySelectorAll("#v_bloqueEquipo .paso")),
     { validar: function(i){
         if (i === 0) {
           if (!document.getElementById("v_operador").value) return { ok:false, msg:"Seleccioná el operador." };
@@ -342,7 +342,7 @@
     }
   );
   var _wizardVentaAccesorios = crearWizard(
-    document.querySelectorAll("#v_bloqueAccesorios .paso"),
+    Array.prototype.slice.call(document.querySelectorAll("#v_bloqueAccesorios .paso")),
     { validar: function(i){
         if (i === 0 && !document.getElementById("va_operador").value) return { ok:false, msg:"Seleccioná el operador." };
         return { ok:true };

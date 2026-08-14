@@ -276,7 +276,7 @@
   // Asistente paso a paso, mismo patrón que Compras (compras.html define
   // crearWizard() — se incluye antes que esta vista, ver index.html).
   var _wizardReparacion = crearWizard(
-    document.querySelectorAll("#rep_form .paso"),
+    Array.prototype.slice.call(document.querySelectorAll("#rep_form .paso")),
     { validar: function(i){
         if (i === 0 && !document.getElementById("r_operador").value) return { ok:false, msg:"Seleccioná el operador." };
         if (i === 1 && !document.getElementById("r_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
