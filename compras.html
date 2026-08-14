@@ -152,7 +152,7 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">2</span> 📱 Datos del equipo</p>
+      <p class="paso-titulo"><span class="paso-num">2</span> 🏢 Datos del proveedor</p>
 
       <label>Proveedor / Origen:</label>
       <input type="text" id="c_proveedor" placeholder="Ej: Juan Pérez, Particular"/>
@@ -181,6 +181,10 @@
       </div>
       <label>Email/Gmail proveedor (opcional):</label>
       <input type="text" id="c_email" placeholder="Para la cesión de titularidad"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">3</span> 📱 Datos del equipo</p>
 
       <div class="fila2">
         <div>
@@ -211,7 +215,7 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">3</span> 💰 Precio y forma de pago</p>
+      <p class="paso-titulo"><span class="paso-num">4</span> 💰 Precio y forma de pago</p>
 
       <div id="c_wrapPrecioCompra">
         <label>Precio de compra ($): <span class="req">*</span></label>
@@ -231,7 +235,9 @@
     </div>
 
     <div class="paso paso-opcional">
-      <p class="paso-titulo"><span class="paso-num">4</span> 🔧 ¿Necesita arreglo antes de ponerlo a la venta?</p>
+      <p class="paso-titulo"><span class="paso-num">5</span> 🔧 Reparación y preventa</p>
+
+      <label>¿Necesita arreglo antes de ponerlo a la venta?</label>
       <select id="c_reparacion" onchange="comprasActualizarVisibilidad()"><option>No</option><option>Sí</option></select>
 
       <div id="c_wrapReparacionEstimados" style="display:none;margin-top:10px">
@@ -247,10 +253,8 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="paso paso-opcional">
-      <p class="paso-titulo"><span class="paso-num">5</span> 🏷️ ¿Es para una preventa ya pactada?</p>
+      <label style="margin-top:20px">¿Es para una preventa ya pactada?</label>
       <select id="c_esPreventa" onchange="comprasTogglePreventa()">
         <option value="No">No</option>
         <option value="Si">Sí — vincular a preventa existente</option>
@@ -854,15 +858,20 @@
     if (_wizardEquipo) _wizardEquipo.ir(0);
   }
 
-  /** Validación mínima antes de dejar avanzar de paso (equipo) — la validación completa de siempre sigue en comprasEnviar() al confirmar. */
+  /**
+   * Validación mínima antes de dejar avanzar de paso (equipo) — la
+   * validación completa de siempre sigue en comprasEnviar() al confirmar.
+   * Pasos: 0 Operador, 1 Datos del proveedor, 2 Datos del equipo,
+   * 3 Precio, 4 Reparación y preventa, 5 Confirmar.
+   */
   function _comprasValidarPasoEquipo(i){
     if (i === 0 && !document.getElementById("c_operador").value) {
       return { ok: false, msg: "Seleccioná el operador." };
     }
-    if (i === 1 && !document.getElementById("c_modelo").value.trim()) {
+    if (i === 2 && !document.getElementById("c_modelo").value.trim()) {
       return { ok: false, msg: "Ingresá el equipo/modelo." };
     }
-    if (i === 2) {
+    if (i === 3) {
       var esCompra = document.getElementById("c_tipo").value === "COMPRA";
       var precio = esCompra
         ? valorNumerico(document.getElementById("c_precioCompra"))
@@ -891,7 +900,7 @@
   var _wizardEquipo = crearWizard(
     Array.prototype.slice.call(document.querySelectorAll("#c_bloqueEquipo > .paso")),
     {
-      etiquetas: ["Operador", "Equipo", "Precio", "Reparación", "Preventa", "Confirmar"],
+      etiquetas: ["Operador", "Proveedor", "Equipo", "Precio", "Reparación/Preventa", "Confirmar"],
       validar: _comprasValidarPasoEquipo
     }
   );
