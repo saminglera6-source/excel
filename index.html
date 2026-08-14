@@ -403,6 +403,232 @@
 <div id="spinner-overlay"><div class="spinner"></div></div>
 <div id="toast-container"></div>
 
+<!-- ============================================================
+     ENTREGA RÁPIDA DE PREVENTA — modal compartido, disparable desde
+     cualquier vista (Dashboard, panel de seguimiento en preventas.html)
+     con entregaRapidaAbrir(p). Vive FUERA de cualquier .view (a
+     diferencia del modal de edición del Dashboard, que sí puede quedar
+     adentro de #view-dashboard porque solo se dispara con esa vista ya
+     activa) para no quedar oculto por el display:none de la vista que
+     esté activa en ese momento. Llama a procesarEntregaPreventaConOperador
+     — el mismo backend que usa la pantalla completa "Entregar Preventa"
+     — no inventa un camino de guardado nuevo, solo lo hace accesible en
+     un paso desde donde ya se está mirando la preventa.
+     ============================================================ -->
+<style>
+  #gp-er-overlay {
+    position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 300;
+    display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px);
+  }
+  #gp-er-overlay.activo { display: flex; }
+  #gp-er-modal {
+    background: #fff; border-radius: 22px; width: 100%; max-width: 440px; max-height: 88vh;
+    display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+  }
+  #gp-er-header {
+    display: flex; justify-content: space-between; align-items: center; padding: 18px 22px;
+    background: linear-gradient(135deg, #16A34A, #22C55E); color: #fff; flex-shrink: 0;
+  }
+  #gp-er-header b { font-family: "Manrope", sans-serif; font-size: 16px; }
+  #gp-er-header button {
+    background: rgba(255,255,255,.2); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%;
+    cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  #gp-er-body { padding: 18px 22px; overflow-y: auto; }
+  #gp-er-resumen { background: #F4F5FA; border-radius: 13px; padding: 12px 14px; margin-bottom: 14px; font-size: 13.5px; }
+  #gp-er-resumen b { font-size: 15px; }
+  #gp-er-aviso { background: #FFF7ED; border: 1px solid #FDE0B0; border-radius: 13px; padding: 14px; font-size: 13px; line-height: 1.5; }
+  #gp-er-aviso button {
+    display: block; margin-top: 10px; background: #4F46E5; color: #fff; border: none; border-radius: 100px;
+    padding: 9px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #gp-er-body label { display: block; font-size: 12px; font-weight: 700; color: #767A94; margin-top: 12px; margin-bottom: 4px; }
+  #gp-er-body label:first-of-type { margin-top: 0; }
+  #gp-er-body input, #gp-er-body select {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid #E4E5F0;
+    background: #F7F7FB; font-size: 14px; font-family: inherit; color: #191B2E;
+  }
+  #gp-er-body input:focus, #gp-er-body select:focus { outline: none; border-color: #16A34A; background: #fff; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+  #gp-er-cobros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  #gp-er-total { background: #E7F8EF; border-radius: 11px; padding: 8px 12px; margin-top: 10px; font-weight: 700; font-size: 13px; color: #0D7A3B; }
+  .gp-er-check { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 13px; font-weight: 600; color: #4B4D63; }
+  .gp-er-check input { width: auto; }
+  #gp-er-footer { display: flex; gap: 10px; padding: 16px 22px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+  #gp-er-footer button { flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
+  #gp-er-btnCancelar { background: #F0F0F6; color: #4B4D63; }
+  #gp-er-btnConfirmar { background: linear-gradient(135deg, #16A34A, #22C55E); color: #fff; box-shadow: 0 6px 16px rgba(22,163,74,.35); }
+</style>
+
+<div id="gp-er-overlay" onclick="if(event.target===this) entregaRapidaCerrar()">
+  <div id="gp-er-modal">
+    <div id="gp-er-header">
+      <b id="gp-er-titulo">🚚 Entregar</b>
+      <button type="button" onclick="entregaRapidaCerrar()">✕</button>
+    </div>
+    <div id="gp-er-body">
+      <div id="gp-er-resumen"></div>
+
+      <div id="gp-er-sinCompra" style="display:none" class="gp-er-aviso">
+        Esta preventa todavía no tiene una compra registrada (falta el costo del equipo), así que no se puede entregar en un paso — hace falta completar esos datos.
+        <button type="button" onclick="entregaRapidaIrCompleta()">Ir a "Entregar Preventa" completo →</button>
+      </div>
+
+      <div id="gp-er-camposCobro">
+        <label>Operador que entrega: <span class="req">*</span></label>
+        <select id="er_operador">
+          <option value="" disabled selected>Seleccionar...</option>
+          <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+        </select>
+
+        <label>Cobro ahora (saldo pendiente)</label>
+        <div id="gp-er-cobros">
+          <div><label style="margin-top:0;font-size:10.5px">Efectivo</label><input type="text" inputmode="numeric" id="er_efec" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">Transf.</label><input type="text" inputmode="numeric" id="er_transf" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">Cuotas</label><input type="text" inputmode="numeric" id="er_cuotas" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">USD</label><input type="number" id="er_usd" min="0" oninput="entregaRapidaCalcTotal()"/></div>
+        </div>
+        <div id="gp-er-total">Total ingresado: $0</div>
+
+        <label class="gp-er-check"><input type="checkbox" id="er_regalos" checked/> Entregar regalo(s) de bienvenida si corresponde</label>
+        <label class="gp-er-check"><input type="checkbox" id="er_comprobante" checked/> Preguntar por el comprobante al confirmar</label>
+      </div>
+    </div>
+    <div id="gp-er-footer">
+      <button type="button" id="gp-er-btnCancelar" onclick="entregaRapidaCerrar()">Cancelar</button>
+      <button type="button" id="gp-er-btnConfirmar" onclick="entregaRapidaConfirmar()">✅ Confirmar entrega</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  ENTREGA RÁPIDA — un solo modal reutilizado desde cualquier vista
+  //  que ya tenga a mano los datos de una preventa pendiente (mismo
+  //  shape que entrega obtenerPreventasEntregables(): nPre, cliente,
+  //  modelo, saldo, nComp, tel). Si la preventa no tiene compra
+  //  asociada (nComp vacío), no se puede completar en un paso — se
+  //  ofrece ir a la pantalla completa con la preventa ya elegida.
+  // ============================================================
+  var _entregaRapidaActual = null;
+
+  function entregaRapidaAbrir(p){
+    if (!p) return;
+    _entregaRapidaActual = p;
+    document.getElementById("gp-er-titulo").textContent = "🚚 Entregar " + p.nPre;
+    document.getElementById("gp-er-resumen").innerHTML =
+      "<b>" + _dashEscGlobal(p.cliente) + "</b> — " + _dashEscGlobal(p.modelo) + "<br>" +
+      "Saldo pendiente: <b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b>";
+
+    var sinCompra = !p.nComp;
+    document.getElementById("gp-er-sinCompra").style.display = sinCompra ? "block" : "none";
+    document.getElementById("gp-er-camposCobro").style.display = sinCompra ? "none" : "block";
+    document.getElementById("gp-er-btnConfirmar").style.display = sinCompra ? "none" : "inline-block";
+
+    if (!sinCompra) {
+      document.getElementById("er_operador").value = "";
+      var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+      setInputMoneda(document.getElementById("er_efec"), saldo);
+      setInputMoneda(document.getElementById("er_transf"), 0);
+      setInputMoneda(document.getElementById("er_cuotas"), 0);
+      document.getElementById("er_usd").value = "";
+      entregaRapidaCalcTotal();
+    }
+    document.getElementById("gp-er-overlay").classList.add("activo");
+  }
+
+  function _dashEscGlobal(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function entregaRapidaCerrar(){
+    document.getElementById("gp-er-overlay").classList.remove("activo");
+    _entregaRapidaActual = null;
+  }
+
+  /** La preventa no tiene compra asociada: manda a la pantalla completa de "Entregar Preventa" con la preventa ya elegida, en vez de forzar a cargar los datos de compra en un modal chico. */
+  function entregaRapidaIrCompleta(){
+    var nPre = _entregaRapidaActual ? _entregaRapidaActual.nPre : "";
+    entregaRapidaCerrar();
+    cargarVista("entregar_preventa");
+    setTimeout(function(){
+      var sel = document.getElementById("e_nPre");
+      if (sel && nPre && sel.querySelector("option[value='" + nPre + "']")) {
+        sel.value = nPre;
+        entregaActualizarInfo();
+      }
+    }, 350);
+  }
+
+  function entregaRapidaCalcTotal(){
+    var ef = valorNumerico(document.getElementById("er_efec"));
+    var tr = valorNumerico(document.getElementById("er_transf"));
+    var cu = valorNumerico(document.getElementById("er_cuotas"));
+    var us = parseFloat(document.getElementById("er_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var t = ef + tr + cu + usPesos;
+    var txt = "Total ingresado: " + fmtP(t);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("gp-er-total").textContent = txt;
+  }
+
+  function entregaRapidaConfirmar(){
+    if (!_entregaRapidaActual) return;
+    var p = _entregaRapidaActual;
+    var operador = document.getElementById("er_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+
+    var ef = valorNumerico(document.getElementById("er_efec"));
+    var tr = valorNumerico(document.getElementById("er_transf"));
+    var cu = valorNumerico(document.getElementById("er_cuotas"));
+    var us = parseFloat(document.getElementById("er_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var totalCobrarAhora = ef + tr + cu + usPesos;
+    var necesario = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+
+    if (totalCobrarAhora > necesario + 1) {
+      mostrarToast("Lo que estás cobrando ahora (" + fmtP(totalCobrarAhora) + ") supera el saldo pendiente (" + fmtP(necesario) + ").", "error");
+      return;
+    }
+
+    var payload = {
+      nPre: p.nPre,
+      fecha: new Date().toISOString().split("T")[0],
+      efec: ef, transf: tr, cuotas: cu, usd: us,
+      obs: "",
+      imei: "", costoEquipo: 0, proveedor: "", fechaCompra: "",
+      accesorios: [],
+      operador: operador,
+      entregarRegalos: document.getElementById("er_regalos").checked
+    };
+
+    var mensajeConfirm = (necesario > 0 && totalCobrarAhora <= 0)
+      ? "Corresponde cobrar " + fmtP(necesario) + " y no ingresaste ningún cobro.\n¿Confirmás entregar de todas formas (quedará como deuda)?"
+      : "¿Confirmás la entrega de " + p.nPre + "?";
+
+    confirmarAccion(mensajeConfirm).then(function(ok){
+      if (!ok) return;
+      var preguntarComprobante = document.getElementById("er_comprobante").checked;
+      var telCliente = p.tel;
+      var nPre = p.nPre;
+      llamarBackend("procesarEntregaPreventaConOperador", payload, function(msg){
+        mostrarToastOperacion(msg);
+        if (preguntarComprobante) {
+          mostrarToast("📄 ¿Imprimir o enviar el comprobante de entrega?", "info", {
+            persistente: true,
+            botones: [
+              { texto: "🖨 Entrega", fn: function(){ imprimirReciboEntregaPreventa(nPre); } },
+              { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("ENTREGA_PREVENTA", nPre, telCliente); } }
+            ]
+          });
+        }
+        entregaRapidaCerrar();
+        cargarDashboard(); // ya refresca el panel de preventas del Dashboard (dashPreCargar) adentro
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      });
+    });
+  }
+</script>
+
 <div id="operador-prompt-overlay">
   <div id="operador-prompt-box">
     <p id="operador-prompt-mensaje"></p>

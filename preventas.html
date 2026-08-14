@@ -51,6 +51,11 @@
     #view-preventas .p-fp-cal .p-cal-dia.p-fp-seleccionado { outline: 2px solid #4F46E5; outline-offset: -2px; }
     #view-preventas .p-fp-cal .p-fp-leyenda { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 10px; color: #7B8794; }
     #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
+    #view-preventas .p-seg-btn-entregar {
+      background: #4F46E5; color: #fff; border: none; border-radius: 100px; padding: 5px 10px;
+      font-size: 10.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    #view-preventas .p-seg-btn-entregar:hover { background: #3730A3; }
     #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #E4E7EC; border-radius: 8px; }
     #view-preventas table.p-seg-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
     #view-preventas table.p-seg-tabla thead th {
@@ -226,7 +231,7 @@
       <table class="p-seg-tabla">
         <thead>
           <tr>
-            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th><th>Toma</th>
+            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th><th>Toma</th><th></th>
           </tr>
         </thead>
         <tbody id="p_segLista"></tbody>
@@ -779,7 +784,7 @@
     document.getElementById("p_segCant").textContent = lista.length + (_segFiltroDia ? " ese día" : " en total");
 
     if (lista.length === 0) {
-      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='7' class='hint' style='margin:0'>" +
+      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='8' class='hint' style='margin:0'>" +
         (q ? "Sin resultados para \"" + esc_(q) + "\"." : (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.")) + "</td></tr>";
       return;
     }
@@ -808,6 +813,7 @@
         "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
         "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
         "<td class='p-seg-td-objeto'>" + toma + "</td>" +
+        "<td><button type='button' class='p-seg-btn-entregar' onclick=\"event.stopPropagation(); preventasSegEntregarRapido('" + p.nPre + "')\">🚚 Entregar</button></td>" +
       "</tr>";
     }).join("");
   }
@@ -824,6 +830,12 @@
   /** Igual que Mis Operaciones → "✏️ Editar": abre el formulario precargado, cualquier cambio pide motivo y queda registrado como corrección real. Si vino de un drag&drop sobre el calendario, precarga la fecha soltada en "Fecha Prometida Hasta" — el operador la ve y todavía tiene que confirmar la corrección. */
   function preventasSegEditar(nPre){
     misOperacionesCorregir(nPre);
+  }
+
+  /** Entrega en un paso desde la lista: reusa el modal compartido entregaRapidaAbrir() (definido en dashboard.html, disponible en toda la app) — no duplica el formulario de entrega. */
+  function preventasSegEntregarRapido(nPre){
+    var p = _segPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (p && typeof entregaRapidaAbrir === "function") entregaRapidaAbrir(p);
   }
 
   function esc_(s){

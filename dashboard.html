@@ -61,6 +61,11 @@
     #view-dashboard .gp-pre-card-money { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11.5px; color: #767A94; }
     #view-dashboard .gp-pre-card-money b { font-size: 14px; color: #191B2E; }
     #view-dashboard .gp-pre-card-toma { font-size: 10.5px; color: #4F46E5; margin-top: 5px; }
+    #view-dashboard .gp-pre-card-entregar {
+      display: block; width: 100%; margin-top: 10px; background: linear-gradient(135deg, #16A34A, #22C55E);
+      color: #fff; border: none; border-radius: 100px; padding: 7px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-card-entregar:hover { filter: brightness(1.08); }
 
     /* ---- Modal de edición ---- */
     #view-dashboard .gp-pre-modal-overlay {
@@ -380,11 +385,18 @@
         "<div class='gp-pre-card-modelo'>" + _dashEsc(p.modelo) + "</div>" +
         "<div class='gp-pre-card-money'><span>Saldo</span><b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b></div>" +
         toma +
+        "<button type='button' class='gp-pre-card-entregar' onclick=\"event.stopPropagation(); dashPreEntregarRapido('" + p.nPre + "')\">🚚 Entregar</button>" +
       "</div>";
     }).join("");
   }
 
   /** Abre el modal con la preventa completa (todos los campos, aunque el modal solo muestre/edite algunos) para no perder datos al guardar. */
+  /** Entrega en un paso desde la tarjeta: reusa el modal compartido entregaRapidaAbrir() (definido en index.html, junto al toast-container — disponible en toda la app, no solo en el Dashboard). */
+  function dashPreEntregarRapido(nPre){
+    var p = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (p && typeof entregaRapidaAbrir === "function") entregaRapidaAbrir(p);
+  }
+
   function dashPreEditar(nPre){
     llamarBackend("obtenerOperacionParaCorregirWeb", nPre, function(op){
       if (!op || op.tipo !== "PREVENTA") { mostrarToast("❌ No se pudo abrir esa preventa para editar.", "error"); return; }
