@@ -52,23 +52,25 @@
     #view-preventas .p-fp-cal .p-fp-leyenda { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 10px; color: #7B8794; }
     #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
     #view-preventas .p-seg-btn-entregar {
-      background: #4F46E5; color: #fff; border: none; border-radius: 100px; padding: 5px 10px;
-      font-size: 10.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+      background: #4F46E5; color: #fff; border: none; border-radius: 100px; padding: 4px 6px;
+      font-size: 9.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
     }
     #view-preventas .p-seg-btn-entregar:hover { background: #3730A3; }
-    #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; border: 1px solid #E4E7EC; border-radius: 8px; }
-    #view-preventas table.p-seg-tabla { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; overflow-x: hidden; border: 1px solid #E4E7EC; border-radius: 8px; }
+    #view-preventas table.p-seg-tabla { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; }
     #view-preventas table.p-seg-tabla thead th {
-      position: sticky; top: 0; background: #F4F6F8; text-align: left; padding: 6px 7px;
-      font-size: 10px; color: #7B8794; text-transform: uppercase; letter-spacing: .3px; z-index: 1;
+      position: sticky; top: 0; background: #F4F6F8; text-align: left; padding: 6px 5px;
+      font-size: 9.5px; color: #7B8794; text-transform: uppercase; letter-spacing: .3px; z-index: 1;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     #view-preventas table.p-seg-tabla tbody tr {
       cursor: grab; border-top: 1px solid #ECEEF1; transition: filter .15s;
     }
     #view-preventas table.p-seg-tabla tbody tr:hover { filter: brightness(0.96); }
     #view-preventas table.p-seg-tabla tbody tr.p-seg-dragging { opacity: .4; }
-    #view-preventas table.p-seg-tabla td { padding: 6px 7px; white-space: nowrap; }
-    #view-preventas table.p-seg-tabla td.p-seg-td-objeto { white-space: normal; max-width: 140px; }
+    #view-preventas table.p-seg-tabla td { padding: 5px 5px; white-space: normal; word-break: break-word; overflow: hidden; }
+    #view-preventas table.p-seg-tabla td.p-seg-td-objeto { white-space: normal; }
+    #view-preventas table.p-seg-tabla th:last-child, #view-preventas table.p-seg-tabla td:last-child { width: 62px; }
     #view-preventas table.p-seg-tabla tr.p-seg-fila-roja { background: #FDECEA; }
     #view-preventas table.p-seg-tabla tr.p-seg-fila-amarilla { background: #FEF6E0; }
     #view-preventas table.p-seg-tabla tr.p-seg-fila-verde { background: #EAF6EE; }
@@ -813,7 +815,7 @@
         "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
         "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
         "<td class='p-seg-td-objeto'>" + toma + "</td>" +
-        "<td><button type='button' class='p-seg-btn-entregar' onclick=\"event.stopPropagation(); preventasSegEntregarRapido('" + p.nPre + "')\">🚚 Entregar</button></td>" +
+        "<td><button type='button' class='p-seg-btn-entregar' title='Entregar' onclick=\"event.stopPropagation(); preventasSegEntregarRapido('" + p.nPre + "')\">🚚</button></td>" +
       "</tr>";
     }).join("");
   }
