@@ -141,10 +141,31 @@
 
   function preciosTextoWhatsApp(p){
     return "📱 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
-      "💰 Precio contado:\n" + fmtP(p.precioARS) + "\n\n" +
-      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n\n" +
+      "💰 Precio contado (entrega inmediata, según stock disponible):\n" + fmtP(p.precioARS) + "\n\n" +
+      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n" +
+      TEXTO_EXPLICACION_PREVENTA + "\n\n" +
       "✅ Garantía de 12 meses";
   }
+
+  /**
+   * Muchos clientes no conocen la modalidad de preventa y preguntan lo
+   * mismo siempre — se agrega esta explicación corta en los mensajes de
+   * WhatsApp que incluyen el precio de preventa, para no tener que
+   * explicarlo a mano cada vez. Reglas del negocio (no inventadas, las
+   * definió el dueño): se paga el 100% del precio pactado al encargarlo
+   * (no es una seña parcial), se puede combinar efectivo/transferencia/
+   * cuotas/USD, y si paga en USD se usa la cotización del día. El
+   * descuento existe porque el local no tiene el capital inmovilizado en
+   * un equipo esperando venta — lo consigue una vez que el cliente ya
+   * pagó y encargó.
+   */
+  var TEXTO_EXPLICACION_PREVENTA =
+    "(Preventa: encargás el equipo y pagás el 100% del precio pactado " +
+    "ahora, no es una seña — por eso sale con descuento respecto al " +
+    "precio contado. Podés pagar en efectivo, transferencia, cuotas o " +
+    "USD combinados, y si pagás en USD se toma la cotización del día. " +
+    "Si preferís algo ya disponible, el precio contado es el que " +
+    "tenemos en stock ahora, con entrega inmediata.)";
 
   /** Alias de preciosTextoWhatsApp() — mismo texto, nombre reutilizado por la vista Compacta. */
   function preciosGenerarWhatsapp(p){ return preciosTextoWhatsApp(p); }

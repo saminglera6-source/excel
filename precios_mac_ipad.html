@@ -231,10 +231,12 @@
       "Precio USD: US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "\n" +
       "Preventa USD: US$" + Number(p.preventaUSD || 0).toLocaleString("en-US");
   }
+  /** TEXTO_EXPLICACION_PREVENTA está definida en precios.html (se incluye antes que esta vista, ver index.html) — no se duplica acá. */
   function miTextoWhatsApp(p){
     return "💻 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
-      "💰 Precio contado:\n" + fmtP(p.precioARS) + "\n\n" +
-      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n\n" +
+      "💰 Precio contado (entrega inmediata, según stock disponible):\n" + fmtP(p.precioARS) + "\n\n" +
+      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n" +
+      TEXTO_EXPLICACION_PREVENTA + "\n\n" +
       "✅ Garantía de 12 meses";
   }
 
