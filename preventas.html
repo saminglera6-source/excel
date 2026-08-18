@@ -950,7 +950,7 @@
         "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
         "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
         "<td class='p-seg-td-objeto'>" + toma + "</td>" +
-        "<td><button type='button' class='p-seg-btn-entregar' title='Entregar' onclick=\"event.stopPropagation(); preventasSegEntregarRapido('" + p.nPre + "')\">🚚</button></td>" +
+        "<td><button type='button' class='p-seg-btn-entregar' title='Entregar (un click, con los valores por defecto)' onclick=\"event.stopPropagation(); preventasSegEntregarInstantaneo('" + p.nPre + "')\">🚚</button></td>" +
       "</tr>";
     }).join("");
   }
@@ -969,10 +969,10 @@
     misOperacionesCorregir(nPre);
   }
 
-  /** Entrega en un paso desde la lista: reusa el modal compartido entregaRapidaAbrir() (definido en dashboard.html, disponible en toda la app) — no duplica el formulario de entrega. */
-  function preventasSegEntregarRapido(nPre){
+  /** Entrega en un click, sin modal (entregaInstantanea(), index.html): pensado para el caso normal, saldo $0 u operador Martin. Para cobro parcial u otro operador, tocá la fila para editar antes (preventasSegEditar). */
+  function preventasSegEntregarInstantaneo(nPre){
     var p = _segPreventas.filter(function(x){ return x.nPre === nPre; })[0];
-    if (p && typeof entregaRapidaAbrir === "function") entregaRapidaAbrir(p);
+    if (p && typeof entregaInstantanea === "function") entregaInstantanea(p);
   }
 
   function esc_(s){

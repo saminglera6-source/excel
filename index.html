@@ -511,6 +511,75 @@
   // ============================================================
   var _entregaRapidaActual = null;
 
+  /**
+   * ENTREGA INSTANTÁNEA — un solo click, sin modal ni cartel de confirmar.
+   * Pedido explícito: la mayoría de las entregas no necesitan tocar nada
+   * (la preventa ya se paga 100% al encargarla, así que lo normal es
+   * llegar a la entrega con saldo $0) — para esos casos, un modal con
+   * varios campos y un confirm() de por medio es fricción de sobra.
+   *
+   * UI optimista: la tarjeta/fila desaparece de la lista YA (antes de que
+   * el backend termine), como si ya estuviera entregada — el registro
+   * real (procesarEntregaPreventaConOperador) corre en segundo plano, sin
+   * el spinner bloqueante de llamarBackend() (por eso NO se usa acá:
+   * llamarBackend tapa toda la pantalla y bloquea otras acciones mientras
+   * espera, justo lo que se quiere evitar). Si el backend llegara a
+   * fallar (raro: casi siempre es la falta de compra asociada, que ya no
+   * bloquea, o un problema de red), se avisa con un toast y se refresca
+   * la lista real — la tarjeta reaparece sola si en verdad no se entregó.
+   *
+   * Valores por defecto: operador Martin, se cobra el saldo pendiente
+   * completo en efectivo (si hay), se entregan regalos de bienvenida si
+   * corresponde. Para un cobro distinto (parcial, en cuotas, otro
+   * operador) sigue estando el modal de siempre (entregaRapidaAbrir) —
+   * accesible desde el link "Personalizar" al lado del botón.
+   */
+  function entregaInstantanea(p){
+    if (!p) return;
+
+    // Optimista: la sacamos YA de donde esté renderizada.
+    if (typeof _dashPreventas !== "undefined" && _dashPreventas) {
+      _dashPreventas = _dashPreventas.filter(function(x){ return x.nPre !== p.nPre; });
+      if (typeof dashPreRenderStats === "function") dashPreRenderStats();
+      if (typeof dashPreRender === "function") dashPreRender();
+    }
+    if (typeof _segPreventas !== "undefined" && _segPreventas) {
+      _segPreventas = _segPreventas.filter(function(x){ return x.nPre !== p.nPre; });
+      if (typeof preventasSegRenderCalendario === "function") preventasSegRenderCalendario();
+      if (typeof preventasSegRenderLista === "function") preventasSegRenderLista();
+    }
+    mostrarToast("🚚 Entregando " + p.nPre + "…", "info");
+
+    var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+    var telCliente = p.tel;
+    var nPre = p.nPre;
+    var payload = {
+      nPre: nPre,
+      fecha: new Date().toISOString().split("T")[0],
+      efec: saldo, transf: 0, cuotas: 0, usd: 0,
+      obs: "",
+      imei: "", costoEquipo: 0, proveedor: "", fechaCompra: "",
+      accesorios: [],
+      operador: "Martin",
+      entregarRegalos: true
+    };
+
+    // Directo por google.script.run (NO llamarBackend): sin spinner de
+    // pantalla completa, la UI ya "avanzó" con el cambio optimista de arriba.
+    google.script.run
+      .withSuccessHandler(function(msg){
+        mostrarToastOperacion(msg, telCliente);
+        cargarDashboard();
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ No se pudo entregar " + nPre + " (" + e.message + ") — se restauró en la lista.", "error");
+        cargarDashboard();
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      })
+      .procesarEntregaPreventaConOperador(payload);
+  }
+
   function entregaRapidaAbrir(p){
     if (!p) return;
     _entregaRapidaActual = p;
