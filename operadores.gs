@@ -337,6 +337,35 @@ function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
 }
 
 /**
+ * calcularRangoEntregaPreventaConCupo(fecha, monto) — llamada desde
+ * preventas.html (webapp) para que la "Fecha sugerida" que ve el operador
+ * en el paso de carga sea la MISMA que va a terminar quedando registrada,
+ * no una que después el backend corrige en silencio.
+ *
+ * calcularRangoEntregaPreventa() (dias_habiles.gs) solo calcula el rango
+ * de 7 a 10 días hábiles, sin mirar el cupo — por eso el paso 3 podía
+ * sugerir un día que el calendario de "Entregas pendientes" ya mostraba
+ * lleno. Acá se le aplica el mismo ajuste de cupo que usa
+ * procesarPreventaConOperador() al confirmar (_resolverFechaEntregaDisponible_,
+ * arriba), para mostrar de entrada la fecha real.
+ *
+ * `monto` es el precio pactado: sin él no se puede saber si un día ya
+ * llegó al tope de $ (aunque no esté lleno en cantidad de equipos), por
+ * eso esta función se llama recién cuando el operador ya cargó el precio,
+ * no antes.
+ */
+function calcularRangoEntregaPreventaConCupo(fecha, monto) {
+  const rango = calcularRangoEntregaPreventa(fecha);
+  const fHasta = parseDate(rango.fechaMaxima);
+  const fechaDisponible = _resolverFechaEntregaDisponible_(fHasta, Number(monto) || 0);
+  return {
+    fechaMinima: rango.fechaMinima,
+    fechaMaxima: _formatoFechaISO_(fechaDisponible),
+    reprogramada: fechaDisponible.getTime() !== fHasta.getTime()
+  };
+}
+
+/**
  * Plazo de entrega (7 a 10 días hábiles): calcularRangoEntregaPreventa()
  * (dias_habiles.gs, sin modificar) sigue siendo la fuente del plazo
  * sugerido — se usa como default cuando el operador no cargó fechaDesde/

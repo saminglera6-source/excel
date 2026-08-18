@@ -258,24 +258,10 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">3</span> Fecha de entrega</p>
-      <div class="box box-info" style="margin-top:0">
-        <label style="margin-top:0">📅 Fecha de entrega</label>
-        <div class="p-fp-wrap">
-          <input type="text" id="p_fechaHasta_txt" readonly placeholder="Elegí una fecha" onclick="preventasFechaEntregaAbrir()"/>
-          <input type="hidden" id="p_fechaHasta"/>
-          <div id="p_fechaEntregaCal" class="p-fp-cal" style="display:none"></div>
-        </div>
-        <div class="hint" id="p_plazoHint">Calculando fecha sugerida...</div>
-        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) — esperá que aparezca antes de registrar. El calendario marca en gris los días no hábiles y en rojo los que ya tienen el cupo de entregas completo: no se pueden elegir, tocá otro día.</div>
-      </div>
-    </div>
-
-    <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
+      <p class="paso-titulo"><span class="paso-num">3</span> Precio y cobro</p>
 
       <label>Precio de venta pactado ($): <span class="req">*</span></label>
-      <input type="text" inputmode="numeric" id="p_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/>
+      <input type="text" inputmode="numeric" id="p_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal(); preventasRecalcularPlazoEntrega();"/>
       <div class="hint">Buscá el "Modelo solicitado" en Lista de Precios (Precio Preventa) si no estás seguro del valor.</div>
       <button type="button" class="btn" style="background:#8E44AD;margin-top:8px" onclick="preventasAbrirCalculadoraCuotas()">💳 Calcular cuotas</button>
 
@@ -287,6 +273,20 @@
         <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="" placeholder="0" min="0" oninput="preventasCalcTotal()"/></div>
       </div>
       <div class="total" id="p_totalDiv">Total cobrado: $0</div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Fecha de entrega</p>
+      <div class="box box-info" style="margin-top:0">
+        <label style="margin-top:0">📅 Fecha de entrega</label>
+        <div class="p-fp-wrap">
+          <input type="text" id="p_fechaHasta_txt" readonly placeholder="Elegí una fecha" onclick="preventasFechaEntregaAbrir()"/>
+          <input type="hidden" id="p_fechaHasta"/>
+          <div id="p_fechaEntregaCal" class="p-fp-cal" style="display:none"></div>
+        </div>
+        <div class="hint" id="p_plazoHint">Calculando fecha sugerida...</div>
+        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) y ya tiene en cuenta el cupo diario/de fin de mes — esperá que aparezca antes de registrar. El calendario marca en gris los días no hábiles y en rojo los que ya tienen el cupo de entregas completo: no se pueden elegir, tocá otro día.</div>
+      </div>
 
       <label>Observaciones:</label>
       <input type="text" id="p_obs" placeholder="Opcional"/>
@@ -357,6 +357,7 @@
           if (!document.getElementById("p_modelo").value.trim()) return { ok:false, msg:"Ingresá el modelo solicitado." };
           if (!document.getElementById("p_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
         }
+        if (i === 2 && valorNumerico(document.getElementById("p_precioVenta")) <= 0) return { ok:false, msg:"Ingresá el precio de venta pactado." };
         return { ok:true };
       }
     }
@@ -384,27 +385,43 @@
   // semana/feriado.
   var _feriadosMap = {};
 
+  /**
+   * Sugiere la fecha de entrega YA respetando el cupo diario/de fin de mes
+   * (calcularRangoEntregaPreventaConCupo, operadores.gs) — antes solo se
+   * calculaban los 10 días hábiles sin mirar el cupo, así que acá podía
+   * aparecer sugerido un día que el calendario de al lado ya mostraba
+   * lleno; recién al confirmar el backend lo reprogramaba en silencio. Se
+   * llama al cargar la vista, si cambia "Fecha preventa", y cada vez que
+   * cambia el precio pactado (el cupo también depende del monto).
+   */
   function preventasRecalcularPlazoEntrega(){
     var fecha = document.getElementById("p_fecha").value;
     if (!fecha) return;
+    var monto = valorNumerico(document.getElementById("p_precioVenta"));
     google.script.run
       .withSuccessHandler(function(rango){
         // Una sola fecha (Parte 6): se pide un único "Fecha de entrega",
         // no un rango — se sugiere la de 10 días hábiles (rango.fechaMaxima),
-        // que es el mismo dato que ya usa el resto del sistema (cupo diario,
-        // calendario del panel) como "Fecha Prometida Hasta".
+        // ya ajustada por cupo, que es el mismo dato que ya usa el resto del
+        // sistema (cupo diario, calendario del panel) como "Fecha Prometida Hasta".
         preventasFechaEntregaSet(rango.fechaMaxima);
-        document.getElementById("p_plazoHint").textContent =
-          "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (10 días hábiles).";
+        document.getElementById("p_plazoHint").textContent = rango.reprogramada
+          ? "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (los 10 días hábiles caían en un día sin cupo disponible, se corrió a la próxima fecha libre)."
+          : "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (10 días hábiles).";
         _feriadosMap = rango.feriados || {};
         preventasSegRenderCalendario();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .calcularRangoEntregaPreventa(fecha);
+      .calcularRangoEntregaPreventaConCupo(fecha, monto);
   }
 
   document.getElementById("p_fecha").addEventListener("change", preventasRecalcularPlazoEntrega);
-  preventasRecalcularPlazoEntrega();
+  // Deferida a "load" (mismo mecanismo que _comprasCuandoListo en
+  // compras.html): esta función ahora usa valorNumerico(), definida en el
+  // <script> de index.html, que en la página final puede terminar de
+  // ejecutarse DESPUÉS que este archivo — llamarla ya mismo reproduciría el
+  // mismo "ReferenceError" de orden de scripts que se encontró en Compras.
+  _comprasCuandoListo(preventasRecalcularPlazoEntrega);
 
   // ============================================================
   //  MINI-CALENDARIO PARA "FECHA DE ENTREGA" — reemplaza al <input
