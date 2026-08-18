@@ -795,7 +795,7 @@
   //  Drawer "💰 Consultar precios" — NO abandona el formulario ni pierde
   //  datos: reutiliza FILTROS_MODELO_PRECIOS, preciosCargarDatos,
   //  preciosFiltrarArray, preciosCrearTarjetaHTML, preciosCrearFilaCompactaHTML,
-  //  preciosTextoPlano, preciosGenerarWhatsapp/preciosTextoWhatsApp,
+  //  preciosTextoPlano, preciosAccionWhatsAppPresupuesto,
   //  preciosCopiarTexto y LP_VISTA_KEY de precios.html (incluido antes que
   //  esta vista en index.html) en vez de duplicar el módulo.
   // ============================================================
@@ -869,7 +869,7 @@
   }
 
   function ventasPreciosAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_ventasPreciosFiltrada[idx])); }
-  function ventasPreciosAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_ventasPreciosFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function ventasPreciosAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_ventasPreciosFiltrada[idx], "📱"); }
   /** Parte 2: reutiliza renderCalculadoraCuotas() ya implementada — mismo modal que Lista de Precios, sin segunda implementación. */
   function ventasPreciosAccionVerCuotas(idx){
     var p = _ventasPreciosFiltrada[idx];

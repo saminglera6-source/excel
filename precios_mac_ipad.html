@@ -231,14 +231,9 @@
       "Precio USD: US$" + Number(p.precioUSD || 0).toLocaleString("en-US") + "\n" +
       "Preventa USD: US$" + Number(p.preventaUSD || 0).toLocaleString("en-US");
   }
-  /** TEXTO_EXPLICACION_PREVENTA está definida en precios.html (se incluye antes que esta vista, ver index.html) — no se duplica acá. */
-  function miTextoWhatsApp(p){
-    return "💻 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
-      "💰 Precio contado (entrega inmediata, según stock disponible):\n" + fmtP(p.precioARS) + "\n\n" +
-      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n" +
-      TEXTO_EXPLICACION_PREVENTA + "\n\n" +
-      "✅ Garantía de 12 meses";
-  }
+  // El mensaje de WhatsApp ahora lo arma preciosAccionWhatsAppPresupuesto()
+  // (precios.html, se incluye antes que esta vista) — presupuesto completo
+  // con cuotas de ambos precios, no se duplica acá.
 
   function miRenderizarGrid(){
     var grid = document.getElementById("mi_grid");
@@ -250,7 +245,7 @@
   }
 
   function miAccionCopiar(idx){ preciosCopiarTexto(miTextoPlano(_miFiltrada[idx])); }
-  function miAccionWhatsapp(idx){ preciosCopiarTexto(miTextoWhatsApp(_miFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function miAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_miFiltrada[idx], "💻"); }
   function miAccionVerCuotas(idx){
     var p = _miFiltrada[idx];
     renderCalculadoraCuotas(p.precioARS, {
@@ -316,7 +311,7 @@
   }
 
   function miTablaAccionCopiar(idx){ preciosCopiarTexto(miTextoPlano(_miTablaFiltrada[idx])); }
-  function miTablaAccionWhatsapp(idx){ preciosCopiarTexto(miTextoWhatsApp(_miTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function miTablaAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_miTablaFiltrada[idx], "💻"); }
 
   function miRenderizarCompacta(){
     var tbody = document.getElementById("mi_tbody_compacta");

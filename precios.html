@@ -139,12 +139,65 @@
       "USD: US$" + Number(p.precioUSD || 0).toLocaleString("en-US");
   }
 
-  function preciosTextoWhatsApp(p){
-    return "📱 " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "\n\n" +
-      "💰 Precio contado (entrega inmediata, según stock disponible):\n" + fmtP(p.precioARS) + "\n\n" +
-      "🔥 Precio preventa:\n" + fmtP(p.preventaARS) + "\n" +
-      TEXTO_EXPLICACION_PREVENTA + "\n\n" +
-      "✅ Garantía de 12 meses";
+  /**
+   * Presupuesto completo para WhatsApp: precio contado + sus cuotas,
+   * precio preventa + sus cuotas, explicación de preventa y garantía —
+   * una "mini presentación" en un solo mensaje, para no tener que
+   * responder a mano cada consulta de precio explicando todo por separado
+   * (pedido explícito: "nos está costando mucho responder").
+   *
+   * Es ASYNC: pide las cuotas de
+   * cada precio al backend (calcularCuotas, mismo cálculo/coeficientes
+   * que usa la Calculadora de Cuotas — CONFIG_CUOTAS, no se duplica la
+   * lógica) y llama a cb(texto) cuando están listas las dos.
+   * _cuotasVisibles/_cuotasLineaTexto están definidas en
+   * calculadora_cuotas.html — se llaman recién acá adentro (al hacer
+   * click en WhatsApp), nunca a nivel superior del script, así que no
+   * importa si ese archivo se incluye después de este en la página final.
+   *
+   * `icono` es "📱" (celulares, precios.html) o "💻" (Mac/iPad,
+   * precios_mac_ipad.html) — mismo texto para los dos catálogos, se
+   * reutiliza desde ahí en vez de duplicar la función.
+   */
+  function preciosArmarPresupuestoWhatsApp(p, icono, cb){
+    var contado = Number(p.precioARS) || 0;
+    var preventa = Number(p.preventaARS) || 0;
+
+    function pedirCuotas(monto, listo){
+      if (monto <= 0) { listo([]); return; }
+      google.script.run
+        .withSuccessHandler(function(datos){ listo(datos || []); })
+        .withFailureHandler(function(){ listo([]); }) // sin cuotas configuradas o error puntual: el presupuesto sigue armándose igual, solo sin esa sección
+        .calcularCuotas(monto);
+    }
+
+    pedirCuotas(contado, function(cuotasContado){
+      pedirCuotas(preventa, function(cuotasPreventa){
+        var lineas = [];
+        lineas.push((icono || "📱") + " " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""));
+        lineas.push("");
+        lineas.push("💰 PRECIO CONTADO (entrega inmediata, según stock disponible)");
+        lineas.push(fmtP(contado));
+        _cuotasVisibles(cuotasContado).forEach(function(c){ lineas.push(_cuotasLineaTexto(c)); });
+        lineas.push("");
+        lineas.push("🔥 PRECIO PREVENTA");
+        lineas.push(fmtP(preventa));
+        _cuotasVisibles(cuotasPreventa).forEach(function(c){ lineas.push(_cuotasLineaTexto(c)); });
+        lineas.push("");
+        lineas.push(TEXTO_EXPLICACION_PREVENTA);
+        lineas.push("");
+        lineas.push("✅ Garantía de 12 meses");
+        cb(lineas.join("\n"));
+      });
+    });
+  }
+
+  /** Punto único usado por los botones "📲 WhatsApp" de Lista de Precios, Mac/iPad y el drawer de Ventas — arma el presupuesto completo y lo copia. */
+  function preciosAccionWhatsAppPresupuesto(p, icono){
+    mostrarToast("Armando el presupuesto…", "info");
+    preciosArmarPresupuestoWhatsApp(p, icono, function(texto){
+      preciosCopiarTexto(texto, "✅ Presupuesto copiado para WhatsApp");
+    });
   }
 
   /**
@@ -168,9 +221,6 @@
     "esperamos en el local para coordinarlo. Si preferís algo " +
     "disponible ahora, también tenés opciones en stock al precio " +
     "contado, con entrega inmediata.)";
-
-  /** Alias de preciosTextoWhatsApp() — mismo texto, nombre reutilizado por la vista Compacta. */
-  function preciosGenerarWhatsapp(p){ return preciosTextoWhatsApp(p); }
 
   /** Copia al portapapeles con un textarea temporal + execCommand (más confiable que navigator.clipboard dentro del iframe sandboxeado de HtmlService). */
   function preciosCopiarTexto(texto, mensajeOk){
@@ -316,7 +366,7 @@
   }
 
   function preciosAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_preciosFiltrada[idx])); }
-  function preciosAccionWhatsapp(idx){ preciosCopiarTexto(preciosTextoWhatsApp(_preciosFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function preciosAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_preciosFiltrada[idx], "📱"); }
   /** Parte 4: calcula cuotas en tiempo real sobre el Precio contado del modelo — no guarda nada. */
   function preciosAccionVerCuotas(idx){
     var p = _preciosFiltrada[idx];
@@ -390,7 +440,7 @@
   }
 
   function preciosTablaAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_preciosTablaFiltrada[idx])); }
-  function preciosTablaAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_preciosTablaFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function preciosTablaAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_preciosTablaFiltrada[idx], "📱"); }
 
   // ---------- Vista Compacta: máxima densidad, header sticky, para atención rápida en el local ----------
   // Reutiliza _preciosTablaFiltrada/preciosOrdenarArray (mismo orden que Tabla) y
