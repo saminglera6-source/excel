@@ -10,7 +10,10 @@
       </div>
       <div>
         <label style="font-size:11px">&nbsp;</label>
-        <div id="lp_actualizado" style="font-size:11px;color:#778;padding-top:11px"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:6px">
+          <div id="lp_actualizado" style="font-size:11px;color:#778"></div>
+          <button type="button" class="btn" style="width:auto;margin:0;padding:6px 10px;font-size:11px;background:#5D6D7E" title="Copiar explicación de la modalidad 'A pedido' para pegar en WhatsApp" onclick="preciosAccionExplicarAPedido()">❓ Qué es "A pedido"</button>
+        </div>
       </div>
     </div>
 
@@ -206,16 +209,17 @@
       if (cuotasContado.length > 0) { lineas.push(""); lineas.push("💳 En cuotas:"); lineas.push.apply(lineas, cuotasContado); }
       lineas.push("");
       lineas.push("━━━━━━━━━━━━━━━");
-      lineas.push("🔥 *A PEDIDO*");
+      lineas.push("🔥 *A PEDIDO* (15 días)");
       lineas.push("━━━━━━━━━━━━━━━");
       lineas.push(fmtP(pedido));
       var cuotasPedido = cuotasDe(pedido);
       if (cuotasPedido.length > 0) { lineas.push(""); lineas.push("💳 En cuotas:"); lineas.push.apply(lineas, cuotasPedido); }
       lineas.push("");
-      lineas.push('📦 *¿Qué es "A pedido"?*');
-      lineas.push(TEXTO_EXPLICACION_PREVENTA);
+      lineas.push("💳 Formas de pago: efectivo, transferencia, cuotas o USD (cotización del día), combinadas como prefieras.");
       lineas.push("");
       lineas.push("✅ Garantía de 12 meses");
+      lineas.push("");
+      lineas.push("Cualquier consulta, quedamos a tu disposición. ¿Te interesa? 😊");
       cb(lineas.join("\n"));
     });
   }
@@ -229,17 +233,22 @@
 
   /**
    * Muchos clientes no conocen la modalidad "A pedido" (antes llamada
-   * "preventa" puertas adentro, pero de cara al cliente en el mensaje de
-   * WhatsApp ya no se usa esa palabra) y preguntan lo mismo siempre — se
-   * agrega esta explicación corta para no tener que explicarlo a mano
-   * cada vez. Redactada en positivo (a pedido del dueño): el objetivo es
-   * que el cliente entienda el beneficio y se termine de convencer de
-   * venir al local a cerrar el pedido, no quedarse con dudas. Contenido
-   * dictado por el dueño (no inventado): se pide el equipo apenas se
-   * hace la compra y llega en ~15 días, se puede elegir el color, y se
-   * asegura la mejor calidad/condición. Reglas de pago de siempre: se
-   * paga el 100% del precio pactado al momento de la compra (no es una
-   * seña parcial), combinando efectivo/transferencia/cuotas/USD.
+   * "preventa" puertas adentro, pero de cara al cliente ya no se usa esa
+   * palabra) y preguntan lo mismo siempre. Antes esta explicación iba
+   * dentro de CADA mensaje de presupuesto; a pedido del dueño se sacó de
+   * ahí (el presupuesto ahora solo aclara "(15 días)" al lado del título)
+   * y quedó como un mensaje aparte — textoExplicacionAPedido() más abajo —
+   * para que el operador lo copie y pegue solo cuando el cliente pregunta
+   * puntualmente qué es "A pedido", sin alargar todos los presupuestos.
+   * Redactada en positivo (a pedido del dueño): el objetivo es que el
+   * cliente entienda el beneficio y se termine de convencer de venir al
+   * local a cerrar el pedido, no quedarse con dudas. Contenido dictado
+   * por el dueño (no inventado): se pide el equipo apenas se hace la
+   * compra y llega en ~15 días (por eso el descuento respecto al
+   * contado), se puede elegir el color, y se asegura la mejor calidad/
+   * condición. Reglas de pago de siempre: se paga el 100% del precio
+   * pactado al momento de la compra (no es una seña parcial), combinando
+   * efectivo/transferencia/cuotas/USD.
    */
   var TEXTO_EXPLICACION_PREVENTA =
     "Es simple: desde el momento en que hacés la compra, pedimos el " +
@@ -252,6 +261,16 @@
     "Te esperamos en el local para coordinarlo. Si preferís algo " +
     "disponible ahora, también tenés opciones en stock al precio " +
     "contado, con entrega inmediata.";
+
+  /** Mensaje aparte (no va dentro del presupuesto) para copiar y pegar cuando el cliente pregunta específicamente qué es "A pedido". */
+  function textoExplicacionAPedido(){
+    return '📦 *¿Qué es "A pedido"?*\n\n' + TEXTO_EXPLICACION_PREVENTA;
+  }
+
+  /** Botón "❓ Qué es A pedido" — copia el mensaje explicativo, listo para pegar en WhatsApp. */
+  function preciosAccionExplicarAPedido(){
+    preciosCopiarTexto(textoExplicacionAPedido(), "✅ Explicación de \"A pedido\" copiada para WhatsApp");
+  }
 
   /** Copia al portapapeles con un textarea temporal + execCommand (más confiable que navigator.clipboard dentro del iframe sandboxeado de HtmlService). */
   function preciosCopiarTexto(texto, mensajeOk){
