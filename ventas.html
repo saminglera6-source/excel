@@ -823,6 +823,7 @@
   }
 
   function ventasAbrirConsultaPrecios(){
+    preciosPrecalentarCuotas();
     document.getElementById("vp-overlay").style.display = "block";
     document.getElementById("vp_filtros").innerHTML = FILTROS_MODELO_PRECIOS.map(function(f){
       return "<button class='btn' style='margin:0;width:auto;padding:5px 10px;font-size:11px;" + (f === _ventasPreciosFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='ventasPreciosSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";

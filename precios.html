@@ -140,20 +140,39 @@
   }
 
   /**
+   * Coeficientes de CONFIG_CUOTAS cacheados en el cliente (Parte "que sea
+   * instantáneo"): antes cada presupuesto de WhatsApp pedía las cuotas del
+   * contado y las de "a pedido" al backend, dos viajes de ida y vuelta que
+   * tardaban ~2 segundos en total. Los coeficientes casi no cambian en el
+   * día a día, así que se piden UNA sola vez (con calcularCuotas(1), que
+   * ya devuelve el campo `coeficiente` de cada fila junto con el resto) y
+   * de ahí en más el cálculo de $ por cuota es una cuenta local — sin
+   * viaje al backend, instantáneo. Se re-pide solo si todavía no se cargó
+   * (primer uso de la sesión).
+   */
+  var _cuotasCoefsCache = null;
+  function _cuotasCoefsObtener(cb){
+    if (_cuotasCoefsCache) { cb(_cuotasCoefsCache); return; }
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _cuotasCoefsCache = (datos || []).filter(function(c){ return c.mostrar !== false; });
+        cb(_cuotasCoefsCache);
+      })
+      .withFailureHandler(function(){ cb([]); })
+      .calcularCuotas(1);
+  }
+
+  /** Precalienta la caché de coeficientes de cuotas para que el primer click en "📲 WhatsApp" ya sea instantáneo — se llama al abrir cualquier vista/drawer de precios. */
+  function preciosPrecalentarCuotas(){ _cuotasCoefsObtener(function(){}); }
+
+  /**
    * Presupuesto completo para WhatsApp: precio contado + sus cuotas,
-   * precio preventa + sus cuotas, explicación de preventa y garantía —
-   * una "mini presentación" en un solo mensaje, para no tener que
-   * responder a mano cada consulta de precio explicando todo por separado
-   * (pedido explícito: "nos está costando mucho responder").
-   *
-   * Es ASYNC: pide las cuotas de
-   * cada precio al backend (calcularCuotas, mismo cálculo/coeficientes
-   * que usa la Calculadora de Cuotas — CONFIG_CUOTAS, no se duplica la
-   * lógica) y llama a cb(texto) cuando están listas las dos.
-   * _cuotasVisibles/_cuotasLineaTexto están definidas en
-   * calculadora_cuotas.html — se llaman recién acá adentro (al hacer
-   * click en WhatsApp), nunca a nivel superior del script, así que no
-   * importa si ese archivo se incluye después de este en la página final.
+   * precio "a pedido" + sus cuotas, explicación y garantía — una "mini
+   * presentación" en un solo mensaje, para no tener que responder a mano
+   * cada consulta de precio explicando todo por separado (pedido
+   * explícito: "nos está costando mucho responder"). Solo se muestra el
+   * valor de cada cuota (no "te queda en $X" con el total financiado —
+   * pedido explícito, para no confundir con el precio de contado).
    *
    * `icono` es "📱" (celulares, precios.html) o "💻" (Mac/iPad,
    * precios_mac_ipad.html) — mismo texto para los dos catálogos, se
@@ -161,40 +180,48 @@
    */
   function preciosArmarPresupuestoWhatsApp(p, icono, cb){
     var contado = Number(p.precioARS) || 0;
-    var preventa = Number(p.preventaARS) || 0;
+    var pedido = Number(p.preventaARS) || 0;
 
-    function pedirCuotas(monto, listo){
-      if (monto <= 0) { listo([]); return; }
-      google.script.run
-        .withSuccessHandler(function(datos){ listo(datos || []); })
-        .withFailureHandler(function(){ listo([]); }) // sin cuotas configuradas o error puntual: el presupuesto sigue armándose igual, solo sin esa sección
-        .calcularCuotas(monto);
-    }
+    _cuotasCoefsObtener(function(coefs){
+      // Cuenta local (sin ir al backend): mismo cálculo que calcularCuotas()
+      // (webapp.gs) — total = monto*coeficiente, valorCuota = total/cuotas —
+      // pero ya con los coeficientes en caché. Se excluye "1 cuota" (es el
+      // mismo precio de contado/a pedido de arriba, mostrarlo de nuevo acá
+      // sería redundante).
+      function cuotasDe(monto){
+        return coefs.filter(function(c){ return c.cuotas > 1; }).map(function(c){
+          var total = Math.round(monto * c.coeficiente);
+          return "• " + c.cuotas + " cuotas de " + fmtP(Math.round(total / c.cuotas));
+        });
+      }
 
-    pedirCuotas(contado, function(cuotasContado){
-      pedirCuotas(preventa, function(cuotasPreventa){
-        var lineas = [];
-        lineas.push((icono || "📱") + " " + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : ""));
-        lineas.push("");
-        lineas.push("💰 PRECIO CONTADO (entrega inmediata, según stock disponible)");
-        lineas.push(fmtP(contado));
-        _cuotasVisibles(cuotasContado).forEach(function(c){ lineas.push(_cuotasLineaTexto(c)); });
-        lineas.push("");
-        lineas.push("🔥 PRECIO A PEDIDO");
-        lineas.push(fmtP(preventa));
-        _cuotasVisibles(cuotasPreventa).forEach(function(c){ lineas.push(_cuotasLineaTexto(c)); });
-        lineas.push("");
-        lineas.push(TEXTO_EXPLICACION_PREVENTA);
-        lineas.push("");
-        lineas.push("✅ Garantía de 12 meses");
-        cb(lineas.join("\n"));
-      });
+      var lineas = [];
+      lineas.push((icono || "📱") + " *" + p.modelo + (p.almacenamiento ? " " + p.almacenamiento : "") + "*");
+      lineas.push("");
+      lineas.push("━━━━━━━━━━━━━━━");
+      lineas.push("💰 *CONTADO* (entrega inmediata, según stock disponible)");
+      lineas.push("━━━━━━━━━━━━━━━");
+      lineas.push(fmtP(contado));
+      var cuotasContado = cuotasDe(contado);
+      if (cuotasContado.length > 0) { lineas.push(""); lineas.push("💳 En cuotas:"); lineas.push.apply(lineas, cuotasContado); }
+      lineas.push("");
+      lineas.push("━━━━━━━━━━━━━━━");
+      lineas.push("🔥 *A PEDIDO*");
+      lineas.push("━━━━━━━━━━━━━━━");
+      lineas.push(fmtP(pedido));
+      var cuotasPedido = cuotasDe(pedido);
+      if (cuotasPedido.length > 0) { lineas.push(""); lineas.push("💳 En cuotas:"); lineas.push.apply(lineas, cuotasPedido); }
+      lineas.push("");
+      lineas.push('📦 *¿Qué es "A pedido"?*');
+      lineas.push(TEXTO_EXPLICACION_PREVENTA);
+      lineas.push("");
+      lineas.push("✅ Garantía de 12 meses");
+      cb(lineas.join("\n"));
     });
   }
 
   /** Punto único usado por los botones "📲 WhatsApp" de Lista de Precios, Mac/iPad y el drawer de Ventas — arma el presupuesto completo y lo copia. */
   function preciosAccionWhatsAppPresupuesto(p, icono){
-    mostrarToast("Armando el presupuesto…", "info");
     preciosArmarPresupuestoWhatsApp(p, icono, function(texto){
       preciosCopiarTexto(texto, "✅ Presupuesto copiado para WhatsApp");
     });
@@ -215,15 +242,16 @@
    * seña parcial), combinando efectivo/transferencia/cuotas/USD.
    */
   var TEXTO_EXPLICACION_PREVENTA =
-    "(La modalidad \"A pedido\" es simple: desde el momento en que hacés " +
-    "la compra, pedimos el equipo y llega en aproximadamente 15 días. " +
-    "Además elegís el color del modelo y te asegurás la mejor calidad y " +
+    "Es simple: desde el momento en que hacés la compra, pedimos el " +
+    "equipo y llega en aproximadamente 15 días. Como esperás esos días, " +
+    "te lo dejamos con descuento respecto al precio de contado. Además " +
+    "elegís el color del modelo y te asegurás la mejor calidad y " +
     "condición. Pagás el 100% al precio pactado en el momento de la " +
     "compra, y ese precio queda cerrado, sin sorpresas. Podés pagarlo en " +
     "efectivo, transferencia, cuotas o USD, combinado como te convenga. " +
     "Te esperamos en el local para coordinarlo. Si preferís algo " +
     "disponible ahora, también tenés opciones en stock al precio " +
-    "contado, con entrega inmediata.)";
+    "contado, con entrega inmediata.";
 
   /** Copia al portapapeles con un textarea temporal + execCommand (más confiable que navigator.clipboard dentro del iframe sandboxeado de HtmlService). */
   function preciosCopiarTexto(texto, mensajeOk){
@@ -330,6 +358,7 @@
   }
 
   function preciosInit(){
+    preciosPrecalentarCuotas();
     document.getElementById("lp_filtros").innerHTML = FILTROS_MODELO_PRECIOS.map(function(f){
       return "<button class='btn' style='margin:0;width:auto;padding:6px 12px;font-size:12px;" + (f === _preciosFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='preciosSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";
     }).join("");
