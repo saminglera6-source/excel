@@ -104,6 +104,12 @@ function obtenerPreventasEntregables() {
   // muestre junto con el resto (mismo criterio de columna opcional).
   try { cPPE = getCol(preSheet, "Equipo Parte De Pago", fE); } catch (e) { /* opcional */ }
   try { cPPV = getCol(preSheet, "Valor Parte De Pago", fE); } catch (e) { /* opcional */ }
+  // "Veces Repateada": cuántas veces se reprogramó la fecha de entrega
+  // desde el botón 📅 del Dashboard (reprogramarFechaPreventaRapido,
+  // operadores.gs) — para marcar en la tarjeta si ya se corrió una vez o
+  // más. Opcional: la crea sola esa función la primera vez que hace falta.
+  let cVR = -1;
+  try { cVR = getCol(preSheet, "Veces Repateada", fE); } catch (e) { /* opcional */ }
 
   const lastRow = preSheet.getLastRow();
   const opciones = [];
@@ -130,7 +136,8 @@ function obtenerPreventasEntregables() {
       fechaDesde: cED > 0 ? fISO(row[cED-1]) : "",
       fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : "",
       partePagoEquipo: cPPE > 0 ? String(row[cPPE-1] || "") : "",
-      partePagoValor:  cPPV > 0 ? (Number(row[cPPV-1]) || 0) : 0
+      partePagoValor:  cPPV > 0 ? (Number(row[cPPV-1]) || 0) : 0,
+      vecesRepateada:  cVR > 0 ? (Number(row[cVR-1]) || 0) : 0
     });
   });
   return opciones;

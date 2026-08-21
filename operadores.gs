@@ -337,6 +337,89 @@ function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
 }
 
 /**
+ * reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, operador) — botón 📅
+ * del Dashboard (UI optimista). A diferencia de corregirPreventa()
+ * (anula la operación entera y la vuelve a crear — pensado para corregir
+ * cualquier dato de la preventa), esto solo escribe la fecha nueva y
+ * suma 1 al contador "Veces Repateada" directo en la fila: mucho más
+ * rápido, para el caso de uso real (reprogramar la fecha, nada más). La
+ * columna "Veces Repateada" se crea sola la primera vez que hace falta
+ * (asegurarColumnaGenerica_, ya usado en todo este archivo para
+ * OPERADOR).
+ *
+ * No bloquea si el día elegido no tiene cupo (pedido explícito del
+ * dueño: "que me deje igual registrarla, y que me tire un aviso") —
+ * calcula si ese día está topado (mismas reglas que
+ * _capacidadEntregaPreventa_/_usadosParaFecha_, excluyendo esta misma
+ * preventa de la cuenta) y lo devuelve en `cupoTopado` para que el
+ * frontend avise, pero siempre guarda la fecha que se pidió.
+ */
+function reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, operador) {
+  const numero = String(nPre || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de preventa.");
+  const nuevaFecha = parseDate(nuevaFechaISO);
+  if (!nuevaFecha || isNaN(nuevaFecha.getTime())) throw new Error("❌ Fecha inválida.");
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada.");
+  const fE = 2;
+  const cNP = getCol(sheet, "N° Preventa", fE);
+  const cEH = getCol(sheet, "Fecha Prometida Hasta", fE);
+  const cPV = getCol(sheet, "Precio Venta Pactado", fE);
+  const cES = getCol(sheet, "Estado", fE);
+  let cEstReg = -1;
+  try { cEstReg = getCol(sheet, "ESTADO_REGISTRO", fE); } catch (e) { /* opcional */ }
+  const cVR = asegurarColumnaGenerica_(sheet, fE, "Veces Repateada");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrada en Preventas.`);
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const idx = datos.findIndex(r => String(r[cNP - 1]).trim() === numero);
+  if (idx === -1) throw new Error(`❌ "${numero}" no encontrada en Preventas.`);
+  const fila = fE + 1 + idx;
+
+  const fechaVieja = datos[idx][cEH - 1];
+  const vecesNuevo = (Number(datos[idx][cVR - 1]) || 0) + 1;
+
+  guardarBackupOperacion_("PREVENTA", numero, "REPROGRAMACION_RAPIDA_FECHA"); // backup ANTES de tocar nada, mismo criterio que el resto del sistema
+
+  sheet.getRange(fila, cEH).setValue(nuevaFecha);
+  sheet.getRange(fila, cVR).setValue(vecesNuevo);
+  if (operador) _tagOperadorPorId_("Preventas", fE, "N° Preventa", numero, operador);
+
+  const tz = Session.getScriptTimeZone();
+  const fechaViejaTxt = (fechaVieja instanceof Date) ? Utilities.formatDate(fechaVieja, tz, "dd/MM/yyyy") : String(fechaVieja || "—");
+  registrarAuditoria_(
+    "PREVENTA", numero, "REPROGRAMACION_RAPIDA_FECHA",
+    `Fecha Prometida Hasta movida de ${fechaViejaTxt} a ${Utilities.formatDate(nuevaFecha, tz, "dd/MM/yyyy")} desde el Dashboard por ${operador || "—"}. Van ${vecesNuevo} reprogramación(es).`
+  );
+
+  // Cupo del día elegido, para avisar si quedó topado — excluye esta misma preventa (ya reprogramada acá arriba) de la cuenta.
+  let cupoTopado = false;
+  try {
+    const porDia = {};
+    datos.forEach((row, i) => {
+      if (i === idx) return;
+      if (cEstReg >= 0 && String(row[cEstReg - 1] || "").trim() === "ANULADO") return;
+      const estado = String(row[cES - 1] || "");
+      if (estado.includes("Entregado") || estado.includes("Cancelado")) return;
+      const f = row[cEH - 1];
+      if (!(f instanceof Date)) return;
+      const key = Utilities.formatDate(f, tz, "yyyy-MM-dd");
+      if (!porDia[key]) porDia[key] = { cant: 0, monto: 0 };
+      porDia[key].cant++;
+      porDia[key].monto += Number(row[cPV - 1]) || 0;
+    });
+    const limites = _capacidadEntregaPreventa_(nuevaFecha);
+    const usados = _usadosParaFecha_(nuevaFecha, porDia);
+    const montoEsta = Number(datos[idx][cPV - 1]) || 0;
+    cupoTopado = !(usados.cant < limites.maxEquipos && (usados.monto + montoEsta) <= limites.maxMonto);
+  } catch (e) { /* si el chequeo de cupo falla, no invalida el guardado — ya se guardó arriba */ }
+
+  return { vecesRepateada: vecesNuevo, cupoTopado: cupoTopado };
+}
+
+/**
  * calcularRangoEntregaPreventaConCupo(fecha, monto) — llamada desde
  * preventas.html (webapp) para que la "Fecha sugerida" que ve el operador
  * en el paso de carga sea la MISMA que va a terminar quedando registrada,

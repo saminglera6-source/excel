@@ -60,6 +60,12 @@
       border-radius: 5px; opacity: .6; transition: opacity .15s, background .15s;
     }
     #view-dashboard .gp-pre-card-fecha-btn:hover { opacity: 1; background: rgba(0,0,0,.06); }
+    #view-dashboard .gp-pre-card-repateada {
+      font-size: 9px; font-weight: 800; border-radius: 100px; padding: 1px 6px; margin-left: 4px;
+      color: #fff; vertical-align: middle;
+    }
+    #view-dashboard .gp-pre-card-repateada-1 { background: #D97706; }
+    #view-dashboard .gp-pre-card-repateada-2 { background: #DC2626; }
     #view-dashboard .gp-pre-card-num { font-size: 10px; color: #AEB0C4; }
     #view-dashboard .gp-pre-card-cliente { font-weight: 800; font-size: 14.5px; letter-spacing: -.2px; }
     #view-dashboard .gp-pre-card-modelo { font-size: 12px; color: #767A94; margin-top: 1px; }
@@ -74,6 +80,27 @@
     #view-dashboard .gp-pre-card-entregar:hover { filter: brightness(1.08); }
     #view-dashboard .gp-pre-card-personalizar { font-size: 10px; color: #9AA0B4; text-decoration: underline; cursor: pointer; }
     #view-dashboard .gp-pre-card-personalizar:hover { color: #4F46E5; }
+
+    /* ---- Popover de fecha rápida (dashPreCalAbrir) ---- */
+    #dp-cal-popover {
+      position: fixed; z-index: 300; background: #fff; border-radius: 12px; padding: 10px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.25); font-size: 12px; width: 232px; display: none;
+    }
+    #dp-cal-popover .dp-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    #dp-cal-popover .dp-cal-nav button { background: none; border: none; cursor: pointer; font-size: 14px; color: #4F46E5; padding: 2px 8px; }
+    #dp-cal-popover .dp-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+    #dp-cal-popover .dp-cal-dia {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px;
+      font-size: 11px; cursor: default;
+    }
+    #dp-cal-popover .dp-cal-dia.dp-cal-otromes { visibility: hidden; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-nohabil { background: repeating-linear-gradient(135deg,#F0F1F3,#F0F1F3 3px,#E4E6E9 3px,#E4E6E9 6px); color: #B0B7C0; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-ok { cursor: pointer; background: #EAF6EE; color: #0F7B3A; font-weight: 700; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-ok:hover { background: #16A34A; color: #fff; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-topado { cursor: pointer; background: #FEECEC; color: #B91C1C; font-weight: 700; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-topado:hover { background: #DC2626; color: #fff; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-hoy { outline: 2px solid #4F46E5; outline-offset: -2px; }
+    #dp-cal-popover .dp-cal-leyenda { font-size: 9.5px; color: #767A94; margin-top: 6px; line-height: 1.5; }
 
     /* ---- Modal de edición ---- */
     #view-dashboard .gp-pre-modal-overlay {
@@ -137,6 +164,8 @@
     </div>
     <div class="gp-pre-grid" id="gp-pre-grid">Cargando…</div>
   </div>
+
+  <div id="dp-cal-popover"></div>
 
   <div id="gp-pre-modal-overlay" class="gp-pre-modal-overlay" style="display:none" onclick="if(event.target===this) dashPreModalCerrar()">
     <div class="gp-pre-modal">
@@ -387,10 +416,14 @@
       var partes = p.fechaHasta.split("-");
       var fechaLinda = partes[2] + "/" + partes[1];
       var toma = p.partePagoEquipo ? "<div class='gp-pre-card-toma'>🔁 " + _dashEsc(p.partePagoEquipo) + "</div>" : "";
+      var veces = Number(p.vecesRepateada) || 0;
+      var marcaRepateada = veces <= 0 ? "" :
+        "<span class='gp-pre-card-repateada gp-pre-card-repateada-" + (veces >= 2 ? "2" : "1") + "' title='Se reprogramó " + veces + " vez(veces)'>🚩 x" + veces + "</span>";
       return "<div class='gp-pre-card gp-pre-card-" + p.severidad + "' onclick=\"dashPreEditar('" + p.nPre + "')\">" +
         "<div class='gp-pre-card-top'>" +
           "<span class='gp-pre-card-fecha'>" + fechaLinda + " · " + ETIQUETAS[p.severidad] +
-            "<button type='button' class='gp-pre-card-fecha-btn' title='Cambiar fecha de entrega' onclick=\"event.stopPropagation(); dashPreAbrirCambioFecha(event, '" + p.nPre + "', '" + p.fechaHasta + "')\">📅</button>" +
+            "<button type='button' class='gp-pre-card-fecha-btn' title='Cambiar fecha de entrega' onclick=\"event.stopPropagation(); dashPreCalAbrir(event, '" + p.nPre + "')\">📅</button>" +
+            marcaRepateada +
           "</span>" +
           "<span class='gp-pre-card-num'>" + p.nPre + "</span>" +
         "</div>" +
@@ -406,45 +439,142 @@
     }).join("");
   }
 
-  /**
-   * Cambio rápido de "Fecha de entrega" desde la tarjeta: un click en 📅
-   * abre directo el selector de fecha nativo del navegador (sin abrir
-   * ningún modal), y elegir una fecha ya alcanza. Mismo patrón de UI
-   * optimista que entregaInstantanea() (index.html): la tarjeta se
-   * actualiza YA con la fecha elegida, mientras la corrección real
-   * (corregirPreventa, mismo mecanismo de auditoría de siempre) corre en
-   * segundo plano — el operador no espera nada.
-   */
-  function dashPreAbrirCambioFecha(ev, nPre, fechaActual){
-    var input = document.createElement("input");
-    input.type = "date";
-    input.value = fechaActual || "";
-    input.style.position = "fixed";
-    input.style.left = (ev.clientX || 0) + "px";
-    input.style.top = (ev.clientY || 0) + "px";
-    input.style.width = "1px";
-    input.style.height = "1px";
-    input.style.opacity = "0.01";
-    document.body.appendChild(input);
+  // ============================================================
+  //  CAMBIO RÁPIDO DE "FECHA DE ENTREGA" — popover con mini-calendario
+  //  propio (no el <input type="date"> nativo: en Safari/iPad no siempre
+  //  abre el selector con showPicker()/focus(), y si el operador no ve
+  //  pasar nada termina tocando la tarjeta entera, que abre el modal
+  //  completo con su propio viaje al backend — eso era el "cartel de
+  //  carga de 2 segundos" que se reportó). Se abre al instante (ya se
+  //  tiene todo lo necesario en _dashPreventas, sin pedir nada al
+  //  backend) y no bloquea días sin cupo — los marca en rojo y los deja
+  //  elegir igual, con aviso (pedido explícito del dueño).
+  // ============================================================
+  var _dpCalNPre = null;
+  var _dpCalMes = new Date();
 
-    var usado = false;
-    input.addEventListener("change", function(){
-      usado = true;
-      if (input.value && input.value !== fechaActual) dashPreCambiarFechaRapido(nPre, input.value);
-      input.remove();
+  function _dpCalEsFinDeMes(fecha){
+    var diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+    return (diasEnMes - fecha.getDate()) < 5;
+  }
+  function _dpCalCapacidad(fecha){
+    return _dpCalEsFinDeMes(fecha) ? { maxEquipos: 5, maxMonto: 5000000 } : { maxEquipos: 3, maxMonto: 2500000 };
+  }
+  function _dpCalISO(fecha){
+    return fecha.getFullYear() + "-" + String(fecha.getMonth() + 1).padStart(2, "0") + "-" + String(fecha.getDate()).padStart(2, "0");
+  }
+  /** Cupo ya usado por día a partir de _dashPreventas (ya cargado, sin pedir nada al backend) — excluye la preventa que se está reprogramando. */
+  function _dpCalUsosPorDia(excluirNPre){
+    var porDia = {};
+    (_dashPreventas || []).forEach(function(p){
+      if (p.nPre === excluirNPre || !p.fechaHasta) return;
+      if (!porDia[p.fechaHasta]) porDia[p.fechaHasta] = { cant: 0, monto: 0 };
+      porDia[p.fechaHasta].cant++;
+      porDia[p.fechaHasta].monto += Number(p.precio) || 0;
     });
-    input.addEventListener("blur", function(){
-      setTimeout(function(){ if (!usado && document.body.contains(input)) input.remove(); }, 200);
-    });
-
-    if (input.showPicker) { try { input.showPicker(); } catch (e) { input.focus(); } }
-    else { input.focus(); }
+    return porDia;
+  }
+  function _dpCalUsados(fecha, porDia){
+    if (!_dpCalEsFinDeMes(fecha)) return porDia[_dpCalISO(fecha)] || { cant: 0, monto: 0 };
+    var anio = fecha.getFullYear(), mes = fecha.getMonth();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var total = { cant: 0, monto: 0 };
+    for (var d = diasEnMes - 4; d <= diasEnMes; d++) {
+      var u = porDia[_dpCalISO(new Date(anio, mes, d))];
+      if (u) { total.cant += u.cant; total.monto += u.monto; }
+    }
+    return total;
   }
 
-  /** UI optimista: actualiza la tarjeta YA con la fecha nueva y dispara la corrección real en segundo plano (sin spinner ni bloquear la pantalla). Si falla, avisa y refresca desde el servidor (la tarjeta vuelve a la fecha real). */
-  function dashPreCambiarFechaRapido(nPre, nuevaFechaISO){
+  function dashPreCalAbrir(ev, nPre){
     var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
     if (!item) return;
+    _dpCalNPre = nPre;
+    var partes = (item.fechaHasta || "").split("-");
+    _dpCalMes = partes.length === 3 ? new Date(+partes[0], +partes[1] - 1, 1) : new Date();
+
+    var pop = document.getElementById("dp-cal-popover");
+    pop.style.display = "block";
+    var rect = ev.target.getBoundingClientRect();
+    var left = Math.min(rect.left, window.innerWidth - 246);
+    pop.style.left = Math.max(8, left) + "px";
+    pop.style.top = Math.min(rect.bottom + 6, window.innerHeight - 280) + "px";
+    dashPreCalRender();
+  }
+
+  function dashPreCalCerrar(){
+    document.getElementById("dp-cal-popover").style.display = "none";
+    _dpCalNPre = null;
+  }
+
+  document.addEventListener("click", function(ev){
+    var pop = document.getElementById("dp-cal-popover");
+    if (pop.style.display === "none") return;
+    var path = ev.composedPath ? ev.composedPath() : [ev.target];
+    if (path.indexOf(pop) === -1) dashPreCalCerrar();
+  });
+
+  function dashPreCalMes(delta){
+    _dpCalMes.setMonth(_dpCalMes.getMonth() + delta);
+    dashPreCalRender();
+  }
+
+  function dashPreCalRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var item = _dashPreventas.filter(function(x){ return x.nPre === _dpCalNPre; })[0];
+    if (!item) { dashPreCalCerrar(); return; }
+    var anio = _dpCalMes.getFullYear(), mes = _dpCalMes.getMonth();
+    var porDia = _dpCalUsosPorDia(_dpCalNPre);
+    var montoEsta = Number(item.precio) || 0;
+    var feriados = (typeof _feriadosMap !== "undefined" && _feriadosMap) ? _feriadosMap : {};
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='dp-cal-dia dp-cal-otromes'>·</div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var iso = _dpCalISO(fechaDia);
+      var diaSemana = fechaDia.getDay();
+      var descFeriado = feriados[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var clases = "dp-cal-dia" + (esHoy ? " dp-cal-hoy" : "");
+      var attrs = "";
+      if (esNoHabil) {
+        clases += " dp-cal-nohabil";
+        attrs = " title='" + (descFeriado ? _dashEsc(descFeriado) : "Fin de semana") + " — no hábil'";
+      } else {
+        var limites = _dpCalCapacidad(fechaDia);
+        var usados = _dpCalUsados(fechaDia, porDia);
+        var entra = usados.cant < limites.maxEquipos && (usados.monto + montoEsta) <= limites.maxMonto;
+        clases += entra ? " dp-cal-ok" : " dp-cal-topado";
+        attrs = " onclick=\"dashPreCalElegir('" + iso + "', " + (entra ? "false" : "true") + ")\"" +
+          (entra ? "" : " title='Cupo de entregas completo para este día — igual se puede registrar'");
+      }
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + "</div>");
+    }
+
+    document.getElementById("dp-cal-popover").innerHTML =
+      "<div class='dp-cal-nav'>" +
+        "<button type='button' onclick='dashPreCalMes(-1)'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' onclick='dashPreCalMes(1)'>›</button>" +
+      "</div>" +
+      "<div class='dp-cal-grid'>" + celdas.join("") + "</div>" +
+      "<div class='dp-cal-leyenda'>🟩 Con cupo &nbsp; 🟥 Sin cupo (se puede igual) &nbsp; ▦ No hábil</div>";
+  }
+
+  /** Elegir un día del popover: UI optimista al toque + guardado liviano en segundo plano (reprogramarFechaPreventaRapido, operadores.gs — solo escribe la fecha y suma el contador de "repateada", no pasa por la corrección completa: por eso es instantáneo). */
+  function dashPreCalElegir(nuevaFechaISO, eraTopado){
+    var nPre = _dpCalNPre;
+    var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (!item) return;
+    dashPreCalCerrar();
 
     item.fechaHasta = nuevaFechaISO;
     var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
@@ -454,57 +584,20 @@
     item.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
     dashPreRenderStats();
     dashPreRender();
-    mostrarToast("📅 Actualizando fecha de " + nPre + "…", "info");
+    if (eraTopado) mostrarToast("⚠️ Ese día ya tiene el cupo de entregas completo — se registró igual.", "info");
 
     google.script.run
-      .withSuccessHandler(function(op){
-        if (!op || op.tipo !== "PREVENTA") { mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + ".", "error"); cargarDashboard(); return; }
-        var d = op.datos;
-        var datosNuevos = {
-          fecha: fechaParaInput(d["Fecha Preventa"]) || "",
-          modelo: d["Modelo Solicitado"] || "",
-          cliente: d["Cliente"] || "",
-          cuil: d["CUIL Cliente"] || "",
-          tel: d["Teléfono"] || "",
-          domicilio: d["Domicilio Cliente"] || "",
-          email: d["Email Cliente"] || "",
-          imei: d["IMEI Solicitado"] || "",
-          color: d["Color Solicitado"] || "",
-          estadoRequerido: d["Estado Requerido"] || "",
-          partePagoEquipo: d["Equipo Parte De Pago"] || "",
-          partePagoValor: Number(d["Valor Parte De Pago"]) || 0,
-          vendedor: d["OPERADOR"] || "",
-          precioVenta: Number(d["Precio Venta Pactado"]) || 0,
-          efec: Number(d["Cobrado Efectivo"]) || 0,
-          transf: Number(d["Cobrado Transferencia"]) || 0,
-          cuotas: Number(d["Cobrado Cuotas"]) || 0,
-          usd: Number(d["Cobrado USD"]) || 0,
-          fechaDesde: fechaParaInput(d["Fecha Prometida Desde"]) || nuevaFechaISO,
-          fechaHasta: nuevaFechaISO,
-          obs: d["Observaciones"] || "",
-          operador: d["OPERADOR"] || ""
-        };
-        google.script.run
-          .withSuccessHandler(function(){
-            mostrarToast("✅ Fecha de " + nPre + " actualizada.", "exito");
-            cargarDashboard();
-          })
-          .withFailureHandler(function(e){
-            mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + " (" + e.message + ") — se restauró.", "error");
-            cargarDashboard();
-          })
-          .corregirPreventa({
-            numeroOriginal: nPre,
-            datosNuevos: datosNuevos,
-            motivo: "Reprogramación rápida de fecha de entrega (Dashboard)",
-            operador: "Martin"
-          });
+      .withSuccessHandler(function(res){
+        item.vecesRepateada = res && res.vecesRepateada ? res.vecesRepateada : (item.vecesRepateada || 0) + 1;
+        dashPreRender();
+        if (res && res.cupoTopado && !eraTopado) mostrarToast("⚠️ Ese día quedó con el cupo completo tras guardar — se registró igual.", "info");
+        mostrarToast("✅ Fecha de " + nPre + " actualizada.", "exito");
       })
       .withFailureHandler(function(e){
         mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + " (" + e.message + ") — se restauró.", "error");
         cargarDashboard();
       })
-      .obtenerOperacionParaCorregirWeb(nPre);
+      .reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, "Martin");
   }
 
   /** Entrega en un click, sin modal (entregaInstantanea(), index.html): pensado para el caso normal, saldo $0 u operador Martin. */
