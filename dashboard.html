@@ -54,7 +54,12 @@
     #view-dashboard .gp-pre-card.gp-pre-card-proxima { border-left-color: #D97706; }
     #view-dashboard .gp-pre-card.gp-pre-card-plazo   { border-left-color: #16A34A; }
     #view-dashboard .gp-pre-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; display: inline-flex; align-items: center; gap: 4px; }
+    #view-dashboard .gp-pre-card-fecha-btn {
+      border: none; background: transparent; cursor: pointer; font-size: 11px; line-height: 1; padding: 1px 2px;
+      border-radius: 5px; opacity: .6; transition: opacity .15s, background .15s;
+    }
+    #view-dashboard .gp-pre-card-fecha-btn:hover { opacity: 1; background: rgba(0,0,0,.06); }
     #view-dashboard .gp-pre-card-num { font-size: 10px; color: #AEB0C4; }
     #view-dashboard .gp-pre-card-cliente { font-weight: 800; font-size: 14.5px; letter-spacing: -.2px; }
     #view-dashboard .gp-pre-card-modelo { font-size: 12px; color: #767A94; margin-top: 1px; }
@@ -383,7 +388,12 @@
       var fechaLinda = partes[2] + "/" + partes[1];
       var toma = p.partePagoEquipo ? "<div class='gp-pre-card-toma'>🔁 " + _dashEsc(p.partePagoEquipo) + "</div>" : "";
       return "<div class='gp-pre-card gp-pre-card-" + p.severidad + "' onclick=\"dashPreEditar('" + p.nPre + "')\">" +
-        "<div class='gp-pre-card-top'><span class='gp-pre-card-fecha'>" + fechaLinda + " · " + ETIQUETAS[p.severidad] + "</span><span class='gp-pre-card-num'>" + p.nPre + "</span></div>" +
+        "<div class='gp-pre-card-top'>" +
+          "<span class='gp-pre-card-fecha'>" + fechaLinda + " · " + ETIQUETAS[p.severidad] +
+            "<button type='button' class='gp-pre-card-fecha-btn' title='Cambiar fecha de entrega' onclick=\"event.stopPropagation(); dashPreAbrirCambioFecha(event, '" + p.nPre + "', '" + p.fechaHasta + "')\">📅</button>" +
+          "</span>" +
+          "<span class='gp-pre-card-num'>" + p.nPre + "</span>" +
+        "</div>" +
         "<div class='gp-pre-card-cliente'>" + _dashEsc(p.cliente) + "</div>" +
         "<div class='gp-pre-card-modelo'>" + _dashEsc(p.modelo) + "</div>" +
         "<div class='gp-pre-card-money'><span>Saldo</span><b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b></div>" +
@@ -394,6 +404,107 @@
         "</div>" +
       "</div>";
     }).join("");
+  }
+
+  /**
+   * Cambio rápido de "Fecha de entrega" desde la tarjeta: un click en 📅
+   * abre directo el selector de fecha nativo del navegador (sin abrir
+   * ningún modal), y elegir una fecha ya alcanza. Mismo patrón de UI
+   * optimista que entregaInstantanea() (index.html): la tarjeta se
+   * actualiza YA con la fecha elegida, mientras la corrección real
+   * (corregirPreventa, mismo mecanismo de auditoría de siempre) corre en
+   * segundo plano — el operador no espera nada.
+   */
+  function dashPreAbrirCambioFecha(ev, nPre, fechaActual){
+    var input = document.createElement("input");
+    input.type = "date";
+    input.value = fechaActual || "";
+    input.style.position = "fixed";
+    input.style.left = (ev.clientX || 0) + "px";
+    input.style.top = (ev.clientY || 0) + "px";
+    input.style.width = "1px";
+    input.style.height = "1px";
+    input.style.opacity = "0.01";
+    document.body.appendChild(input);
+
+    var usado = false;
+    input.addEventListener("change", function(){
+      usado = true;
+      if (input.value && input.value !== fechaActual) dashPreCambiarFechaRapido(nPre, input.value);
+      input.remove();
+    });
+    input.addEventListener("blur", function(){
+      setTimeout(function(){ if (!usado && document.body.contains(input)) input.remove(); }, 200);
+    });
+
+    if (input.showPicker) { try { input.showPicker(); } catch (e) { input.focus(); } }
+    else { input.focus(); }
+  }
+
+  /** UI optimista: actualiza la tarjeta YA con la fecha nueva y dispara la corrección real en segundo plano (sin spinner ni bloquear la pantalla). Si falla, avisa y refresca desde el servidor (la tarjeta vuelve a la fecha real). */
+  function dashPreCambiarFechaRapido(nPre, nuevaFechaISO){
+    var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (!item) return;
+
+    item.fechaHasta = nuevaFechaISO;
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var partes = nuevaFechaISO.split("-");
+    var limite = new Date(+partes[0], +partes[1] - 1, +partes[2]);
+    var dias = Math.round((limite - hoy) / 86400000);
+    item.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
+    dashPreRenderStats();
+    dashPreRender();
+    mostrarToast("📅 Actualizando fecha de " + nPre + "…", "info");
+
+    google.script.run
+      .withSuccessHandler(function(op){
+        if (!op || op.tipo !== "PREVENTA") { mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + ".", "error"); cargarDashboard(); return; }
+        var d = op.datos;
+        var datosNuevos = {
+          fecha: fechaParaInput(d["Fecha Preventa"]) || "",
+          modelo: d["Modelo Solicitado"] || "",
+          cliente: d["Cliente"] || "",
+          cuil: d["CUIL Cliente"] || "",
+          tel: d["Teléfono"] || "",
+          domicilio: d["Domicilio Cliente"] || "",
+          email: d["Email Cliente"] || "",
+          imei: d["IMEI Solicitado"] || "",
+          color: d["Color Solicitado"] || "",
+          estadoRequerido: d["Estado Requerido"] || "",
+          partePagoEquipo: d["Equipo Parte De Pago"] || "",
+          partePagoValor: Number(d["Valor Parte De Pago"]) || 0,
+          vendedor: d["OPERADOR"] || "",
+          precioVenta: Number(d["Precio Venta Pactado"]) || 0,
+          efec: Number(d["Cobrado Efectivo"]) || 0,
+          transf: Number(d["Cobrado Transferencia"]) || 0,
+          cuotas: Number(d["Cobrado Cuotas"]) || 0,
+          usd: Number(d["Cobrado USD"]) || 0,
+          fechaDesde: fechaParaInput(d["Fecha Prometida Desde"]) || nuevaFechaISO,
+          fechaHasta: nuevaFechaISO,
+          obs: d["Observaciones"] || "",
+          operador: d["OPERADOR"] || ""
+        };
+        google.script.run
+          .withSuccessHandler(function(){
+            mostrarToast("✅ Fecha de " + nPre + " actualizada.", "exito");
+            cargarDashboard();
+          })
+          .withFailureHandler(function(e){
+            mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + " (" + e.message + ") — se restauró.", "error");
+            cargarDashboard();
+          })
+          .corregirPreventa({
+            numeroOriginal: nPre,
+            datosNuevos: datosNuevos,
+            motivo: "Reprogramación rápida de fecha de entrega (Dashboard)",
+            operador: "Martin"
+          });
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + " (" + e.message + ") — se restauró.", "error");
+        cargarDashboard();
+      })
+      .obtenerOperacionParaCorregirWeb(nPre);
   }
 
   /** Entrega en un click, sin modal (entregaInstantanea(), index.html): pensado para el caso normal, saldo $0 u operador Martin. */

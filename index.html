@@ -52,6 +52,13 @@
       box-shadow:0 4px 12px rgba(99,102,241,.45);
     }
     #sidebar h1 span{display:block;font-size:10.5px;font-weight:500;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+    #sidebar-buscador-wrap{padding:12px 14px 4px}
+    #sidebar-buscador{
+      width:100%;padding:8px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);color:#fff;font-size:12.5px;font-family:inherit;
+    }
+    #sidebar-buscador::placeholder{color:rgba(255,255,255,.4)}
+    #sidebar-buscador:focus{outline:none;background:rgba(255,255,255,.12);border-color:rgba(129,140,248,.6)}
     .nav-group-title{
       font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
       color:rgba(255,255,255,.35);padding:16px 22px 6px;
@@ -309,6 +316,10 @@
 
   <nav id="sidebar">
     <h1><span class="logo-badge">📱</span>GreatPhones<span>ERP Web</span></h1>
+
+    <div id="sidebar-buscador-wrap">
+      <input type="text" id="sidebar-buscador" placeholder="🔎 Buscar sección..." oninput="sidebarFiltrar(this.value)" onkeydown="sidebarBuscadorKeydown(event)"/>
+    </div>
 
     <div class="nav-group-title">Principal</div>
     <div class="nav-btn activo" data-vista="dashboard" onclick="cargarVista('dashboard')">🏠 Dashboard</div>
@@ -805,6 +816,44 @@
     var abrir = (forzar !== undefined) ? forzar : !document.getElementById("sidebar").classList.contains("abierto");
     document.getElementById("sidebar").classList.toggle("abierto", abrir);
     document.getElementById("sidebar-overlay").classList.toggle("activo", abrir);
+  }
+
+  /**
+   * Buscador de secciones en la barra lateral: filtra los .nav-btn cuyo
+   * texto no matchea la búsqueda, y oculta el título de un grupo entero
+   * (.nav-group-title) si ningún botón de ese grupo quedó visible — así
+   * un operador nuevo encuentra la pantalla que necesita sin tener que
+   * memorizar en qué grupo está.
+   */
+  /** Sin tildes ni mayúsculas, para que buscar "reparacion" encuentre "Reparación" igual. */
+  function _sidebarNormalizar(s){
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function sidebarFiltrar(q){
+    q = _sidebarNormalizar(q).trim();
+    document.querySelectorAll("#sidebar .nav-group-title").forEach(function(titulo){
+      var algunoVisible = false;
+      var el = titulo.nextElementSibling;
+      while (el && el.classList.contains("nav-btn")) {
+        var visible = !q || _sidebarNormalizar(el.textContent).indexOf(q) >= 0;
+        el.style.display = visible ? "" : "none";
+        if (visible) algunoVisible = true;
+        el = el.nextElementSibling;
+      }
+      titulo.style.display = algunoVisible ? "" : "none";
+    });
+  }
+
+  /** Enter en el buscador: va directo a la primera sección que matchea, sin tener que tocarla con el mouse. */
+  function sidebarBuscadorKeydown(ev){
+    if (ev.key !== "Enter") return;
+    var primero = document.querySelector('#sidebar .nav-btn:not([style*="display: none"])');
+    if (!primero) return;
+    primero.click();
+    ev.target.value = "";
+    sidebarFiltrar("");
+    ev.target.blur();
   }
 
   // ---------- Navegación SPA (sin recargar la app) ----------
