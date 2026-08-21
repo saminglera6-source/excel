@@ -54,12 +54,14 @@
     #view-dashboard .gp-pre-card.gp-pre-card-proxima { border-left-color: #D97706; }
     #view-dashboard .gp-pre-card.gp-pre-card-plazo   { border-left-color: #16A34A; }
     #view-dashboard .gp-pre-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; display: inline-flex; align-items: center; gap: 4px; }
+    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; display: inline-flex; align-items: center; gap: 5px; }
     #view-dashboard .gp-pre-card-fecha-btn {
-      border: none; background: transparent; cursor: pointer; font-size: 11px; line-height: 1; padding: 1px 2px;
-      border-radius: 5px; opacity: .6; transition: opacity .15s, background .15s;
+      border: none; background: #F0F1F6; cursor: pointer; font-size: 15px; line-height: 1;
+      width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; opacity: .85; transition: opacity .15s, background .15s, transform .1s; flex-shrink: 0;
     }
-    #view-dashboard .gp-pre-card-fecha-btn:hover { opacity: 1; background: rgba(0,0,0,.06); }
+    #view-dashboard .gp-pre-card-fecha-btn:hover { opacity: 1; background: #E3E5F0; }
+    #view-dashboard .gp-pre-card-fecha-btn:active { transform: scale(.92); }
     #view-dashboard .gp-pre-card-repateada {
       font-size: 9px; font-weight: 800; border-radius: 100px; padding: 1px 6px; margin-left: 4px;
       color: #fff; vertical-align: middle;
@@ -582,13 +584,21 @@
     var limite = new Date(+partes[0], +partes[1] - 1, +partes[2]);
     var dias = Math.round((limite - hoy) / 86400000);
     item.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
+    // Optimista también para la marca de "repateada": se suma YA, sin
+    // esperar la respuesta del servidor — así aparece al toque, no recién
+    // cuando termina de guardar en segundo plano.
+    item.vecesRepateada = (Number(item.vecesRepateada) || 0) + 1;
     dashPreRenderStats();
     dashPreRender();
     if (eraTopado) mostrarToast("⚠️ Ese día ya tiene el cupo de entregas completo — se registró igual.", "info");
 
     google.script.run
       .withSuccessHandler(function(res){
-        item.vecesRepateada = res && res.vecesRepateada ? res.vecesRepateada : (item.vecesRepateada || 0) + 1;
+        // Math.max en vez de pisar directo: si dos cambios de fecha se
+        // dispararon casi juntos, la respuesta del servidor que llega
+        // después no debe poder hacer bajar la marca que ya se sumó acá
+        // arriba de forma optimista.
+        item.vecesRepateada = Math.max(Number(item.vecesRepateada) || 0, (res && res.vecesRepateada) || 0);
         dashPreRender();
         if (res && res.cupoTopado && !eraTopado) mostrarToast("⚠️ Ese día quedó con el cupo completo tras guardar — se registró igual.", "info");
         mostrarToast("✅ Fecha de " + nPre + " actualizada.", "exito");
