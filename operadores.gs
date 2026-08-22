@@ -569,6 +569,13 @@ function procesarAjusteCajaConOperador(d) {
   return msg;
 }
 
+function procesarDevolucionConOperador(d) {
+  const msg = procesarDevolucion(d);
+  const nDev = _extraerNumero_(msg, /N°:\s*(\S+)/);
+  if (nDev) _tagOperadorLibroDiario_(nDev, d.operador);
+  return msg;
+}
+
 // ------------------------------------------------------------
 //  "Mis Operaciones" — VER / ANULAR / CORREGIR (cualquier operador sobre
 //  cualquier operación, sin límite temporal, sin login/usuarios/roles —
@@ -1307,6 +1314,8 @@ function obtenerOperacionesRecientes() {
     "Fecha", "N° Cambio", "Tipo Cambio", ["Monto ARS"], "Estado", mapaCorrecciones));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "AJUSTES_CAJA", "Ajuste Caja",
     "Fecha", "N° Ajuste", "Motivo", ["Monto"], "Estado", mapaCorrecciones));
+  resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Devoluciones", "Devolución",
+    "Fecha", "N° Devolución", "Cliente", ["Monto Efectivo", "Monto Transferencia"], "Estado", mapaCorrecciones));
 
   resultado.sort((a, b) => b.fechaOrd - a.fechaOrd);
   resultado.forEach(r => delete r.fechaOrd);
