@@ -865,9 +865,39 @@ function _ejecutarCorreccion_(prefijo, numeroOriginal, motivo, operadorSolicitan
   if (numeroNuevo) {
     _tagOperacionOrigen_(numeroNuevo, numeroOriginal);
     _registrarCorreccion_(operadorSolicitante, info.tipo, numeroOriginal, numeroNuevo, motivo);
+    // Al corregir una preventa, la de arriba queda ANULADA y esto crea una
+    // preventa NUEVA con otro N° — por eso la marca 🚩 "Veces Repateada"
+    // (badge del Dashboard) se perdía: era un contador atado a la fila
+    // vieja, y la fila nueva arrancaba en blanco. Se copia el valor viejo
+    // a la fila nueva para que la marca sobreviva a la corrección.
+    if (prefijo === "PRE") _copiarVecesRepateada_(numeroOriginal, numeroNuevo);
   }
 
   return msg + "\n\n🔁 Corrección registrada: " + numeroOriginal + " → " + (numeroNuevo || "?");
+}
+
+/** Ver comentario en _ejecutarCorreccion_ (arriba): traslada "Veces Repateada" de la preventa anulada por la corrección a la preventa nueva que la reemplaza. Si la vieja nunca se reprogramó (o la columna todavía no existe), no hace nada. */
+function _copiarVecesRepateada_(numeroViejo, numeroNuevo) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return;
+  const fE = 2;
+  let cNP, cVR;
+  try {
+    cNP = getCol(sheet, "N° Preventa", fE);
+    cVR = getCol(sheet, "Veces Repateada", fE);
+  } catch (e) { return; } // ninguna preventa se reprogramó todavía: no hay columna ni nada que copiar
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return;
+  const ids = sheet.getRange(fE + 1, cNP, lastRow - fE, 1).getValues();
+  let veces = 0;
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0] || "").trim() === numeroViejo) {
+      veces = Number(sheet.getRange(fE + 1 + i, cVR).getValue()) || 0;
+      break;
+    }
+  }
+  if (veces > 0) _tagColumnaGenericaPorId_("Preventas", fE, "N° Preventa", numeroNuevo, "Veces Repateada", veces);
 }
 
 function corregirCompra(d) {
