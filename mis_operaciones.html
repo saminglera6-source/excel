@@ -443,21 +443,20 @@
   }
 
   // ---------- ANULAR ----------
+  /**
+   * Pedido explícito: los botones de anular anulan de una, sin pedir
+   * operador ni motivo (antes pedía los dos con prompts + un confirm
+   * de por medio). El backend (procesarAnularOperacion, anulaciones.gs)
+   * solo exige que el motivo no llegue vacío — se manda un motivo fijo
+   * que dice justamente eso, para no perder el rastro de que fue una
+   * anulación rápida. Sigue quedando 100% trazable: mismo backup +
+   * registro en Auditoría/CORRECCIONES de siempre, nada de eso se tocó.
+   */
   function misOperacionesAnular(numero){
-    pedirOperador("¿Quién está anulando " + numero + "?").then(function(operador){
-      if (!operador) return;
-      pedirTexto("Motivo de la anulación de " + numero + ":").then(function(motivo){
-        if (motivo === null) return;
-        if (!motivo.trim()) { mostrarToast("Ingresá un motivo.", "error"); return; }
-        confirmarAccion("¿Confirmás anular " + numero + "?").then(function(ok){
-          if (!ok) return;
-          llamarBackend("anularOperacionPropia", { numero: numero, motivo: motivo, operador: operador }, function(msg){
-            mostrarToast(msg, "exito");
-            misOperacionesRecargar();
-            cargarDashboard();
-          });
-        });
-      });
+    llamarBackend("anularOperacionPropia", { numero: numero, motivo: "Anulación rápida (sin motivo especificado)", operador: "Martin" }, function(msg){
+      mostrarToast(msg, "exito");
+      misOperacionesRecargar();
+      cargarDashboard();
     });
   }
 
