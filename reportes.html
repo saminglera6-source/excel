@@ -9,7 +9,34 @@
       En vivo — actualizado <span id="rep_ultimaActualizacion">…</span>
     </div>
   </div>
-  <style>@keyframes cajaPulso{0%,100%{opacity:1}50%{opacity:.35}}</style>
+  <style>
+    @keyframes cajaPulso{0%,100%{opacity:1}50%{opacity:.35}}
+    #view-reportes .rep-ajustes-fila { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    #view-reportes .rep-ajustes-btn {
+      width: auto; margin: 0; padding: 10px 18px; font-size: 13px; font-weight: 700;
+    }
+    #view-reportes .rep-ajustes-btn.cambio { background: #8E44AD; }
+    #view-reportes .rep-ajustes-btn.ajuste { background: #B7860B; }
+    .rep-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,35,.5); z-index: 400;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .rep-modal-overlay.activo { display: flex; }
+    .rep-modal { background: #fff; border-radius: 16px; padding: 22px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+    .rep-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .rep-modal-header h3 { margin: 0; }
+    .rep-modal-header button { background: none; border: none; font-size: 20px; line-height: 1; cursor: pointer; color: #667; }
+  </style>
+
+  <!-- Se abren al instante: sin llamar al backend (la cotización ya está
+       cacheada por reportesCargarSaldos, que corre siempre que esta vista
+       está activa) — pedido explícito: "sin tener que esperar que cargue
+       nada". El registro en sí sigue yendo por google.script.run como
+       cualquier otro formulario. -->
+  <div class="rep-ajustes-fila">
+    <button type="button" class="btn rep-ajustes-btn cambio" onclick="rcmAbrir()">💱 Cambio de moneda</button>
+    <button type="button" class="btn rep-ajustes-btn ajuste" onclick="rajAbrir()">🧾 Ajuste de caja</button>
+  </div>
 
   <div class="cards" id="rep_cardsSaldos">
     <div class="card c-caja">
@@ -100,6 +127,100 @@
           <tr><td colspan="9" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: CAMBIO DE MONEDA ================= -->
+  <div class="rep-modal-overlay" id="rcm-overlay" onclick="if(event.target===this) rcmCerrar()">
+    <div class="rep-modal">
+      <div class="rep-modal-header"><h3>💱 Cambio de moneda</h3><button onclick="rcmCerrar()">✕</button></div>
+
+      <label>Operador: <span class="req">*</span></label>
+      <select id="rcm_operador">
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+      <label>Fecha:</label>
+      <input type="date" id="rcm_fecha"/>
+
+      <label>Tipo de cambio: <span class="req">*</span></label>
+      <div class="fila2">
+        <button type="button" class="btn" id="rcm_btn_usd_ars" style="margin:0" onclick="rcmSetTipo('USD_A_ARS')">USD → ARS</button>
+        <button type="button" class="btn" id="rcm_btn_ars_usd" style="margin:0;background:#B8C4CE" onclick="rcmSetTipo('ARS_A_USD')">ARS → USD</button>
+      </div>
+      <div class="hint">Elegí primero la dirección del cambio: los campos de abajo cambian de significado según el botón que quede seleccionado.</div>
+
+      <div class="fila2" style="margin-top:12px">
+        <div>
+          <label id="rcm_label_monto">Monto USD (dólares): <span class="req">*</span></label>
+          <input type="text" inputmode="numeric" id="rcm_monto" value="" placeholder="$0" oninput="formatearInputMoneda(this); rcmCalcular()"/>
+        </div>
+        <div>
+          <label>Cotización ($): <span class="req">*</span></label>
+          <input type="number" id="rcm_cotizacion" value="" placeholder="0" min="0" oninput="rcmCalcular()"/>
+        </div>
+      </div>
+      <div class="hint" id="rcm_cotizOficialDiv"></div>
+
+      <label id="rcm_label_caja">Caja destino (ARS):</label>
+      <select id="rcm_cajaArs">
+        <option value="Efectivo">Efectivo</option>
+        <option value="Transferencia">Transferencia</option>
+      </select>
+
+      <div class="box box-info" id="rcm_resumenDiv" style="margin-top:12px;font-size:14px;text-align:center">
+        Completá los datos para ver el resumen.
+      </div>
+
+      <label>Observaciones:</label>
+      <input type="text" id="rcm_obs" placeholder="Opcional"/>
+
+      <button type="button" class="btn" onclick="rcmEnviar()">✅ Registrar cambio de moneda</button>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: AJUSTE DE CAJA ================= -->
+  <div class="rep-modal-overlay" id="raj-overlay" onclick="if(event.target===this) rajCerrar()">
+    <div class="rep-modal">
+      <div class="rep-modal-header"><h3>🧾 Ajuste de caja</h3><button onclick="rajCerrar()">✕</button></div>
+
+      <label>Operador: <span class="req">*</span></label>
+      <select id="raj_operador">
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+      <label>Fecha:</label>
+      <input type="date" id="raj_fecha"/>
+
+      <div class="fila2" style="margin-top:12px">
+        <div>
+          <label>Caja:</label>
+          <select id="raj_caja">
+            <option>Efectivo</option>
+            <option>Transferencia</option>
+            <option>USD</option>
+          </select>
+        </div>
+        <div>
+          <label>Tipo:</label>
+          <select id="raj_tipo">
+            <option>Sobrante</option>
+            <option>Faltante</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint">Sobrante: contaste la caja y había más plata de la que debería. Faltante: había menos.</div>
+
+      <label id="raj_label_monto">Monto ($): <span class="req">*</span></label>
+      <input type="text" inputmode="numeric" id="raj_monto" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
+
+      <label>Motivo: <span class="req">*</span></label>
+      <input type="text" id="raj_motivo" placeholder="Ej: Diferencia de conteo de caja"/>
+
+      <label>Observaciones:</label>
+      <input type="text" id="raj_obs" placeholder="Opcional"/>
+
+      <button type="button" class="btn" onclick="rajEnviar()">✅ Registrar ajuste de caja</button>
     </div>
   </div>
 </div>
@@ -221,9 +342,19 @@
     }).join("");
   }
 
+  /**
+   * Cotización cacheada acá — reportesCargarSaldos() ya la pide cada
+   * REP_AUTOREFRESH_MS mientras esta vista está activa, así que los
+   * modales de Cambio de moneda/Ajuste de caja (más abajo) la usan sin
+   * tener que pedirla de nuevo: se abren al instante, sin esperar ningún
+   * viaje al backend (pedido explícito).
+   */
+  var _repCotizacionVenta = 0;
+
   function reportesCargarSaldos(){
     google.script.run
       .withSuccessHandler(function(cot){
+        _repCotizacionVenta = cot.venta;
         google.script.run
           .withSuccessHandler(function(saldos){
             document.getElementById("rep_saldo_efectivo").textContent      = fmtP(saldos.Efectivo);
@@ -238,5 +369,134 @@
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerCotizacionUSD();
+  }
+
+  // ============================================================
+  //  MODAL: CAMBIO DE MONEDA — antes vivía como pestaña en Gastos, mezclado
+  //  con el formulario de gastos y ajuste de caja en una sola pantalla
+  //  (feedback de los empleados: "muy complicado ingresar los gastos").
+  //  Se movió acá a Caja, como modal que se abre al instante (sin pedir
+  //  nada al backend: usa _repCotizacionVenta, ya cacheada arriba) — Gastos
+  //  queda solo para cargar gastos.
+  // ============================================================
+  var _rcmTipo = "USD_A_ARS";
+
+  function rcmAbrir(){
+    document.getElementById("rcm_fecha").value = new Date().toISOString().split("T")[0];
+    document.getElementById("rcm_operador").value = "";
+    setInputMoneda(document.getElementById("rcm_monto"), 0);
+    document.getElementById("rcm_cotizacion").value = _repCotizacionVenta || "";
+    document.getElementById("rcm_cotizOficialDiv").textContent = _repCotizacionVenta
+      ? "Cotización USD oficial: " + fmtP(_repCotizacionVenta) + " (editable)"
+      : "";
+    document.getElementById("rcm_obs").value = "";
+    rcmSetTipo("USD_A_ARS");
+    document.getElementById("rcm-overlay").classList.add("activo");
+  }
+  function rcmCerrar(){ document.getElementById("rcm-overlay").classList.remove("activo"); }
+
+  function rcmSetTipo(tipo){
+    _rcmTipo = tipo;
+    var esUsdArs = tipo === "USD_A_ARS";
+    document.getElementById("rcm_btn_usd_ars").style.background = esUsdArs ? "" : "#B8C4CE";
+    document.getElementById("rcm_btn_ars_usd").style.background = esUsdArs ? "#B8C4CE" : "";
+    document.getElementById("rcm_label_monto").textContent = esUsdArs ? "Monto USD (dólares): *" : "Monto ARS a cambiar ($): *";
+    document.getElementById("rcm_label_caja").textContent  = esUsdArs ? "Caja destino (ARS):" : "Caja origen (ARS):";
+    rcmCalcular();
+  }
+
+  function rcmCalcular(){
+    var monto = valorNumerico(document.getElementById("rcm_monto"));
+    var cotizacion = parseFloat(document.getElementById("rcm_cotizacion").value) || 0;
+    var cajaArs = document.getElementById("rcm_cajaArs").value;
+    var esUsdArs = _rcmTipo === "USD_A_ARS";
+
+    var montoUSD, montoARS;
+    if (esUsdArs) { montoUSD = monto; montoARS = Math.round(monto * cotizacion); }
+    else          { montoARS = monto; montoUSD = cotizacion > 0 ? (monto / cotizacion) : 0; }
+
+    var resumen = esUsdArs
+      ? ("−" + montoUSD.toLocaleString("en-US") + " USD  →  +" + fmtP(montoARS) + " (" + cajaArs + ")")
+      : ("−" + fmtP(montoARS) + " (" + cajaArs + ")  →  +" + montoUSD.toFixed(2) + " USD");
+    document.getElementById("rcm_resumenDiv").textContent = (monto > 0 && cotizacion > 0) ? resumen : "Completá los datos para ver el resumen.";
+
+    return { montoUSD: montoUSD, montoARS: montoARS, cajaArs: cajaArs, esUsdArs: esUsdArs };
+  }
+
+  function rcmEnviar(){
+    var operador = document.getElementById("rcm_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var cotizacion = parseFloat(document.getElementById("rcm_cotizacion").value) || 0;
+    if (cotizacion <= 0) { mostrarToast("Ingresá la cotización.", "error"); return; }
+    var calc = rcmCalcular();
+    if (calc.montoUSD <= 0) { mostrarToast("El monto debe ser > 0.", "error"); return; }
+
+    var cajaOrigen  = calc.esUsdArs ? "USD" : calc.cajaArs;
+    var cajaDestino = calc.esUsdArs ? calc.cajaArs : "USD";
+
+    var d = {
+      fecha: document.getElementById("rcm_fecha").value,
+      operador: operador,
+      cajaOrigen: cajaOrigen,
+      cajaDestino: cajaDestino,
+      montoUSD: calc.montoUSD,
+      cotizacion: cotizacion,
+      obs: document.getElementById("rcm_obs").value.trim()
+    };
+
+    confirmarAccion("¿Confirmás el cambio " + cajaOrigen + " → " + cajaDestino + " de USD " + calc.montoUSD.toFixed(2) + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarCambioMonedaConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        reportesCargarSaldos();
+        rcmCerrar();
+      });
+    });
+  }
+
+  // ============================================================
+  //  MODAL: AJUSTE DE CAJA — mismo motivo/ubicación que Cambio de moneda
+  //  de arriba.
+  // ============================================================
+  function rajAbrir(){
+    document.getElementById("raj_fecha").value = new Date().toISOString().split("T")[0];
+    document.getElementById("raj_operador").value = "";
+    document.getElementById("raj_caja").value = "Efectivo";
+    document.getElementById("raj_tipo").value = "Sobrante";
+    setInputMoneda(document.getElementById("raj_monto"), 0);
+    document.getElementById("raj_motivo").value = "";
+    document.getElementById("raj_obs").value = "";
+    document.getElementById("raj-overlay").classList.add("activo");
+  }
+  function rajCerrar(){ document.getElementById("raj-overlay").classList.remove("activo"); }
+
+  function rajEnviar(){
+    var operador = document.getElementById("raj_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    var monto = valorNumerico(document.getElementById("raj_monto"));
+    if (monto <= 0) { mostrarToast("El monto debe ser > 0.", "error"); return; }
+    var motivo = document.getElementById("raj_motivo").value.trim();
+    if (!motivo) { mostrarToast("Ingresá el motivo del ajuste.", "error"); return; }
+
+    var d = {
+      fecha: document.getElementById("raj_fecha").value,
+      operador: operador,
+      caja: document.getElementById("raj_caja").value,
+      tipoAjuste: document.getElementById("raj_tipo").value,
+      monto: monto,
+      motivo: motivo,
+      obs: document.getElementById("raj_obs").value.trim()
+    };
+
+    confirmarAccion("¿Confirmás el ajuste (" + d.tipoAjuste + ") de " + fmtP(monto) + " en " + d.caja + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("procesarAjusteCajaConOperador", d, function(msg){
+        mostrarToastOperacion(msg);
+        cargarDashboard();
+        reportesCargarSaldos();
+        rajCerrar();
+      });
+    });
   }
 </script>
