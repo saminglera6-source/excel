@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"/>
+<title>Calculadora de Cuotas</title>
+<style>
+  /* ============================================================
+     CONFIGURACIÓN — únicos números "mágicos" de todo el archivo.
+     Para cambiar el descuento de PosNet/Getnet o los coeficientes de
+     financiación, tocar SOLO el objeto CONFIG en el <script> de abajo.
+     ============================================================ */
+  :root{
+    --azul:#4F46E5; --azul-osc:#3730A3; --violeta:#7C6FF0;
+    --texto:#191B2E; --texto-sua:#767A94; --fondo:#F4F5FA;
+    --borde: rgba(24,27,55,.08); --verde:#0F9D58; --verde-claro:#E7F8EF;
+    --rojo:#E11D48; --radio:18px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,sans-serif;
+    background:linear-gradient(180deg,#EEF0FB,#F7F8FC 320px);
+    color:var(--texto); min-height:100vh; padding:18px 14px 60px;
+  }
+  .wrap{ max-width:520px; margin:0 auto; }
+
+  h1{
+    font-family:"Manrope","Inter",sans-serif; font-size:22px; font-weight:800;
+    letter-spacing:-.4px; text-align:center; margin:6px 0 20px;
+  }
+  h1 span{ display:block; font-size:13px; font-weight:600; color:var(--texto-sua); margin-top:4px; letter-spacing:0; }
+
+  .card{
+    background:#fff; border-radius:var(--radio); padding:20px;
+    box-shadow:0 1px 2px rgba(24,27,55,.05),0 2px 8px rgba(24,27,55,.06),0 20px 40px rgba(24,27,55,.10);
+    margin-bottom:16px;
+  }
+
+  label{ font-size:12.5px; font-weight:700; color:var(--texto-sua); text-transform:uppercase; letter-spacing:.5px; }
+
+  .input-precio{
+    width:100%; font-size:30px; font-weight:800; text-align:center;
+    padding:16px 10px; margin-top:10px; border:2px solid var(--borde); border-radius:14px;
+    background:var(--fondo); color:var(--texto); font-family:inherit;
+    transition:border-color .15s, background .15s;
+  }
+  .input-precio::placeholder{ color:#B7BAD1; font-weight:700; }
+  .input-precio:focus{ outline:none; border-color:var(--azul); background:#fff; }
+  .input-precio.error{ border-color:var(--rojo); }
+
+  .msg-error{ color:var(--rojo); font-size:13px; font-weight:600; text-align:center; margin-top:8px; display:none; }
+  .msg-error.activo{ display:block; }
+
+  .resumen{ margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+  .resumen-fila{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--fondo); border-radius:13px; padding:13px 16px;
+  }
+  .resumen-fila.neto{ background:var(--verde-claro); }
+  .resumen-fila .rf-label{ font-size:13px; font-weight:700; color:var(--texto-sua); }
+  .resumen-fila.neto .rf-label{ color:#0D7A3B; }
+  .resumen-fila .rf-valor{ font-size:19px; font-weight:800; letter-spacing:-.3px; }
+  .resumen-fila.neto .rf-valor{ color:#0D7A3B; }
+
+  .plan-titulo{
+    font-family:"Manrope","Inter",sans-serif; font-size:16px; font-weight:800;
+    margin:22px 0 12px 2px; color:var(--texto);
+  }
+
+  .planes{ display:flex; flex-direction:column; gap:10px; }
+  .plan-card{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--fondo); border-radius:14px; padding:14px 16px;
+    border:1.5px solid transparent; transition:border-color .15s;
+  }
+  .plan-card:active{ border-color:var(--azul); }
+  .plan-cuotas{ font-size:15px; font-weight:800; color:var(--azul-osc); min-width:64px; }
+  .plan-detalle{ text-align:right; }
+  .plan-total{ font-size:12px; color:var(--texto-sua); font-weight:600; }
+  .plan-cuota{ font-size:19px; font-weight:800; letter-spacing:-.3px; }
+  .plan-cuota small{ font-size:12px; font-weight:700; color:var(--texto-sua); }
+
+  .placeholder{
+    text-align:center; color:var(--texto-sua); font-size:14px; padding:30px 10px;
+    line-height:1.6;
+  }
+
+  .btn{
+    width:100%; font-size:15.5px; font-weight:700; padding:15px 20px; border:none;
+    border-radius:100px; cursor:pointer; letter-spacing:-.1px;
+    transition:transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn-copiar{
+    background:linear-gradient(135deg,var(--azul),var(--violeta)); color:#fff;
+    box-shadow:0 4px 14px rgba(79,70,229,.32); margin-top:4px;
+  }
+  .btn-copiar:disabled{ opacity:.45; box-shadow:none; }
+  .btn-nueva{
+    background:transparent; color:var(--texto-sua); border:1.5px solid var(--borde);
+    margin-top:10px;
+  }
+
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:var(--texto); color:#fff; padding:12px 22px; border-radius:100px;
+    font-size:14px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.25);
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:999; white-space:nowrap;
+  }
+  .toast.activo{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .footer-nota{ text-align:center; font-size:11px; color:#A6A9C2; margin-top:22px; line-height:1.6; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>💳 Calculadora de Cuotas
+      <span>Precio de contado → precio con tarjeta y financiación</span>
+    </h1>
+
+    <div class="card">
+      <label for="precioEquipo">Precio del equipo (contado, en pesos)</label>
+      <input type="text" inputmode="numeric" id="precioEquipo" class="input-precio" placeholder="$ 0" autocomplete="off"/>
+      <div class="msg-error" id="msgError">Ingresá un precio válido y mayor a $0.</div>
+
+      <div class="resumen" id="resumen" style="display:none">
+        <div class="resumen-fila">
+          <span class="rf-label">💰 Precio del equipo</span>
+          <span class="rf-valor" id="rEquipo">—</span>
+        </div>
+        <div class="resumen-fila">
+          <span class="rf-label">💳 Precio contado al cliente</span>
+          <span class="rf-valor" id="rContado">—</span>
+        </div>
+        <div class="resumen-fila neto">
+          <span class="rf-label">🏦 Neto que recibimos</span>
+          <span class="rf-valor" id="rNeto">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="bloquePlanes" style="display:none">
+      <p class="plan-titulo">📋 Opciones de financiación</p>
+      <div class="planes" id="planes"></div>
+
+      <button class="btn btn-copiar" id="btnCopiar" onclick="copiarPrecios()">📋 Copiar precios</button>
+      <button class="btn btn-nueva" onclick="nuevaVenta()">🔄 Nueva venta</button>
+    </div>
+
+    <div class="placeholder" id="placeholder">
+      Ingresá el precio de contado del equipo para ver el precio con tarjeta<br/>y todas las opciones de cuotas.
+    </div>
+
+    <div class="footer-nota">Los valores de cuotas son aproximados — redondeados al peso.</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  // ============================================================
+  //  CONFIGURACIÓN — todo lo que pueda cambiar con el tiempo vive
+  //  ACÁ, en un único lugar. No hay otro número repetido en el resto
+  //  del archivo.
+  // ============================================================
+  const CONFIG = {
+    // Descuento que aplica PosNet/Getnet sobre el importe cobrado.
+    DESCUENTO_POSNET: 0.025,
+    // Coeficiente de financiación por cantidad de cuotas — se aplica
+    // sobre el "precio contado" (ya compensado por el descuento de
+    // PosNet), NUNCA sobre el precio del equipo directamente.
+    COEFICIENTES_CUOTAS: [
+      { cuotas: 2,  coeficiente: 1.0671 },
+      { cuotas: 3,  coeficiente: 1.0913 },
+      { cuotas: 6,  coeficiente: 1.1666 },
+      { cuotas: 9,  coeficiente: 1.2724 },
+      { cuotas: 12, coeficiente: 1.3659 },
+      { cuotas: 18, coeficiente: 1.5690 },
+      { cuotas: 24, coeficiente: 1.7950 }
+    ]
+  };
+
+  // ============================================================
+  //  Formato de moneda argentino: "$ 1.025.641" (punto de miles, sin
+  //  decimales — todo ya viene redondeado al peso antes de formatear).
+  // ============================================================
+  function fmtARS(n){
+    return "$ " + Math.round(n).toLocaleString("es-AR");
+  }
+
+  /** Limpia cualquier cosa que no sea dígito (puntos, "$", espacios) y devuelve un número. */
+  function limpiarNumero(texto){
+    const soloDigitos = String(texto || "").replace(/[^\d]/g, "");
+    return soloDigitos ? parseInt(soloDigitos, 10) : NaN;
+  }
+
+  /**
+   * Cálculo central — la ÚNICA función que sabe hacer cuentas.
+   * precioEquipo → lo que el negocio necesita recibir en mano.
+   * precioContado → lo que hay que cobrarle al cliente para que, después
+   *   del descuento de PosNet/Getnet, ingrese exactamente precioEquipo.
+   *   precioContado = precioEquipo / (1 - DESCUENTO_POSNET)
+   *   (dividir, NUNCA multiplicar por 1+descuento — así se compensa
+   *   el descuento correctamente en vez de sub-cobrar).
+   * planes[] → precioContado × cada coeficiente, prorrateado en cuotas.
+   *   El coeficiente se aplica sobre precioContado (que YA compensa el
+   *   2,5%), nunca se vuelve a aplicar el descuento sobre el resultado.
+   */
+  function calcular(precioEquipo){
+    const precioContado = Math.round(precioEquipo / (1 - CONFIG.DESCUENTO_POSNET));
+    const planes = CONFIG.COEFICIENTES_CUOTAS.map(function(c){
+      const total = Math.round(precioContado * c.coeficiente);
+      const cuota = Math.round(total / c.cuotas);
+      return { cuotas: c.cuotas, total: total, cuota: cuota };
+    });
+    return { precioEquipo: precioEquipo, precioContado: precioContado, planes: planes };
+  }
+
+  // ============================================================
+  //  UI
+  // ============================================================
+  let _ultimoResultado = null;
+
+  const elInput       = document.getElementById("precioEquipo");
+  const elMsgError    = document.getElementById("msgError");
+  const elResumen     = document.getElementById("resumen");
+  const elBloquePlanes= document.getElementById("bloquePlanes");
+  const elPlaceholder = document.getElementById("placeholder");
+  const elPlanes      = document.getElementById("planes");
+  const elBtnCopiar   = document.getElementById("btnCopiar");
+
+  elInput.addEventListener("input", function(){
+    // Formatea en vivo con puntos de miles, sin perder el cursor de más
+    // que unos pocos caracteres (aceptable para un campo de solo números).
+    const numero = limpiarNumero(elInput.value);
+    elInput.value = isNaN(numero) ? "" : numero.toLocaleString("es-AR");
+    procesar(numero);
+  });
+
+  function procesar(numero){
+    const valido = !isNaN(numero) && numero > 0;
+    elInput.classList.toggle("error", elInput.value !== "" && !valido);
+    elMsgError.classList.toggle("activo", elInput.value !== "" && !valido);
+
+    if (!valido) {
+      elResumen.style.display = "none";
+      elBloquePlanes.style.display = "none";
+      elPlaceholder.style.display = "block";
+      elBtnCopiar.disabled = true;
+      _ultimoResultado = null;
+      return;
+    }
+
+    _ultimoResultado = calcular(numero);
+    renderizar(_ultimoResultado);
+  }
+
+  function renderizar(r){
+    elPlaceholder.style.display = "none";
+    elResumen.style.display = "flex";
+    elBloquePlanes.style.display = "block";
+    elBtnCopiar.disabled = false;
+
+    document.getElementById("rEquipo").textContent  = fmtARS(r.precioEquipo);
+    document.getElementById("rContado").textContent = fmtARS(r.precioContado);
+    document.getElementById("rNeto").textContent    = fmtARS(r.precioEquipo);
+
+    elPlanes.innerHTML = r.planes.map(function(p){
+      return '<div class="plan-card">' +
+        '<span class="plan-cuotas">' + p.cuotas + ' cuotas</span>' +
+        '<div class="plan-detalle">' +
+          '<div class="plan-total">Total: ' + fmtARS(p.total) + '</div>' +
+          '<div class="plan-cuota">' + fmtARS(p.cuota) + ' <small>c/u</small></div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+  }
+
+  function nuevaVenta(){
+    elInput.value = "";
+    elInput.classList.remove("error");
+    procesar(NaN);
+    elInput.focus();
+  }
+
+  function armarTextoWhatsapp(r){
+    let txt = "💳 *Opciones de pago*\n\n";
+    txt += "💰 Precio contado: " + fmtARS(r.precioContado) + "\n";
+    txt += "━━━━━━━━━━━━━━━\n";
+    r.planes.forEach(function(p){
+      txt += "• " + p.cuotas + " cuotas de " + fmtARS(p.cuota) + " (total " + fmtARS(p.total) + ")\n";
+    });
+    txt += "━━━━━━━━━━━━━━━\n";
+    txt += "Cualquier consulta, quedamos a tu disposición. 😊";
+    return txt;
+  }
+
+  function copiarPrecios(){
+    if (!_ultimoResultado) return;
+    const texto = armarTextoWhatsapp(_ultimoResultado);
+
+    const hacerFallback = function(){
+      const ta = document.createElement("textarea");
+      ta.value = texto;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand("copy"); mostrarToast("✅ Precios copiados"); }
+      catch (e) { mostrarToast("❌ No se pudo copiar"); }
+      document.body.removeChild(ta);
+    };
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(texto).then(function(){
+        mostrarToast("✅ Precios copiados");
+      }).catch(hacerFallback);
+    } else {
+      hacerFallback();
+    }
+  }
+
+  let _toastTimer = null;
+  function mostrarToast(msg){
+    const el = document.getElementById("toast");
+    el.textContent = msg;
+    el.classList.add("activo");
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function(){ el.classList.remove("activo"); }, 2200);
+  }
+</script>
+</body>
+</html>
