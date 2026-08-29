@@ -9,12 +9,36 @@
 //  getFilaVacia, genCorrelativo, actualizarStock_) fue modificada.
 // ============================================================
 
-function doGet() {
+function doGet(e) {
+  // API JSON de solo lectura para el agente vendedor-ia
+  var api = e && e.parameter && e.parameter.api;
+  if (api) return apiJson_(api, (e && e.parameter && e.parameter.token) || '');
+
   return HtmlService
     .createTemplateFromFile('index')
     .evaluate()
     .setTitle('GreatPhones ERP')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function apiJson_(api, token) {
+  var salida = function (obj) {
+    return ContentService.createTextOutput(JSON.stringify(obj))
+      .setMimeType(ContentService.MimeType.JSON);
+  };
+  var cfg = getConfigCached();
+  var esperado = cfg.API_TOKEN ? String(cfg.API_TOKEN).trim() : '';
+  if (!esperado || String(token).trim() !== esperado) {
+    return salida({ ok: false, error: 'token invalido o API deshabilitada' });
+  }
+  try {
+    if (api === 'precios') return salida({ ok: true, data: obtenerListaPrecios() });
+    if (api === 'toma')    return salida({ ok: true, data: obtenerPreciosToma() });
+    if (api === 'all')     return salida({ ok: true, data: { precios: obtenerListaPrecios(), toma: obtenerPreciosToma() } });
+    return salida({ ok: false, error: 'api desconocida: ' + api });
+  } catch (err) {
+    return salida({ ok: false, error: String(err && err.message || err) });
+  }
 }
 
 /** Incluye un archivo HTML dentro de otro (usado por index.html para armar la SPA). */
