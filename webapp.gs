@@ -11,8 +11,11 @@
 
 function doGet(e) {
   // API JSON de solo lectura para el agente vendedor-ia
-  var api = e && e.parameter && e.parameter.api;
-  if (api) return apiJson_(api, (e && e.parameter && e.parameter.token) || '');
+  //   ?api=precios | toma | all | cuotas_coef
+  //   ?api=cuotas&monto=925000
+  //   ?api=toma_calc&modelo=iPhone+13+128+GB&fallas=pantalla,marco
+  var params = (e && e.parameter) || {};
+  if (params.api) return apiJson_(params.api, params.token || '', params);
 
   return HtmlService
     .createTemplateFromFile('index')
@@ -21,20 +24,41 @@ function doGet(e) {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
-function apiJson_(api, token) {
+function apiTokenCrudo_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
+  if (!sh) return '';
+  var data = sh.getDataRange().getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'API_TOKEN') return String(data[i][1]).trim();
+  }
+  return '';
+}
+
+function apiJson_(api, token, params) {
+  params = params || {};
   var salida = function (obj) {
     return ContentService.createTextOutput(JSON.stringify(obj))
       .setMimeType(ContentService.MimeType.JSON);
   };
-  var cfg = getConfigCached();
-  var esperado = cfg.API_TOKEN ? String(cfg.API_TOKEN).trim() : '';
+  var esperado = apiTokenCrudo_();
   if (!esperado || String(token).trim() !== esperado) {
     return salida({ ok: false, error: 'token invalido o API deshabilitada' });
   }
   try {
     if (api === 'precios') return salida({ ok: true, data: obtenerListaPrecios() });
     if (api === 'toma')    return salida({ ok: true, data: obtenerPreciosToma() });
-    if (api === 'all')     return salida({ ok: true, data: { precios: obtenerListaPrecios(), toma: obtenerPreciosToma() } });
+    if (api === 'all') return salida({ ok: true, data: {
+      precios: obtenerListaPrecios(),
+      toma: obtenerPreciosToma(),
+      cuotas_coef: obtenerConfiguracionCuotas()
+    }});
+    if (api === 'cuotas_coef') return salida({ ok: true, data: obtenerConfiguracionCuotas() });
+    if (api === 'cuotas') return salida({ ok: true, data: calcularCuotas(Number(params.monto) || 0) });
+    if (api === 'toma_calc') {
+      var fallas = {};
+      String(params.fallas || '').toLowerCase().split(/[,\s]+/).forEach(function (f) { if (f) fallas[f] = true; });
+      return salida({ ok: true, data: calcularValorToma({ modelo: String(params.modelo || ''), fallas: fallas }) });
+    }
     return salida({ ok: false, error: 'api desconocida: ' + api });
   } catch (err) {
     return salida({ ok: false, error: String(err && err.message || err) });
