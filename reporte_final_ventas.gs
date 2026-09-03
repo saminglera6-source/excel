@@ -17,14 +17,24 @@
 //    nombre que todavía necesite revisión.
 // ============================================================
 
-/** Punto de entrada desde el menú: 🏪 GreatPhones → 📋 Anulaciones → "🏁 Reporte final de ventas reales". */
+/** Punto de entrada desde el menú: 🏪 GreatPhones → 📋 Anulaciones → "🏁 Reporte final de ventas reales (todo)". */
 function generarReporteFinalVentasReales() {
+  _generarReporteFinalVentasInterno_(null, null, "REPORTE_FINAL_VENTAS_REALES");
+}
+
+/** Punto de entrada desde el menú: 🏪 GreatPhones → 📋 Anulaciones → "🏁 Reporte final de ventas reales — SOLO agosto". Misma lógica, pero solo cuenta operaciones cuya fecha (la de la Venta si la preventa ya se entregó, si no la de la Preventa/Venta directa) cae en agosto del año actual. */
+function generarReporteFinalVentasRealesAgosto() {
+  const anio = new Date().getFullYear();
+  _generarReporteFinalVentasInterno_(anio, 8, "REPORTE_FINAL_VENTAS_AGOSTO");
+}
+
+function _generarReporteFinalVentasInterno_(filtroAnio, filtroMes1based, nombreHoja) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const r = _calcularReporteFinalVentas_(ss);
-  _escribirReporteFinalVentas_(ss, r);
+  const r = _calcularReporteFinalVentas_(ss, filtroAnio, filtroMes1based);
+  _escribirReporteFinalVentas_(ss, r, nombreHoja);
   SpreadsheetApp.getUi().alert(
-    "✅ Reporte final generado",
-    `Se creó/actualizó la hoja "REPORTE_FINAL_VENTAS_REALES".\n\n` +
+    "✅ Reporte generado",
+    `Se creó/actualizó la hoja "${nombreHoja}".\n\n` +
     `TOTAL de operaciones reales (sin duplicar, sin anuladas/canceladas): ${r.totalOperaciones}\n` +
     `Monto total vendido: ${_fmtPeso_(r.montoTotal)}`,
     SpreadsheetApp.getUi().ButtonSet.OK
@@ -35,7 +45,10 @@ function _fmtPeso_(n) {
   return "$" + Math.round(n).toLocaleString("es-AR");
 }
 
-function _calcularReporteFinalVentas_(ss) {
+function _calcularReporteFinalVentas_(ss, filtroAnio, filtroMes1based) {
+  const filtrar = filtroAnio != null && filtroMes1based != null;
+  const enElMes_ = (fecha) => !filtrar || (fecha instanceof Date && fecha.getFullYear() === filtroAnio && (fecha.getMonth() + 1) === filtroMes1based);
+
   const preSheet = ss.getSheetByName("Preventas");
   const ventasSheet = ss.getSheetByName("Ventas");
   if (!preSheet || !ventasSheet) throw new Error("❌ Hojas 'Preventas' o 'Ventas' no encontradas.");
@@ -84,17 +97,24 @@ function _calcularReporteFinalVentas_(ss) {
     if (ventaRow && !ventaAnulada) {
       // Preventa entregada con venta activa: UNA sola operación, con el
       // monto/fecha de la Venta (más preciso — incluye ajustes de entrega).
+      const fechaReal = vFE >= 0 ? ventaRow[vFE] : row[pFE];
+      // Cuenta una sola vez, sin importar el filtro de mes, si su fecha real
+      // (la de la Venta, no la de la Preventa) cae en el mes pedido — una
+      // preventa de julio entregada en agosto SÍ es una venta de agosto.
       ventasUsadasPorPreventa.add(nVentaAsoc);
+      if (!enElMes_(fechaReal)) return;
       operaciones.push({
         numero: nPre + " / " + nVentaAsoc, tipo: "Preventa entregada",
         vendedor: vendedor, cliente: String(row[pCL] || ""), modelo: String(row[pMO] || ""),
-        fecha: _fmtFecha_(vFE >= 0 ? ventaRow[vFE] : row[pFE]),
+        fecha: _fmtFecha_(fechaReal),
         monto: vPV >= 0 ? (Number(ventaRow[vPV]) || 0) : (Number(row[pPV]) || 0)
       });
     } else {
       // Preventa activa sin venta (todavía no entregada) o con venta
       // anulada ya reparada (no debería quedar ninguna así después de la
-      // limpieza) — igual cuenta como una operación real (dinero cobrado).
+      // limpieza) — igual cuenta como una operación real (dinero cobrado),
+      // contada en el mes en que se CARGÓ la preventa (ahí se cobró).
+      if (!enElMes_(row[pFE])) return;
       operaciones.push({
         numero: nPre, tipo: "Preventa (pendiente de entrega)",
         vendedor: vendedor, cliente: String(row[pCL] || ""), modelo: String(row[pMO] || ""),
@@ -109,6 +129,7 @@ function _calcularReporteFinalVentas_(ss) {
     if (anulada) return;
     const nVenta = String(row[vNV] || "").trim();
     if (ventasUsadasPorPreventa.has(nVenta)) return; // ya contada arriba, junto a su preventa
+    if (!enElMes_(row[vFE])) return;
 
     operaciones.push({
       numero: nVenta, tipo: "Venta directa",
@@ -131,8 +152,7 @@ function _calcularReporteFinalVentas_(ss) {
   return { operaciones, porVendedor, totalOperaciones: operaciones.length, montoTotal };
 }
 
-function _escribirReporteFinalVentas_(ss, r) {
-  const nombreHoja = "REPORTE_FINAL_VENTAS_REALES";
+function _escribirReporteFinalVentas_(ss, r, nombreHoja) {
   let sheet = ss.getSheetByName(nombreHoja);
   if (sheet) sheet.clear();
   else sheet = ss.insertSheet(nombreHoja);
