@@ -39,7 +39,9 @@ function generarAuditoriaDuplicados() {
     `Entregadas sin venta: ${r.entregadasSinVenta.length}\n` +
     `IMEI vendido más de una vez: ${r.imeiDuplicado.length}\n` +
     `Posibles duplicados de carga: ${r.posiblesDuplicados.length}\n` +
-    `Anuladas/Canceladas: ${r.anuladasCanceladas.length}`,
+    `Anuladas/Canceladas: ${r.anuladasCanceladas.length}\n` +
+    `Venta compartida por más de una preventa: ${r.ventaCompartida.length}\n` +
+    `Preventa activa con venta anulada: ${r.ventaAnuladaConPreventaActiva.length}`,
     SpreadsheetApp.getUi().ButtonSet.OK
   );
 }
@@ -89,6 +91,8 @@ function _calcularAuditoriaDuplicados_(ss) {
   const vinculos = [];
   const vinculosRotos = [];
   const entregadasSinVenta = [];
+  const preventasPorVenta = {}; // nVenta -> [ {nPre, cliente, modelo}, ... ] — para detectar una Venta compartida por más de una Preventa
+  const ventaAnuladaConPreventaActiva = []; // preventas activas cuya Venta asociada está ANULADA
 
   pre.datos.forEach(row => {
     const nPre = String(row[pNP] || "").trim();
@@ -99,8 +103,15 @@ function _calcularAuditoriaDuplicados_(ss) {
     if (anulada) return; // las anuladas van en la sección 6, no acá
 
     if (nVentaAsoc) {
-      if (ventasPorNumero[nVentaAsoc]) {
+      const ventaRow = ventasPorNumero[nVentaAsoc];
+      if (ventaRow) {
         vinculos.push([nPre, nVentaAsoc, String(row[pCL] || ""), String(row[pMO] || "")]);
+        (preventasPorVenta[nVentaAsoc] = preventasPorVenta[nVentaAsoc] || []).push({ nPre, cliente: String(row[pCL] || ""), modelo: String(row[pMO] || "") });
+
+        const ventaAnulada = vER >= 0 && String(ventaRow[vER] || "").trim() === "ANULADO";
+        if (ventaAnulada) {
+          ventaAnuladaConPreventaActiva.push([nPre, nVentaAsoc, String(row[pCL] || ""), estado]);
+        }
       } else {
         vinculosRotos.push([nPre, nVentaAsoc, String(row[pCL] || ""), "La venta asociada no existe en la hoja Ventas"]);
       }
@@ -108,6 +119,16 @@ function _calcularAuditoriaDuplicados_(ss) {
       entregadasSinVenta.push([nPre, String(row[pCL] || ""), String(row[pMO] || ""), "Estado Entregado pero sin N° Venta Asociada"]);
     }
   });
+
+  // Una misma Venta no puede ser la entrega de más de una Preventa distinta.
+  const ventaCompartida = Object.keys(preventasPorVenta)
+    .filter(nVenta => preventasPorVenta[nVenta].length > 1)
+    .map(nVenta => [
+      nVenta,
+      preventasPorVenta[nVenta].map(p => p.nPre).join(", "),
+      preventasPorVenta[nVenta].map(p => p.cliente + " (" + p.modelo + ")").join(" / "),
+      "Esta misma Venta aparece vinculada a " + preventasPorVenta[nVenta].length + " preventas distintas"
+    ]);
 
   // ---- 4: mismo IMEI vendido más de una vez (solo Ventas activas) ----
   const porIMEI = {};
@@ -168,7 +189,7 @@ function _calcularAuditoriaDuplicados_(ss) {
     if (anulada) anuladasCanceladas.push(["VENTA", nVenta, "ANULADA (ESTADO_REGISTRO)", String(row[vCL] || "")]);
   });
 
-  return { vinculos, vinculosRotos, entregadasSinVenta, imeiDuplicado, posiblesDuplicados, anuladasCanceladas };
+  return { vinculos, vinculosRotos, entregadasSinVenta, imeiDuplicado, posiblesDuplicados, anuladasCanceladas, ventaCompartida, ventaAnuladaConPreventaActiva };
 }
 
 function _escribirAuditoriaDuplicados_(ss, r) {
@@ -216,6 +237,14 @@ function _escribirAuditoriaDuplicados_(ss, r) {
   seccion(
     "6. ANULADAS / CANCELADAS (no contar en ningún total)",
     ["Hoja", "N°", "Motivo", "Cliente"], r.anuladasCanceladas, "(ninguna)"
+  );
+  seccion(
+    "7. UNA MISMA VENTA VINCULADA A MÁS DE UNA PREVENTA (grave — dato roto, revisar ya)",
+    ["N° Venta", "Preventas vinculadas", "Clientes/Modelos", "Detalle"], r.ventaCompartida, "(ninguna)"
+  );
+  seccion(
+    "8. PREVENTA ACTIVA CUYA VENTA ASOCIADA ESTÁ ANULADA (la preventa quedó como Entregada con un vínculo muerto)",
+    ["N° Preventa", "N° Venta (anulada)", "Cliente", "Estado actual de la Preventa"], r.ventaAnuladaConPreventaActiva, "(ninguna)"
   );
 
   sheet.autoResizeColumns(1, 6);
