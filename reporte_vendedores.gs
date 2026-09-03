@@ -45,8 +45,9 @@ function _calcularReporteVendedoresReal_(ss) {
   const fEP = 2;
   const cNPre = getCol(preSheet, "N° Preventa", fEP);
   const cVendPre = getCol(preSheet, "Vendedor", fEP);
-  let cNVAsoc = -1;
+  let cNVAsoc = -1, cOPPre = -1;
   try { cNVAsoc = getCol(preSheet, "N° Venta Asociada", fEP); } catch (e) { /* columna opcional, se crea recién en la primera entrega */ }
+  try { cOPPre = getCol(preSheet, "OPERADOR", fEP); } catch (e) { /* columna opcional */ }
 
   const lastPre = preSheet.getLastRow();
   const datosPre = lastPre > fEP
@@ -57,6 +58,7 @@ function _calcularReporteVendedoresReal_(ss) {
   const ventaOrigenPreventa = {}; // { nVenta: { vendedor, nPre } }
   const conteoPreventas = {}; // { vendedor: cantidad }
   let preventasSinVendedor = 0;
+  const detallePreventasDiscrepancia = []; // filas donde Preventas.OPERADOR (corrompido por la entrega) != Preventas.Vendedor
 
   datosPre.forEach(row => {
     const vendedor = String(row[cVendPre - 1] || "").trim();
@@ -67,6 +69,13 @@ function _calcularReporteVendedoresReal_(ss) {
     if (cNVAsoc > 0) {
       const nVenta = String(row[cNVAsoc - 1] || "").trim();
       if (nVenta && vendedor) ventaOrigenPreventa[nVenta] = { vendedor: vendedor, nPre: nPre };
+    }
+
+    if (cOPPre > 0 && vendedor) {
+      const operadorGuardado = String(row[cOPPre - 1] || "").trim();
+      if (operadorGuardado && operadorGuardado !== vendedor) {
+        detallePreventasDiscrepancia.push([nPre, "PREVENTA", operadorGuardado, vendedor]);
+      }
     }
   });
 
@@ -112,16 +121,18 @@ function _calcularReporteVendedoresReal_(ss) {
   sumar(conteoVentasDirectas);
   sumar(conteoVentasDesdePreventa);
 
+  const todasLasDiscrepancias = detallePreventasDiscrepancia.concat(detalleDiscrepancias);
+
   return {
     conteoPreventas: conteoPreventas,
     conteoVentasDirectas: conteoVentasDirectas,
     conteoVentasDesdePreventa: conteoVentasDesdePreventa,
     totalPorVendedor: totalPorVendedor,
-    detalleDiscrepancias: detalleDiscrepancias,
+    detalleDiscrepancias: todasLasDiscrepancias,
     preventasSinVendedor: preventasSinVendedor,
     ventasSinOperador: ventasSinOperador,
     totalOperaciones: datosPre.length + datosV.length,
-    totalDiscrepancias: detalleDiscrepancias.length
+    totalDiscrepancias: todasLasDiscrepancias.length
   };
 }
 

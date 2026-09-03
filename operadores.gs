@@ -489,18 +489,62 @@ function procesarPreventaConOperador(d) {
   return msg + notaCupo;
 }
 
+/**
+ * OJO — antes esta función tageaba OPERADOR de la Preventa y de la Venta
+ * generada con `d.operador` (quien hace click en "Entregar"), pisando al
+ * vendedor real cada vez que la entrega la hacía una persona distinta de
+ * quien vendió (algo muy común: uno atiende el chat, otro entrega en el
+ * local). Eso corrompía la trazabilidad de "quién vendió cada equipo" —
+ * ver reporte_vendedores.gs / reparar_operador_vendedor.gs, que
+ * diagnostican y reparan el historial afectado por este mismo bug.
+ *
+ * Ahora: el vendedor real (columna "Vendedor" de Preventas, que se
+ * escribe una sola vez al crear la preventa y nunca se vuelve a tocar)
+ * es SIEMPRE lo que se guarda en OPERADOR, tanto de la Preventa como de
+ * la Venta que se genera al entregar. Quien hace la entrega física
+ * (`d.operador`) se guarda aparte, en la columna "Operador Entrega"
+ * (se crea sola si no existe) — así no se pierde ese dato, pero ya no
+ * pisa la atribución de la venta.
+ */
 function procesarEntregaPreventaConOperador(d) {
   const msg = procesarEntregaPreventa(d);
   let nVta = "";
+
+  const vendedorReal = _leerVendedorRealPreventa_(d.nPre);
+
+  if (d.nPre && d.operador) {
+    _tagColumnaGenericaPorId_("Preventas", 2, "N° Preventa", d.nPre, "Operador Entrega", d.operador);
+    if (vendedorReal) _tagOperadorPorId_("Preventas", 2, "N° Preventa", d.nPre, vendedorReal);
+  }
+
+  nVta = _extraerNumero_(msg, /N° Venta (?:generada|actualizada):\s*(\S+)/);
+  if (nVta && vendedorReal) _tagOperadorPorNumero_(nVta, vendedorReal);
+
   if (d.operador) {
-    if (d.nPre) _tagOperadorPorId_("Preventas", 2, "N° Preventa", d.nPre, d.operador);
-    nVta = _extraerNumero_(msg, /N° Venta (?:generada|actualizada):\s*(\S+)/);
-    if (nVta) _tagOperadorPorNumero_(nVta, d.operador);
     const nCompra = _extraerNumero_(msg, /N° Compra:\s*(\S+)/);
     if (nCompra) _tagOperadorPorNumero_(nCompra, d.operador);
   }
+
   const modelo = _obtenerModeloDePreventa_(d.nPre);
-  return msg + _entregarRegalosSiCorresponde_(nVta, modelo, "", d.operador, d.operador, d.entregarRegalos);
+  return msg + _entregarRegalosSiCorresponde_(nVta, modelo, "", vendedorReal || d.operador, d.operador, d.entregarRegalos);
+}
+
+/** Lee la columna "Vendedor" de una Preventa por su número — fuente de verdad de quién la vendió realmente (nunca se corrompe, se escribe una sola vez al crear la preventa). Devuelve "" si no se encuentra o no está cargada. */
+function _leerVendedorRealPreventa_(nPre) {
+  if (!nPre) return "";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return "";
+  const fE = 2;
+  let cNP, cVend;
+  try {
+    cNP = getCol(sheet, "N° Preventa", fE);
+    cVend = getCol(sheet, "Vendedor", fE);
+  } catch (e) { return ""; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return "";
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datos.find(r => String(r[cNP - 1]).trim() === String(nPre).trim());
+  return fila ? String(fila[cVend - 1] || "").trim() : "";
 }
 
 function procesarReparacionConOperador(d) {
