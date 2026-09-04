@@ -84,7 +84,27 @@
     #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:active { transform: scale(.98); }
     #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc { border-color: rgba(255,138,128,.55); }
     #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy { border-color: #fff; }
+    /* Señal de carga del día (cupo de entregas) — se ve de un vistazo sin entrar a la celda */
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-liviano { background: rgba(74,222,128,.12); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-liviano:hover { background: rgba(74,222,128,.22); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-cargado { background: rgba(251,191,36,.16); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-cargado:hover { background: rgba(251,191,36,.26); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado { background: rgba(255,138,128,.22); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado:hover { background: rgba(255,138,128,.32); }
     #view-dashboard .gp-pre-cal-mes-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    #view-dashboard .gp-pre-cal-mes-monto { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); margin-top: auto; padding-top: 3px; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado .gp-pre-cal-mes-monto { color: #FFC4BE; }
+
+    /* Resumen del mes — arriba de la grilla, para no tener que escanear celda por celda */
+    #view-dashboard .gp-pre-cal-mes-resumen {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    #view-dashboard .gp-pre-cal-mes-resumen-item {
+      background: rgba(255,255,255,.09); border-radius: 12px; padding: 8px 16px; text-align: center; min-width: 110px;
+    }
+    #view-dashboard .gp-pre-cal-mes-resumen-item b { display: block; font-family: "Manrope", sans-serif; font-size: 16px; font-weight: 800; color: #fff; }
+    #view-dashboard .gp-pre-cal-mes-resumen-item span { font-size: 10px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-cal-mes-resumen-item.gp-pre-cal-mes-resumen-prox b { color: #FDE68A; }
     #view-dashboard .gp-pre-cal-mes-num { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); }
     #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy .gp-pre-cal-mes-num {
       background: #fff; color: #312C85; width: 19px; height: 19px; border-radius: 50%;
@@ -518,6 +538,14 @@
     dashPreCalMesRender();
   }
 
+  /** "$1,2M" / "$850K" en vez del número completo — para que el monto entre en el espacio chico de una celda del calendario y de las tarjetas de resumen del mes. */
+  function fmtPCompacto(n){
+    n = Number(n) || 0;
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1).replace(".0", "").replace(".", ",") + "M";
+    if (n >= 1000) return "$" + Math.round(n / 1000) + "K";
+    return fmtP(n);
+  }
+
   /** Nombre corto para las tarjetitas del calendario — primer nombre + inicial del apellido, así entra en el espacio de la celda sin recortar feo. */
   function _dashPreNombreCorto(cliente){
     var partes = String(cliente || "").trim().split(/\s+/);
@@ -549,6 +577,8 @@
       return "<div class='gp-pre-cal-mes-lbl" + (DIAS_FINDE.indexOf(i) >= 0 ? " gp-pre-cal-mes-finde" : "") + "'>" + l + "</div>";
     });
     for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='gp-pre-cal-mes-dia gp-pre-cal-mes-vacio'></div>");
+    var totalMes = 0, montoMes = 0, proximaFecha = null, proximaCliente = null;
+
     for (var d = 1; d <= diasEnMes; d++) {
       var fechaDia = new Date(anio, mes, d);
       var iso = anio + "-" + String(mes + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
@@ -556,10 +586,28 @@
       var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
       var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
       var vencidas = items.filter(function(x){ return x.severidad === "vencida"; }).length;
+      var montoDia = items.reduce(function(s, x){ return s + (Number(x.precio) || 0); }, 0);
+
+      // Señal de carga: mismas reglas de cupo que usa el popover de
+      // posponer fecha (_dpCalCapacidad) — así el color de la celda
+      // anticipa si ese día ya está topado, sin tener que abrir nada.
+      var claseCarga = "";
+      if (items.length > 0) {
+        var limites = _dpCalCapacidad(fechaDia);
+        if (items.length >= limites.maxEquipos || montoDia >= limites.maxMonto) claseCarga = " gp-pre-cal-mes-topado";
+        else if (items.length >= limites.maxEquipos - 1 || montoDia >= limites.maxMonto * .7) claseCarga = " gp-pre-cal-mes-cargado";
+        else claseCarga = " gp-pre-cal-mes-liviano";
+
+        totalMes += items.length;
+        montoMes += montoDia;
+        if (fechaDia >= hoy && !proximaFecha) { proximaFecha = fechaDia; proximaCliente = items[0].cliente; }
+      }
+
       var clase = "gp-pre-cal-mes-dia" +
         (esHoy ? " gp-pre-cal-mes-hoy" : "") +
         (esFinde ? " gp-pre-cal-mes-finde" : "") +
         (items.length ? " gp-pre-cal-mes-con" : "") +
+        claseCarga +
         (vencidas ? " gp-pre-cal-mes-venc" : "");
       var onclick = items.length ? " onclick=\"dashPreCalMesElegirDia('" + iso + "')\"" : "";
 
@@ -574,8 +622,18 @@
           (items.length ? "<span class='gp-pre-cal-mes-badge'>" + items.length + "</span>" : "") +
         "</div>" +
         (items.length ? "<div class='gp-pre-cal-mes-clientes'>" + visibles + resto + "</div>" : "") +
+        (montoDia > 0 ? "<div class='gp-pre-cal-mes-monto'>" + fmtPCompacto(montoDia) + "</div>" : "") +
       "</div>");
     }
+
+    var resumen =
+      "<div class='gp-pre-cal-mes-resumen'>" +
+        "<div class='gp-pre-cal-mes-resumen-item'><b>" + totalMes + "</b><span>Preventas del mes</span></div>" +
+        "<div class='gp-pre-cal-mes-resumen-item'><b>" + fmtPCompacto(montoMes) + "</b><span>Saldo del mes</span></div>" +
+        (proximaFecha ?
+          "<div class='gp-pre-cal-mes-resumen-item gp-pre-cal-mes-resumen-prox'><b>" + proximaFecha.getDate() + "/" + (proximaFecha.getMonth()+1) + "</b><span>Próxima — " + _dashEsc(_dashPreNombreCorto(proximaCliente)) + "</span></div>"
+          : "") +
+      "</div>";
 
     document.getElementById("gp-pre-cal-mes").innerHTML =
       "<div class='gp-pre-cal-mes-nav'>" +
@@ -584,11 +642,14 @@
         "<button type='button' onclick='dashPreCalMesCambiar(1)' title='Mes siguiente'>›</button>" +
         "<button type='button' class='gp-pre-cal-mes-hoy-btn' onclick='dashPreCalMesIrAHoy()'>Hoy</button>" +
       "</div>" +
+      resumen +
       "<div class='gp-pre-cal-mes-grid'>" + celdas.join("") + "</div>" +
       "<div class='gp-pre-cal-mes-leyenda'>" +
-        "<span><i style='background:rgba(255,255,255,.13)'></i>Con entregas</span>" +
-        "<span><i style='background:#FF8A80'></i>Con vencidas</span>" +
-        "<span><i style='background:transparent;border:1px solid #fff'></i>Hoy</span>" +
+        "<span><i style='background:rgba(74,222,128,.35)'></i>Con cupo</span>" +
+        "<span><i style='background:rgba(251,191,36,.5)'></i>Casi topado</span>" +
+        "<span><i style='background:rgba(255,138,128,.55)'></i>Topado</span>" +
+        "<span><i style='background:transparent;border:1.5px solid #FF8A80'></i>Con vencidas</span>" +
+        "<span><i style='background:transparent;border:1.5px solid #fff'></i>Hoy</span>" +
       "</div>";
   }
 
