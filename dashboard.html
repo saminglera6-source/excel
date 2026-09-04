@@ -40,9 +40,66 @@
     #view-dashboard .gp-pre-filtro:hover { background: rgba(255,255,255,.1); }
     #view-dashboard .gp-pre-filtro.activo { background: #fff; color: #312C85; border-color: #fff; }
     #view-dashboard .gp-pre-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
-      max-height: 460px; overflow-y: auto; padding-right: 2px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px;
+      max-height: 72vh; min-height: 460px; overflow-y: auto; padding-right: 2px;
     }
+    #view-dashboard .gp-pre-vista-switch { display: flex; gap: 4px; background: rgba(255,255,255,.1); border-radius: 100px; padding: 3px; }
+    #view-dashboard .gp-pre-vista-btn {
+      border: none; background: transparent; color: rgba(255,255,255,.75); border-radius: 100px;
+      padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s;
+    }
+    #view-dashboard .gp-pre-vista-btn.activo { background: #fff; color: #312C85; }
+    #view-dashboard .gp-pre-card-tel { font-size: 11px; color: #767A94; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+    #view-dashboard .gp-pre-card-tel a { color: inherit; text-decoration: none; }
+    #view-dashboard .gp-pre-card-tel a:hover { color: #16A34A; text-decoration: underline; }
+
+    /* ---- Calendario mensual embebido (vista "Calendario") ---- */
+    #view-dashboard .gp-pre-cal-mes { max-height: 72vh; min-height: 460px; overflow-y: auto; }
+    #view-dashboard .gp-pre-cal-mes-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; color: #fff; }
+    #view-dashboard .gp-pre-cal-mes-nav button { background: rgba(255,255,255,.12); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; }
+    #view-dashboard .gp-pre-cal-mes-nav button:hover { background: rgba(255,255,255,.22); }
+    #view-dashboard .gp-pre-cal-mes-nav b { font-family: "Manrope", sans-serif; font-size: 15px; min-width: 150px; text-align: center; }
+    #view-dashboard .gp-pre-cal-mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    #view-dashboard .gp-pre-cal-mes-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,.55); padding-bottom: 4px; }
+    #view-dashboard .gp-pre-cal-mes-dia {
+      position: relative; aspect-ratio: 1; background: rgba(255,255,255,.06); border-radius: 10px;
+      display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px; cursor: default;
+      transition: background .12s;
+    }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-vacio { background: transparent; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con { cursor: pointer; background: rgba(255,255,255,.14); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:hover { background: rgba(255,255,255,.26); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc { box-shadow: inset 0 0 0 1.5px #FF8A80; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy { box-shadow: inset 0 0 0 2px #fff; }
+    #view-dashboard .gp-pre-cal-mes-num { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.85); }
+    #view-dashboard .gp-pre-cal-mes-badge {
+      position: absolute; bottom: 5px; right: 5px; background: #fff; color: #312C85; font-size: 10px; font-weight: 800;
+      border-radius: 100px; min-width: 17px; height: 17px; display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    #view-dashboard .gp-pre-fecha-chip {
+      display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff;
+      border-radius: 100px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-fecha-chip:hover { background: rgba(255,255,255,.26); }
+
+    /* ---- Listado "Entregadas / Canceladas" (debajo del hero) ---- */
+    #view-dashboard .gp-pre-hist-card { background: #fff; border-radius: 20px; padding: 18px 20px; margin-bottom: 26px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    #view-dashboard .gp-pre-hist-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
+    #view-dashboard .gp-pre-hist-header b { font-family: "Manrope", sans-serif; font-size: 15px; color: #191B2E; }
+    #view-dashboard .gp-pre-hist-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+    #view-dashboard .gp-pre-hist-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: #F7F7FB; font-size: 12.5px; }
+    #view-dashboard .gp-pre-hist-info { flex: 1; min-width: 0; }
+    #view-dashboard .gp-pre-hist-cliente { font-weight: 700; color: #191B2E; }
+    #view-dashboard .gp-pre-hist-meta { color: #767A94; font-size: 11px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #view-dashboard .gp-pre-hist-pill { font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+    #view-dashboard .gp-pre-hist-pill-entregada { background: #E7F8EF; color: #0F7B3A; }
+    #view-dashboard .gp-pre-hist-pill-cancelada { background: #FDEBEC; color: #B91C1C; }
+    #view-dashboard .gp-pre-hist-btn {
+      border: none; background: #4F46E5; color: #fff; border-radius: 100px; padding: 7px 12px;
+      font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: .12s;
+    }
+    #view-dashboard .gp-pre-hist-btn:hover { filter: brightness(1.1); }
+    #view-dashboard .gp-pre-hist-btn:disabled { opacity: .5; cursor: default; }
     #view-dashboard .gp-pre-grid .hint { color: rgba(255,255,255,.65); grid-column: 1/-1; }
     #view-dashboard .gp-pre-card {
       background: #fff; border-radius: 16px; padding: 14px 15px; cursor: pointer; color: #191B2E;
@@ -163,8 +220,22 @@
         <button type="button" class="gp-pre-filtro" data-f="proxima" onclick="dashPreFiltrar('proxima')">🟡 Próximas</button>
         <button type="button" class="gp-pre-filtro" data-f="plazo" onclick="dashPreFiltrar('plazo')">🟢 En plazo</button>
       </div>
+      <div class="gp-pre-vista-switch">
+        <button type="button" class="gp-pre-vista-btn activo" data-v="tarjetas" onclick="dashPreSetVista('tarjetas')">🗂️ Tarjetas</button>
+        <button type="button" class="gp-pre-vista-btn" data-v="calendario" onclick="dashPreSetVista('calendario')">📅 Calendario</button>
+      </div>
+      <span id="gp-pre-fecha-chip" class="gp-pre-fecha-chip" style="display:none" onclick="dashPreFiltroFechaLimpiar()"></span>
     </div>
     <div class="gp-pre-grid" id="gp-pre-grid">Cargando…</div>
+    <div class="gp-pre-cal-mes" id="gp-pre-cal-mes" style="display:none"></div>
+  </div>
+
+  <div class="gp-pre-hist-card">
+    <div class="gp-pre-hist-header">
+      <b>📋 Entregadas / Canceladas</b>
+      <span class="hint" style="margin:0">Un click para deshacer — se procesa en segundo plano</span>
+    </div>
+    <div class="gp-pre-hist-list" id="gp-pre-hist-list">Cargando…</div>
   </div>
 
   <div id="dp-cal-popover"></div>
@@ -353,6 +424,8 @@
   // ============================================================
   var _dashPreventas = [];
   var _dashPreFiltro = "todas";
+  var _dashPreFiltroFecha = null; // yyyy-mm-dd elegido en el calendario mensual, o null (sin filtrar)
+  var _dashPreVista = "tarjetas";
   var _dashPreEditando = null; // { numero, datos } de obtenerOperacionParaCorregirWeb
 
   function dashPreCargar(){
@@ -390,6 +463,93 @@
     dashPreRender();
   }
 
+  // ============================================================
+  //  VISTA "Tarjetas" / "Calendario" — el calendario reutiliza los mismos
+  //  datos ya cargados en _dashPreventas (sin pedir nada al backend).
+  //  Clickear un día del calendario filtra la vista de tarjetas a ese día
+  //  (mismo mecanismo que buscar/filtrar por severidad), con un chip para
+  //  sacar el filtro.
+  // ============================================================
+  function dashPreSetVista(v){
+    _dashPreVista = v;
+    document.querySelectorAll("#view-dashboard .gp-pre-vista-btn").forEach(function(b){
+      b.classList.toggle("activo", b.dataset.v === v);
+    });
+    document.getElementById("gp-pre-grid").style.display = (v === "tarjetas") ? "grid" : "none";
+    document.getElementById("gp-pre-cal-mes").style.display = (v === "calendario") ? "block" : "none";
+    if (v === "calendario") dashPreCalMesRender();
+  }
+
+  var _dashPreCalMesFecha = new Date();
+
+  function dashPreCalMesCambiar(delta){
+    _dashPreCalMesFecha.setMonth(_dashPreCalMesFecha.getMonth() + delta);
+    dashPreCalMesRender();
+  }
+
+  function dashPreCalMesRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var anio = _dashPreCalMesFecha.getFullYear(), mes = _dashPreCalMesFecha.getMonth();
+    var porDia = {};
+    _dashPreventas.forEach(function(p){
+      if (!p.fechaHasta) return;
+      (porDia[p.fechaHasta] = porDia[p.fechaHasta] || []).push(p);
+    });
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){ return "<div class='gp-pre-cal-mes-lbl'>" + l + "</div>"; });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='gp-pre-cal-mes-dia gp-pre-cal-mes-vacio'></div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var iso = anio + "-" + String(mes + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      var items = porDia[iso] || [];
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var vencidas = items.filter(function(x){ return x.severidad === "vencida"; }).length;
+      var clase = "gp-pre-cal-mes-dia" + (esHoy ? " gp-pre-cal-mes-hoy" : "") + (items.length ? " gp-pre-cal-mes-con" : "") + (vencidas ? " gp-pre-cal-mes-venc" : "");
+      var onclick = items.length ? " onclick=\"dashPreCalMesElegirDia('" + iso + "')\"" : "";
+      var titulo = items.length ? " title='" + items.length + " preventa(s): " + items.map(function(x){ return _dashEscAttr(x.cliente); }).join(", ") + "'" : "";
+      celdas.push("<div class='" + clase + "'" + onclick + titulo + ">" +
+        "<span class='gp-pre-cal-mes-num'>" + d + "</span>" +
+        (items.length ? "<span class='gp-pre-cal-mes-badge'>" + items.length + "</span>" : "") +
+      "</div>");
+    }
+
+    document.getElementById("gp-pre-cal-mes").innerHTML =
+      "<div class='gp-pre-cal-mes-nav'>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(-1)'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(1)'>›</button>" +
+      "</div>" +
+      "<div class='gp-pre-cal-mes-grid'>" + celdas.join("") + "</div>";
+  }
+
+  function dashPreCalMesElegirDia(iso){
+    _dashPreFiltroFecha = iso;
+    dashPreActualizarChipFecha();
+    dashPreSetVista("tarjetas");
+    dashPreRender();
+  }
+
+  function dashPreFiltroFechaLimpiar(){
+    _dashPreFiltroFecha = null;
+    dashPreActualizarChipFecha();
+    dashPreRender();
+  }
+
+  function dashPreActualizarChipFecha(){
+    var chip = document.getElementById("gp-pre-fecha-chip");
+    if (!_dashPreFiltroFecha) { chip.style.display = "none"; return; }
+    var partes = _dashPreFiltroFecha.split("-");
+    chip.style.display = "inline-flex";
+    chip.textContent = "📅 " + partes[2] + "/" + partes[1] + " ✕";
+  }
+
+  function _dashEscAttr(s){
+    return _dashEsc(s).replace(/'/g, "&#39;");
+  }
+
   function _dashEsc(s){
     return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
@@ -398,6 +558,7 @@
     var q = (document.getElementById("gp-pre-buscar").value || "").trim().toLowerCase();
     var lista = _dashPreventas.filter(function(p){
       if (_dashPreFiltro !== "todas" && p.severidad !== _dashPreFiltro) return false;
+      if (_dashPreFiltroFecha && p.fechaHasta !== _dashPreFiltroFecha) return false;
       if (q) {
         var enTexto = (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
                       (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
@@ -431,6 +592,7 @@
         "</div>" +
         "<div class='gp-pre-card-cliente'>" + _dashEsc(p.cliente) + "</div>" +
         "<div class='gp-pre-card-modelo'>" + _dashEsc(p.modelo) + "</div>" +
+        (p.tel ? "<div class='gp-pre-card-tel' onclick='event.stopPropagation()'>📞 <a href='tel:" + _dashEsc(p.tel) + "'>" + _dashEsc(p.tel) + "</a></div>" : "") +
         "<div class='gp-pre-card-money'><span>Saldo</span><b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b></div>" +
         toma +
         "<div class='gp-pre-card-entregar-fila'>" +
@@ -710,8 +872,71 @@
     });
   }
 
+  // ============================================================
+  //  LISTADO "Entregadas / Canceladas" — deshacer al toque, en segundo
+  //  plano (UI optimista: la fila se saca YA de la lista, el guardado
+  //  real viaja aparte con google.script.run directo, sin pasar por
+  //  llamarBackend() y su spinner bloqueante).
+  // ============================================================
+  var _dashPreHist = [];
+
+  function dashPreHistCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _dashPreHist = datos || [];
+        dashPreHistRender();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregadasOCanceladas();
+  }
+
+  function dashPreHistRender(){
+    var cont = document.getElementById("gp-pre-hist-list");
+    if (_dashPreHist.length === 0) { cont.innerHTML = "<div class='hint'>No hay entregas ni cancelaciones recientes.</div>"; return; }
+    cont.innerHTML = _dashPreHist.map(function(p){
+      var esEntregada = p.estado === "entregada";
+      var pillTxt = esEntregada ? "✅ Entregada" : "❌ Cancelada";
+      var pillClase = esEntregada ? "gp-pre-hist-pill-entregada" : "gp-pre-hist-pill-cancelada";
+      var btnTxt = esEntregada ? "↩️ Deshacer entrega" : "↩️ Restaurar";
+      var telTxt = p.tel ? " · 📞 " + _dashEsc(p.tel) : "";
+      return "<div class='gp-pre-hist-row'>" +
+        "<span class='gp-pre-hist-pill " + pillClase + "'>" + pillTxt + "</span>" +
+        "<div class='gp-pre-hist-info'>" +
+          "<div class='gp-pre-hist-cliente'>" + _dashEsc(p.cliente) + "</div>" +
+          "<div class='gp-pre-hist-meta'>" + p.nPre + " · " + _dashEsc(p.modelo) + telTxt + "</div>" +
+        "</div>" +
+        "<button type='button' class='gp-pre-hist-btn' onclick=\"dashPreHistDeshacer('" + p.nPre + "', '" + p.estado + "', this)\">" + btnTxt + "</button>" +
+      "</div>";
+    }).join("");
+  }
+
+  /** Deshacer entrega o restaurar cancelación al toque: saca la fila YA (optimista), dispara el guardado real en segundo plano, y si algo falla la vuelve a poner y avisa. No pide operador ni motivo — mismo criterio que el resto de los botones de anular/deshacer instantáneos de esta sesión. */
+  function dashPreHistDeshacer(nPre, estado, btnEl){
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = "..."; }
+    var idx = _dashPreHist.findIndex(function(x){ return x.nPre === nPre; });
+    var item = idx >= 0 ? _dashPreHist[idx] : null;
+    if (idx >= 0) _dashPreHist.splice(idx, 1);
+    dashPreHistRender();
+    mostrarToast((estado === "entregada" ? "Deshaciendo entrega de " : "Restaurando ") + nPre + "...", "info");
+
+    var funcion = estado === "entregada" ? "deshacerEntregaPreventaRapido" : "restaurarPreventaCanceladaRapido";
+    google.script.run
+      .withSuccessHandler(function(msg){
+        mostrarToastOperacion(msg);
+        dashPreCargar();
+        dashPreHistCargar();
+        cargarDashboard();
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ " + e.message, "error");
+        if (item) { _dashPreHist.splice(idx, 0, item); dashPreHistRender(); }
+      })
+      [funcion](nPre, "Martin");
+  }
+
   function cargarDashboard(){
     dashPreCargar();
+    dashPreHistCargar();
     google.script.run
       .withSuccessHandler(function(d){
         document.getElementById("dash-stock").textContent      = d.stockCantidad;

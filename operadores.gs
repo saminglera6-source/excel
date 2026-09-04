@@ -547,6 +547,73 @@ function _leerVendedorRealPreventa_(nPre) {
   return fila ? String(fila[cVend - 1] || "").trim() : "";
 }
 
+/**
+ * Deshacer entrega rápido — botón "↩️ Deshacer entrega" del listado
+ * "Entregadas / Canceladas" del Dashboard. Para que una preventa ya
+ * entregada "vuelva a donde estaba antes": si tiene una Venta asociada
+ * activa, se anula primero por el camino estándar (procesarAnularOperacion
+ * — reversa stock/caja/Libro Diario igual que cualquier otra anulación),
+ * y recién ahí se resetea la preventa a "🟠 Comprado"/"🟡 Esperando
+ * compra" según tenga o no un equipo comprado vinculado. Pensada para
+ * llamarse en segundo plano (UI optimista, sin modal ni confirmación) —
+ * no pide operador ni motivo, mismo criterio que el resto de los botones
+ * de anular/deshacer de esta sesión.
+ */
+function deshacerEntregaPreventaRapido(nPre, operador) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Preventas");
+  if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada.");
+  const fE = 2;
+  const cES = getCol(sheet, "Estado", fE);
+  const cNC = getCol(sheet, "N° Compra Asociada", fE);
+  const cNV = getCol(sheet, "N° Venta Asociada", fE);
+  const fila = _buscarFilaPorId_(sheet, fE, "N° Preventa", nPre);
+  if (fila === -1) throw new Error(`❌ "${nPre}" no encontrada en Preventas.`);
+
+  const estadoActual = String(sheet.getRange(fila, cES).getValue() || "");
+  if (estadoActual !== "✅ Entregado") throw new Error(`❌ "${nPre}" no está marcada como entregada.`);
+
+  const nVenta = String(sheet.getRange(fila, cNV).getValue() || "").trim();
+  if (nVenta) {
+    try {
+      procesarAnularOperacion(nVenta, `Deshacer entrega de ${nPre} desde el Dashboard.`);
+    } catch (e) {
+      // Si la venta ya estaba anulada u otro problema puntual, seguimos
+      // igual con el reseteo de la preventa — lo importante es dejarla
+      // consistente, no depender de que la venta se pueda tocar de nuevo.
+      Logger.log(`⚠️ deshacerEntregaPreventaRapido(${nPre}): no se pudo anular ${nVenta} (${e.message}), se resetea la preventa igual.`);
+    }
+  }
+
+  const nCompra = String(sheet.getRange(fila, cNC).getValue() || "").trim();
+  const estadoNuevo = nCompra ? "🟠 Comprado" : "🟡 Esperando compra";
+
+  guardarBackupOperacion_("PREVENTA", nPre, "DESHACER_ENTREGA_RAPIDO");
+  sheet.getRange(fila, cNV).setValue("");
+  sheet.getRange(fila, cES).setValue(estadoNuevo);
+  if (operador) _tagOperadorPorId_("Preventas", fE, "N° Preventa", nPre, operador);
+  registrarAuditoria_(
+    "PREVENTA", nPre, "DESHACER_ENTREGA_RAPIDO",
+    `Entrega deshecha desde el Dashboard por ${operador || "—"}. Vuelve a "${estadoNuevo}".` + (nVenta ? ` Venta ${nVenta} anulada.` : "")
+  );
+
+  return `✅ Entrega de ${nPre} deshecha. Vuelve a "${estadoNuevo}".`;
+}
+
+/**
+ * Restaurar rápido una preventa cancelada — botón "↩️ Restaurar" del
+ * mismo listado. Reutiliza procesarRestaurarOperacion() (anulaciones.gs)
+ * tal cual, sin pedir motivo al operador (mismo criterio "instantáneo"
+ * de los demás botones de esta sesión) — la vuelve a "donde estaba
+ * antes" (esa lógica ya vive en _restaurarPreventa_, no se reimplementa
+ * acá).
+ */
+function restaurarPreventaCanceladaRapido(nPre, operador) {
+  const msg = procesarRestaurarOperacion(nPre, `Restaurada desde el Dashboard por ${operador || "—"}.`);
+  if (operador) _tagOperadorPorId_("Preventas", 2, "N° Preventa", nPre, operador);
+  return msg;
+}
+
 function procesarReparacionConOperador(d) {
   const msg = procesarReparacion(d);
   const nRep = _extraerNumero_(msg, /N°:\s*(\S+)/);

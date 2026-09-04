@@ -997,3 +997,54 @@ function obtenerOperacionCompletaWeb(numero) {
 function obtenerOperacionParaCorregirWeb(numero) {
   return obtenerOperacionCompleta_(numero, false);
 }
+
+/**
+ * Preventas ENTREGADAS o CANCELADAS — para el listado "Entregadas /
+ * Canceladas" del Dashboard (con botón de deshacer rápido). A diferencia
+ * de obtenerPreventasEntregables() (que trae justo lo opuesto: lo
+ * pendiente de entrega), esta trae Estado="✅ Entregado" o
+ * Estado.includes("Cancelado") — incluye las canceladas aunque
+ * ESTADO_REGISTRO ya diga ANULADO, porque son justo las que el botón
+ * "↩️ Restaurar" necesita poder ofrecer.
+ */
+function obtenerPreventasEntregadasOCanceladas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const preSheet = ss.getSheetByName("Preventas");
+  if (!preSheet) return [];
+
+  const fE = 2;
+  const cNP = getCol(preSheet, "N° Preventa", fE);
+  const cCL = getCol(preSheet, "Cliente", fE);
+  const cMO = getCol(preSheet, "Modelo Solicitado", fE);
+  const cES = getCol(preSheet, "Estado", fE);
+  const cNV = getCol(preSheet, "N° Venta Asociada", fE);
+  let cTL = -1, cEH = -1;
+  try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
+  try { cEH = getCol(preSheet, "Fecha Prometida Hasta", fE); } catch (e) { /* opcional */ }
+
+  const lastRow = preSheet.getLastRow();
+  const opciones = [];
+  if (lastRow < fE + 1) return opciones;
+
+  const tz = Session.getScriptTimeZone();
+  const fISO = (celda) => (celda instanceof Date) ? Utilities.formatDate(celda, tz, "yyyy-MM-dd") : "";
+
+  const datos = preSheet.getRange(fE + 1, 1, lastRow - fE, preSheet.getLastColumn()).getValues();
+  datos.forEach(row => {
+    const estado = String(row[cES-1] || "");
+    const esEntregada = estado === "✅ Entregado";
+    const esCancelada = estado.includes("Cancelado");
+    if (!esEntregada && !esCancelada) return;
+    opciones.push({
+      nPre: String(row[cNP-1]),
+      cliente: String(row[cCL-1]),
+      modelo: String(row[cMO-1]),
+      estado: esEntregada ? "entregada" : "cancelada",
+      nVenta: String(row[cNV-1] || ""),
+      tel: cTL > 0 ? String(row[cTL-1] || "") : "",
+      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : ""
+    });
+  });
+  // Más recientes primero (por fila = orden de carga/actualización real).
+  return opciones.reverse();
+}
