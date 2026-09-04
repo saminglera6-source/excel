@@ -224,16 +224,228 @@ function procesarVentaConOperador(d) {
 
 /** Regalos automáticos (CONFIG_REGALOS): se llama SOLO desde estos wrappers, nunca desde procesarVenta()/procesarEntregaPreventa() (protegidas). Si algo falla acá, no debe tumbar la venta ya registrada — por eso el try/catch. */
 function _entregarRegalosSiCorresponde_(nVta, modelo, cliente, vendedor, operador, entregarRegalos) {
-  if (!nVta || !modelo) return "";
+  if (!nVta) return "";
+  if (entregarRegalos === false) return "";
+  if (!modelo) return `\n⚠ Regalo de bienvenida: no se pudo determinar el modelo vendido, no se buscó regalo.`;
   try {
     const resultado = entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, entregarRegalos !== false);
     let extra = "";
     if (resultado.entregados.length > 0) extra += `\n🎁 Regalo/s entregado/s: ${resultado.entregados.join(", ")}`;
     if (resultado.omitidos.length   > 0) extra += `\n⚠ No hay stock del regalo: ${resultado.omitidos.join(", ")}`;
+    if (resultado.sinConfigurar)         extra += `\n⚠ Regalo de bienvenida: "${modelo}" no tiene familia configurada en CONFIG_REGALOS, no se entregó nada.`;
     return extra;
   } catch (e) {
     return `\n⚠️ Regalos automáticos no procesados: ${e.message}`;
   }
+}
+
+/**
+ * Cupo de entregas (pedido del dueño: se le acumulaban demasiadas entregas
+ * juntas, sobre todo a fin de mes). Un día normal admite hasta 3 equipos y
+ * $2.500.000 en total de valor a entregar ese día. Los últimos 5 días del
+ * mes funcionan como un solo bloque (no día por día): entre esos 5 días
+ * juntos no puede haber más de 5 equipos ni más de $5.000.000 en total,
+ * repartidos como se quiera — para no dejar que todo se amontone al cierre.
+ */
+function _esFinDeMesCandidata_(fecha) {
+  const diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+  return (diasEnMes - fecha.getDate()) < 5; // últimos 5 días del mes
+}
+
+function _capacidadEntregaPreventa_(fecha) {
+  return _esFinDeMesCandidata_(fecha)
+    ? { maxEquipos: 5, maxMonto: 5000000 } // bloque completo de los últimos 5 días, no por día
+    : { maxEquipos: 3, maxMonto: 2500000 };
+}
+
+/**
+ * Cuánto hay usado (cantidad y monto) para poder comparar contra el cupo de
+ * `fecha`: si `fecha` cae en el bloque de fin de mes, se suma lo usado en
+ * TODO el bloque (los últimos 5 días del mes juntos), no solo ese día —
+ * porque en ese tramo el cupo es compartido entre los 5 días.
+ */
+function _usadosParaFecha_(fecha, porDia) {
+  const tz = Session.getScriptTimeZone();
+  if (!_esFinDeMesCandidata_(fecha)) {
+    const key = Utilities.formatDate(fecha, tz, "yyyy-MM-dd");
+    return porDia[key] || { cant: 0, monto: 0 };
+  }
+  const anio = fecha.getFullYear(), mes = fecha.getMonth();
+  const diasEnMes = new Date(anio, mes + 1, 0).getDate();
+  const total = { cant: 0, monto: 0 };
+  for (let d = diasEnMes - 4; d <= diasEnMes; d++) {
+    const key = Utilities.formatDate(new Date(anio, mes, d), tz, "yyyy-MM-dd");
+    const u = porDia[key];
+    if (u) { total.cant += u.cant; total.monto += u.monto; }
+  }
+  return total;
+}
+
+/**
+ * Si la "Fecha Prometida Hasta" pedida ya está topada (cupo de equipos o
+ * de valor, ver _capacidadEntregaPreventa_) O cae en un día no hábil
+ * (sábado, domingo o feriado — esDiaHabil_, dias_habiles.gs, misma fuente
+ * que ya usa el plazo de 7 a 10 días hábiles de la preventa), busca día
+ * por día hacia adelante la primera fecha hábil donde esta preventa entra
+ * sin romper el cupo. Nunca bloquea el registro: reprograma sola, como
+ * pidió el dueño. Cuenta solo preventas activas (ni ANULADO ni ya
+ * Entregada/Cancelada) — mismo criterio que obtenerPreventasEntregables()
+ * en webapp.gs.
+ */
+function _resolverFechaEntregaDisponible_(fechaDeseada, montoNuevo) {
+  const feriados = obtenerFeriados_(); // 1 sola lectura, reutilizada en todo el loop de abajo
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return fechaDeseada;
+  const fE = 2;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < fE + 1) return fechaDeseada;
+
+  const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idx = (n) => hdrs.findIndex(h => String(h).trim() === n.trim());
+  const cEH = idx("Fecha Prometida Hasta");
+  const cPV = idx("Precio Venta Pactado");
+  if (cEH === -1 || cPV === -1) return fechaDeseada; // hoja todavía sin esta columna (recién se crea al registrar)
+  const cES = idx("Estado");
+  const cEstReg = idx("ESTADO_REGISTRO");
+
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const tz = Session.getScriptTimeZone();
+  const porDia = {}; // "yyyy-MM-dd" -> { cant, monto }
+  datos.forEach(row => {
+    if (cEstReg >= 0 && String(row[cEstReg] || "").trim() === "ANULADO") return;
+    const estado = cES >= 0 ? String(row[cES] || "") : "";
+    if (estado.includes("Entregado") || estado.includes("Cancelado")) return;
+    const f = row[cEH];
+    if (!(f instanceof Date)) return;
+    const key = Utilities.formatDate(f, tz, "yyyy-MM-dd");
+    if (!porDia[key]) porDia[key] = { cant: 0, monto: 0 };
+    porDia[key].cant++;
+    porDia[key].monto += Number(row[cPV]) || 0;
+  });
+
+  const candidata = new Date(fechaDeseada.getFullYear(), fechaDeseada.getMonth(), fechaDeseada.getDate());
+  for (let i = 0; i < 120; i++) { // ~4 meses de margen, no debería hacer falta ni de cerca
+    if (!esDiaHabil_(candidata, feriados)) { candidata.setDate(candidata.getDate() + 1); continue; }
+    const limites = _capacidadEntregaPreventa_(candidata);
+    const usados = _usadosParaFecha_(candidata, porDia);
+    if (usados.cant < limites.maxEquipos && (usados.monto + montoNuevo) <= limites.maxMonto) {
+      return candidata;
+    }
+    candidata.setDate(candidata.getDate() + 1);
+  }
+  return candidata;
+}
+
+/**
+ * reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, operador) — botón 📅
+ * del Dashboard (UI optimista). A diferencia de corregirPreventa()
+ * (anula la operación entera y la vuelve a crear — pensado para corregir
+ * cualquier dato de la preventa), esto solo escribe la fecha nueva y
+ * suma 1 al contador "Veces Repateada" directo en la fila: mucho más
+ * rápido, para el caso de uso real (reprogramar la fecha, nada más). La
+ * columna "Veces Repateada" se crea sola la primera vez que hace falta
+ * (asegurarColumnaGenerica_, ya usado en todo este archivo para
+ * OPERADOR).
+ *
+ * No bloquea si el día elegido no tiene cupo (pedido explícito del
+ * dueño: "que me deje igual registrarla, y que me tire un aviso") —
+ * calcula si ese día está topado (mismas reglas que
+ * _capacidadEntregaPreventa_/_usadosParaFecha_, excluyendo esta misma
+ * preventa de la cuenta) y lo devuelve en `cupoTopado` para que el
+ * frontend avise, pero siempre guarda la fecha que se pidió.
+ */
+function reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, operador) {
+  const numero = String(nPre || "").trim();
+  if (!numero) throw new Error("❌ Falta el número de preventa.");
+  const nuevaFecha = parseDate(nuevaFechaISO);
+  if (!nuevaFecha || isNaN(nuevaFecha.getTime())) throw new Error("❌ Fecha inválida.");
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada.");
+  const fE = 2;
+  const cNP = getCol(sheet, "N° Preventa", fE);
+  const cEH = getCol(sheet, "Fecha Prometida Hasta", fE);
+  const cPV = getCol(sheet, "Precio Venta Pactado", fE);
+  const cES = getCol(sheet, "Estado", fE);
+  let cEstReg = -1;
+  try { cEstReg = getCol(sheet, "ESTADO_REGISTRO", fE); } catch (e) { /* opcional */ }
+  const cVR = asegurarColumnaGenerica_(sheet, fE, "Veces Repateada");
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) throw new Error(`❌ "${numero}" no encontrada en Preventas.`);
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const idx = datos.findIndex(r => String(r[cNP - 1]).trim() === numero);
+  if (idx === -1) throw new Error(`❌ "${numero}" no encontrada en Preventas.`);
+  const fila = fE + 1 + idx;
+
+  const fechaVieja = datos[idx][cEH - 1];
+  const vecesNuevo = (Number(datos[idx][cVR - 1]) || 0) + 1;
+
+  guardarBackupOperacion_("PREVENTA", numero, "REPROGRAMACION_RAPIDA_FECHA"); // backup ANTES de tocar nada, mismo criterio que el resto del sistema
+
+  sheet.getRange(fila, cEH).setValue(nuevaFecha);
+  sheet.getRange(fila, cVR).setValue(vecesNuevo);
+  if (operador) _tagOperadorPorId_("Preventas", fE, "N° Preventa", numero, operador);
+
+  const tz = Session.getScriptTimeZone();
+  const fechaViejaTxt = (fechaVieja instanceof Date) ? Utilities.formatDate(fechaVieja, tz, "dd/MM/yyyy") : String(fechaVieja || "—");
+  registrarAuditoria_(
+    "PREVENTA", numero, "REPROGRAMACION_RAPIDA_FECHA",
+    `Fecha Prometida Hasta movida de ${fechaViejaTxt} a ${Utilities.formatDate(nuevaFecha, tz, "dd/MM/yyyy")} desde el Dashboard por ${operador || "—"}. Van ${vecesNuevo} reprogramación(es).`
+  );
+
+  // Cupo del día elegido, para avisar si quedó topado — excluye esta misma preventa (ya reprogramada acá arriba) de la cuenta.
+  let cupoTopado = false;
+  try {
+    const porDia = {};
+    datos.forEach((row, i) => {
+      if (i === idx) return;
+      if (cEstReg >= 0 && String(row[cEstReg - 1] || "").trim() === "ANULADO") return;
+      const estado = String(row[cES - 1] || "");
+      if (estado.includes("Entregado") || estado.includes("Cancelado")) return;
+      const f = row[cEH - 1];
+      if (!(f instanceof Date)) return;
+      const key = Utilities.formatDate(f, tz, "yyyy-MM-dd");
+      if (!porDia[key]) porDia[key] = { cant: 0, monto: 0 };
+      porDia[key].cant++;
+      porDia[key].monto += Number(row[cPV - 1]) || 0;
+    });
+    const limites = _capacidadEntregaPreventa_(nuevaFecha);
+    const usados = _usadosParaFecha_(nuevaFecha, porDia);
+    const montoEsta = Number(datos[idx][cPV - 1]) || 0;
+    cupoTopado = !(usados.cant < limites.maxEquipos && (usados.monto + montoEsta) <= limites.maxMonto);
+  } catch (e) { /* si el chequeo de cupo falla, no invalida el guardado — ya se guardó arriba */ }
+
+  return { vecesRepateada: vecesNuevo, cupoTopado: cupoTopado };
+}
+
+/**
+ * calcularRangoEntregaPreventaConCupo(fecha, monto) — llamada desde
+ * preventas.html (webapp) para que la "Fecha sugerida" que ve el operador
+ * en el paso de carga sea la MISMA que va a terminar quedando registrada,
+ * no una que después el backend corrige en silencio.
+ *
+ * calcularRangoEntregaPreventa() (dias_habiles.gs) solo calcula el rango
+ * de 7 a 10 días hábiles, sin mirar el cupo — por eso el paso 3 podía
+ * sugerir un día que el calendario de "Entregas pendientes" ya mostraba
+ * lleno. Acá se le aplica el mismo ajuste de cupo que usa
+ * procesarPreventaConOperador() al confirmar (_resolverFechaEntregaDisponible_,
+ * arriba), para mostrar de entrada la fecha real.
+ *
+ * `monto` es el precio pactado: sin él no se puede saber si un día ya
+ * llegó al tope de $ (aunque no esté lleno en cantidad de equipos), por
+ * eso esta función se llama recién cuando el operador ya cargó el precio,
+ * no antes.
+ */
+function calcularRangoEntregaPreventaConCupo(fecha, monto) {
+  const rango = calcularRangoEntregaPreventa(fecha);
+  const fHasta = parseDate(rango.fechaMaxima);
+  const fechaDisponible = _resolverFechaEntregaDisponible_(fHasta, Number(monto) || 0);
+  return {
+    fechaMinima: rango.fechaMinima,
+    fechaMaxima: _formatoFechaISO_(fechaDisponible),
+    reprogramada: fechaDisponible.getTime() !== fHasta.getTime()
+  };
 }
 
 /**
@@ -259,24 +471,147 @@ function procesarPreventaConOperador(d) {
     throw new Error("❌ La Fecha Prometida Hasta no puede ser anterior a la Fecha Prometida Desde.");
   }
 
+  // Cupo diario de entregas: si el día pedido ya está topado, o cae sábado/
+  // domingo/feriado, se reprograma sola al próximo día hábil disponible
+  // (nunca bloquea el registro).
+  let notaCupo = "";
+  const fechaDisponible = _resolverFechaEntregaDisponible_(fHasta, Number(d.precioVenta) || 0);
+  if (fechaDisponible.getTime() !== fHasta.getTime()) {
+    const tz = Session.getScriptTimeZone();
+    const motivoCambio = esDiaHabil_(fHasta) ? "tiene el cupo de entregas completo (equipos o valor a entregar)" : "no es un día hábil (fin de semana o feriado)";
+    notaCupo = `\n📦 El ${Utilities.formatDate(fHasta, tz, "dd/MM/yyyy")} ${motivoCambio} — la entrega se reprogramó sola para el ${Utilities.formatDate(fechaDisponible, tz, "dd/MM/yyyy")}.`;
+    d.fechaHasta = Utilities.formatDate(fechaDisponible, tz, "yyyy-MM-dd");
+  }
+
   const msg = procesarPreventa(d);
   const nPre = _extraerNumero_(msg, /N°:\s*(\S+)/);
   if (nPre) _tagOperadorPorNumero_(nPre, d.operador);
-  return msg;
+  return msg + notaCupo;
 }
 
+/**
+ * OJO — antes esta función tageaba OPERADOR de la Preventa y de la Venta
+ * generada con `d.operador` (quien hace click en "Entregar"), pisando al
+ * vendedor real cada vez que la entrega la hacía una persona distinta de
+ * quien vendió (algo muy común: uno atiende el chat, otro entrega en el
+ * local). Eso corrompía la trazabilidad de "quién vendió cada equipo" —
+ * ver reporte_vendedores.gs / reparar_operador_vendedor.gs, que
+ * diagnostican y reparan el historial afectado por este mismo bug.
+ *
+ * Ahora: el vendedor real (columna "Vendedor" de Preventas, que se
+ * escribe una sola vez al crear la preventa y nunca se vuelve a tocar)
+ * es SIEMPRE lo que se guarda en OPERADOR, tanto de la Preventa como de
+ * la Venta que se genera al entregar. Quien hace la entrega física
+ * (`d.operador`) se guarda aparte, en la columna "Operador Entrega"
+ * (se crea sola si no existe) — así no se pierde ese dato, pero ya no
+ * pisa la atribución de la venta.
+ */
 function procesarEntregaPreventaConOperador(d) {
   const msg = procesarEntregaPreventa(d);
   let nVta = "";
+
+  const vendedorReal = _leerVendedorRealPreventa_(d.nPre);
+
+  if (d.nPre && d.operador) {
+    _tagColumnaGenericaPorId_("Preventas", 2, "N° Preventa", d.nPre, "Operador Entrega", d.operador);
+    if (vendedorReal) _tagOperadorPorId_("Preventas", 2, "N° Preventa", d.nPre, vendedorReal);
+  }
+
+  nVta = _extraerNumero_(msg, /N° Venta (?:generada|actualizada):\s*(\S+)/);
+  if (nVta && vendedorReal) _tagOperadorPorNumero_(nVta, vendedorReal);
+
   if (d.operador) {
-    if (d.nPre) _tagOperadorPorId_("Preventas", 2, "N° Preventa", d.nPre, d.operador);
-    nVta = _extraerNumero_(msg, /N° Venta (?:generada|actualizada):\s*(\S+)/);
-    if (nVta) _tagOperadorPorNumero_(nVta, d.operador);
     const nCompra = _extraerNumero_(msg, /N° Compra:\s*(\S+)/);
     if (nCompra) _tagOperadorPorNumero_(nCompra, d.operador);
   }
+
   const modelo = _obtenerModeloDePreventa_(d.nPre);
-  return msg + _entregarRegalosSiCorresponde_(nVta, modelo, "", d.operador, d.operador, d.entregarRegalos);
+  return msg + _entregarRegalosSiCorresponde_(nVta, modelo, "", vendedorReal || d.operador, d.operador, d.entregarRegalos);
+}
+
+/** Lee la columna "Vendedor" de una Preventa por su número — fuente de verdad de quién la vendió realmente (nunca se corrompe, se escribe una sola vez al crear la preventa). Devuelve "" si no se encuentra o no está cargada. */
+function _leerVendedorRealPreventa_(nPre) {
+  if (!nPre) return "";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return "";
+  const fE = 2;
+  let cNP, cVend;
+  try {
+    cNP = getCol(sheet, "N° Preventa", fE);
+    cVend = getCol(sheet, "Vendedor", fE);
+  } catch (e) { return ""; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return "";
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  const fila = datos.find(r => String(r[cNP - 1]).trim() === String(nPre).trim());
+  return fila ? String(fila[cVend - 1] || "").trim() : "";
+}
+
+/**
+ * Deshacer entrega rápido — botón "↩️ Deshacer entrega" del listado
+ * "Entregadas / Canceladas" del Dashboard. Para que una preventa ya
+ * entregada "vuelva a donde estaba antes": si tiene una Venta asociada
+ * activa, se anula primero por el camino estándar (procesarAnularOperacion
+ * — reversa stock/caja/Libro Diario igual que cualquier otra anulación),
+ * y recién ahí se resetea la preventa a "🟠 Comprado"/"🟡 Esperando
+ * compra" según tenga o no un equipo comprado vinculado. Pensada para
+ * llamarse en segundo plano (UI optimista, sin modal ni confirmación) —
+ * no pide operador ni motivo, mismo criterio que el resto de los botones
+ * de anular/deshacer de esta sesión.
+ */
+function deshacerEntregaPreventaRapido(nPre, operador) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Preventas");
+  if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada.");
+  const fE = 2;
+  const cES = getCol(sheet, "Estado", fE);
+  const cNC = getCol(sheet, "N° Compra Asociada", fE);
+  const cNV = getCol(sheet, "N° Venta Asociada", fE);
+  const fila = _buscarFilaPorId_(sheet, fE, "N° Preventa", nPre);
+  if (fila === -1) throw new Error(`❌ "${nPre}" no encontrada en Preventas.`);
+
+  const estadoActual = String(sheet.getRange(fila, cES).getValue() || "");
+  if (estadoActual !== "✅ Entregado") throw new Error(`❌ "${nPre}" no está marcada como entregada.`);
+
+  const nVenta = String(sheet.getRange(fila, cNV).getValue() || "").trim();
+  if (nVenta) {
+    try {
+      procesarAnularOperacion(nVenta, `Deshacer entrega de ${nPre} desde el Dashboard.`);
+    } catch (e) {
+      // Si la venta ya estaba anulada u otro problema puntual, seguimos
+      // igual con el reseteo de la preventa — lo importante es dejarla
+      // consistente, no depender de que la venta se pueda tocar de nuevo.
+      Logger.log(`⚠️ deshacerEntregaPreventaRapido(${nPre}): no se pudo anular ${nVenta} (${e.message}), se resetea la preventa igual.`);
+    }
+  }
+
+  const nCompra = String(sheet.getRange(fila, cNC).getValue() || "").trim();
+  const estadoNuevo = nCompra ? "🟠 Comprado" : "🟡 Esperando compra";
+
+  guardarBackupOperacion_("PREVENTA", nPre, "DESHACER_ENTREGA_RAPIDO");
+  sheet.getRange(fila, cNV).setValue("");
+  sheet.getRange(fila, cES).setValue(estadoNuevo);
+  if (operador) _tagOperadorPorId_("Preventas", fE, "N° Preventa", nPre, operador);
+  registrarAuditoria_(
+    "PREVENTA", nPre, "DESHACER_ENTREGA_RAPIDO",
+    `Entrega deshecha desde el Dashboard por ${operador || "—"}. Vuelve a "${estadoNuevo}".` + (nVenta ? ` Venta ${nVenta} anulada.` : "")
+  );
+
+  return `✅ Entrega de ${nPre} deshecha. Vuelve a "${estadoNuevo}".`;
+}
+
+/**
+ * Restaurar rápido una preventa cancelada — botón "↩️ Restaurar" del
+ * mismo listado. Reutiliza procesarRestaurarOperacion() (anulaciones.gs)
+ * tal cual, sin pedir motivo al operador (mismo criterio "instantáneo"
+ * de los demás botones de esta sesión) — la vuelve a "donde estaba
+ * antes" (esa lógica ya vive en _restaurarPreventa_, no se reimplementa
+ * acá).
+ */
+function restaurarPreventaCanceladaRapido(nPre, operador) {
+  const msg = procesarRestaurarOperacion(nPre, `Restaurada desde el Dashboard por ${operador || "—"}.`);
+  if (operador) _tagOperadorPorId_("Preventas", 2, "N° Preventa", nPre, operador);
+  return msg;
 }
 
 function procesarReparacionConOperador(d) {
@@ -342,6 +677,13 @@ function procesarAjusteCajaConOperador(d) {
   const msg = procesarAjusteCaja(d);
   const nAjuste = _extraerNumero_(msg, /N°:\s*(\S+)/);
   if (nAjuste) _tagOperadorLibroDiario_(nAjuste, d.operador);
+  return msg;
+}
+
+function procesarDevolucionConOperador(d) {
+  const msg = procesarDevolucion(d);
+  const nDev = _extraerNumero_(msg, /N°:\s*(\S+)/);
+  if (nDev) _tagOperadorLibroDiario_(nDev, d.operador);
   return msg;
 }
 
@@ -634,9 +976,39 @@ function _ejecutarCorreccion_(prefijo, numeroOriginal, motivo, operadorSolicitan
   if (numeroNuevo) {
     _tagOperacionOrigen_(numeroNuevo, numeroOriginal);
     _registrarCorreccion_(operadorSolicitante, info.tipo, numeroOriginal, numeroNuevo, motivo);
+    // Al corregir una preventa, la de arriba queda ANULADA y esto crea una
+    // preventa NUEVA con otro N° — por eso la marca 🚩 "Veces Repateada"
+    // (badge del Dashboard) se perdía: era un contador atado a la fila
+    // vieja, y la fila nueva arrancaba en blanco. Se copia el valor viejo
+    // a la fila nueva para que la marca sobreviva a la corrección.
+    if (prefijo === "PRE") _copiarVecesRepateada_(numeroOriginal, numeroNuevo);
   }
 
   return msg + "\n\n🔁 Corrección registrada: " + numeroOriginal + " → " + (numeroNuevo || "?");
+}
+
+/** Ver comentario en _ejecutarCorreccion_ (arriba): traslada "Veces Repateada" de la preventa anulada por la corrección a la preventa nueva que la reemplaza. Si la vieja nunca se reprogramó (o la columna todavía no existe), no hace nada. */
+function _copiarVecesRepateada_(numeroViejo, numeroNuevo) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Preventas");
+  if (!sheet) return;
+  const fE = 2;
+  let cNP, cVR;
+  try {
+    cNP = getCol(sheet, "N° Preventa", fE);
+    cVR = getCol(sheet, "Veces Repateada", fE);
+  } catch (e) { return; } // ninguna preventa se reprogramó todavía: no hay columna ni nada que copiar
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return;
+  const ids = sheet.getRange(fE + 1, cNP, lastRow - fE, 1).getValues();
+  let veces = 0;
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0] || "").trim() === numeroViejo) {
+      veces = Number(sheet.getRange(fE + 1 + i, cVR).getValue()) || 0;
+      break;
+    }
+  }
+  if (veces > 0) _tagColumnaGenericaPorId_("Preventas", fE, "N° Preventa", numeroNuevo, "Veces Repateada", veces);
 }
 
 function corregirCompra(d) {
@@ -811,7 +1183,17 @@ function corregirGasto(d) {
 }
 
 /** PASO 2/3: toda la información de una operación para el modal "Ver" y para precargar el formulario de "Corregir". */
-function obtenerOperacionCompleta_(numero) {
+/**
+ * @param {boolean} incluirExtras Por default (true) trae también los
+ * movimientos de Libro Diario y las líneas de Compras Accesorios — lo que
+ * necesita el modal "Ver" y "Historial". El flujo de Editar/Corregir NO usa
+ * ninguna de esas dos cosas (solo lee `datos` y, si es una Venta,
+ * `accesorios`) así que misOperacionesCorregir() pide incluirExtras=false
+ * para no pagar el escaneo completo de Libro Diario (que puede ser una
+ * hoja grande) en el camino que el usuario siente más lento al abrir.
+ */
+function obtenerOperacionCompleta_(numero, incluirExtras) {
+  if (incluirExtras === undefined) incluirExtras = true;
   const prefijo = String(numero || "").trim().split("-")[0].toUpperCase();
   const mapa = obtenerMapaTiposAnulacion_();
   const info = mapa[prefijo];
@@ -827,31 +1209,33 @@ function obtenerOperacionCompleta_(numero) {
 
   // Movimientos asociados en Libro Diario
   const movimientos = [];
-  const libro = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Libro Diario");
-  if (libro) {
-    const fE = 2;
-    let colOp = -1, colRef = -1;
-    try { colOp  = getCol(libro, "ID_OPERACION", fE); } catch (e) { /* opcional */ }
-    try { colRef = getCol(libro, "REFERENCIA",   fE); } catch (e) { /* opcional */ }
-    const lastRow = libro.getLastRow();
-    if (lastRow > fE && (colOp > 0 || colRef > 0)) {
-      const hdrsLibro = libro.getRange(fE, 1, 1, libro.getLastColumn()).getValues()[0];
-      const idxL = (n) => hdrsLibro.findIndex(h => String(h).trim() === n);
-      const cFec = idxL("FECHA"), cDesc = idxL("DESCRIPCION"), cMonto = idxL("MONTO"), cMedio = idxL("MEDIO_PAGO");
-      const datosLibro = libro.getRange(fE + 1, 1, lastRow - fE, libro.getLastColumn()).getValues();
-      const numTrim = String(numero).trim();
-      datosLibro.forEach(row => {
-        const op  = colOp  > 0 ? String(row[colOp  - 1] || "").trim() : "";
-        const ref = colRef > 0 ? String(row[colRef - 1] || "").trim() : "";
-        if (op === numTrim || ref === numTrim) {
-          movimientos.push({
-            fecha:       (row[cFec] instanceof Date) ? Utilities.formatDate(row[cFec], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(row[cFec] || ""),
-            descripcion: cDesc  >= 0 ? String(row[cDesc]  || "") : "",
-            monto:       cMonto >= 0 ? (Number(row[cMonto]) || 0) : 0,
-            medio:       cMedio >= 0 ? String(row[cMedio]  || "") : ""
-          });
-        }
-      });
+  if (incluirExtras) {
+    const libro = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Libro Diario");
+    if (libro) {
+      const fE = 2;
+      let colOp = -1, colRef = -1;
+      try { colOp  = getCol(libro, "ID_OPERACION", fE); } catch (e) { /* opcional */ }
+      try { colRef = getCol(libro, "REFERENCIA",   fE); } catch (e) { /* opcional */ }
+      const lastRow = libro.getLastRow();
+      if (lastRow > fE && (colOp > 0 || colRef > 0)) {
+        const hdrsLibro = libro.getRange(fE, 1, 1, libro.getLastColumn()).getValues()[0];
+        const idxL = (n) => hdrsLibro.findIndex(h => String(h).trim() === n);
+        const cFec = idxL("FECHA"), cDesc = idxL("DESCRIPCION"), cMonto = idxL("MONTO"), cMedio = idxL("MEDIO_PAGO");
+        const datosLibro = libro.getRange(fE + 1, 1, lastRow - fE, libro.getLastColumn()).getValues();
+        const numTrim = String(numero).trim();
+        datosLibro.forEach(row => {
+          const op  = colOp  > 0 ? String(row[colOp  - 1] || "").trim() : "";
+          const ref = colRef > 0 ? String(row[colRef - 1] || "").trim() : "";
+          if (op === numTrim || ref === numTrim) {
+            movimientos.push({
+              fecha:       (row[cFec] instanceof Date) ? Utilities.formatDate(row[cFec], Session.getScriptTimeZone(), "dd/MM/yyyy") : String(row[cFec] || ""),
+              descripcion: cDesc  >= 0 ? String(row[cDesc]  || "") : "",
+              monto:       cMonto >= 0 ? (Number(row[cMonto]) || 0) : 0,
+              medio:       cMedio >= 0 ? String(row[cMedio]  || "") : ""
+            });
+          }
+        });
+      }
     }
   }
 
@@ -896,10 +1280,12 @@ function obtenerOperacionCompleta_(numero) {
 
   // Líneas completas (solo CAC): "N° Compra Accesorio" se repite en varias
   // filas de "Compras Accesorios" (1 compra = N líneas) — _obtenerFilaCompleta_
-  // de arriba solo trae la primera. Sin esto, "Ver"/"Corregir" perdería
-  // silenciosamente todas las líneas menos la primera.
+  // de arriba solo trae la primera. Sin esto, "Ver" perdería silenciosamente
+  // todas las líneas menos la primera. CAC no es un tipo corregible (no está
+  // en VISTA_POR_TIPO_CORRECCION), así que esto nunca hace falta en el
+  // camino de Editar/Corregir.
   let lineasCompraAccesorio = [];
-  if (prefijo === "CAC") {
+  if (incluirExtras && prefijo === "CAC") {
     const compAccSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Compras Accesorios");
     if (compAccSheet) {
       const fEC = 2;
@@ -989,7 +1375,7 @@ function _mapaCorrecciones_() {
   return mapa;
 }
 
-function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colCliente, colesImporte, colEstado, mapaCorrecciones, colEquipo) {
+function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colCliente, colesImporte, colEstado, mapaCorrecciones, colEquipo, colTelefono) {
   const sheet = ss.getSheetByName(nombreHoja);
   if (!sheet) return [];
   const fE = 2;
@@ -1003,6 +1389,11 @@ function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colClien
   const cCli    = colCliente ? idx(colCliente) : -1;
   const cEst    = colEstado ? idx(colEstado) : -1;
   const cEq     = colEquipo ? idx(colEquipo) : -1;
+  // Teléfono de la otra parte (cliente o proveedor, según la hoja) — para
+  // que el botón "📲 WhatsApp" de Mis Operaciones pueda abrir el chat
+  // directo con esa persona en vez de abrir WhatsApp sin destinatario
+  // (ver firmarYEnviarPorWhatsapp()/_linkWhatsapp(), index.html).
+  const cTel    = colTelefono ? idx(colTelefono) : -1;
   const cOp     = idx("OPERADOR");
   const cEstReg = idx("ESTADO_REGISTRO");
   const cOrigen = idx("OPERACION_ORIGEN");
@@ -1028,6 +1419,7 @@ function _leerOperacionesDeHoja_(ss, nombreHoja, tipo, colFecha, colId, colClien
       numero:   numero,
       cliente:  cCli >= 0 ? String(row[cCli] || "") : "",
       equipo:   cEq  >= 0 ? String(row[cEq]  || "") : "",
+      tel:      cTel >= 0 ? String(row[cTel] || "") : "",
       importe:  _sumaColumnas_(row, hdrs, colesImporte),
       operador: cOp >= 0 ? String(row[cOp] || "") : "",
       estado:   cEst >= 0 ? String(row[cEst] || "") : "",
@@ -1046,13 +1438,13 @@ function obtenerOperacionesRecientes() {
 
   let resultado = [];
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_COMPRAS || "Compras", "Compra",
-    "Fecha Ingreso", "N° OP", "Proveedor / Origen", ["Precio Compra"], "Estado", mapaCorrecciones, "Equipo / Modelo"));
+    "Fecha Ingreso", "N° OP", "Proveedor / Origen", ["Precio Compra"], "Estado", mapaCorrecciones, "Equipo / Modelo", "Teléfono Proveedor"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_VENTAS || "Ventas", "Venta",
-    "Fecha Venta", "N° Venta", "Cliente", ["Precio Venta"], "Estado", mapaCorrecciones, "Modelo"));
+    "Fecha Venta", "N° Venta", "Cliente", ["Precio Venta"], "Estado", mapaCorrecciones, "Modelo", "Teléfono Cliente"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Preventas", "Preventa",
-    "Fecha Preventa", "N° Preventa", "Cliente", ["Precio Venta Pactado"], "Estado", mapaCorrecciones, "Modelo Solicitado"));
+    "Fecha Preventa", "N° Preventa", "Cliente", ["Precio Venta Pactado"], "Estado", mapaCorrecciones, "Modelo Solicitado", "Teléfono"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_REPARACIONES || "Reparaciones", "Reparación",
-    "Fecha Ingreso", "N° Rep", "Cliente", ["Precio Cobrado"], "Estado", mapaCorrecciones, "Equipo"));
+    "Fecha Ingreso", "N° Rep", "Cliente", ["Precio Cobrado"], "Estado", mapaCorrecciones, "Equipo", "Teléfono"));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, cfg.HOJA_GASTOS || "Gastos", "Gasto",
     "Fecha", "N° Gasto", "Descripción", ["Monto Efectivo", "Monto Transferencia"], null, mapaCorrecciones));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Compras Accesorios", "Compra Accesorio",
@@ -1063,6 +1455,8 @@ function obtenerOperacionesRecientes() {
     "Fecha", "N° Cambio", "Tipo Cambio", ["Monto ARS"], "Estado", mapaCorrecciones));
   resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "AJUSTES_CAJA", "Ajuste Caja",
     "Fecha", "N° Ajuste", "Motivo", ["Monto"], "Estado", mapaCorrecciones));
+  resultado = resultado.concat(_leerOperacionesDeHoja_(ss, "Devoluciones", "Devolución",
+    "Fecha", "N° Devolución", "Cliente", ["Monto Efectivo", "Monto Transferencia"], "Estado", mapaCorrecciones));
 
   resultado.sort((a, b) => b.fechaOrd - a.fechaOrd);
   resultado.forEach(r => delete r.fechaOrd);

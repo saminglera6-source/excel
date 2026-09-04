@@ -52,6 +52,13 @@
       box-shadow:0 4px 12px rgba(99,102,241,.45);
     }
     #sidebar h1 span{display:block;font-size:10.5px;font-weight:500;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+    #sidebar-buscador-wrap{padding:12px 14px 4px}
+    #sidebar-buscador{
+      width:100%;padding:8px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.07);color:#fff;font-size:12.5px;font-family:inherit;
+    }
+    #sidebar-buscador::placeholder{color:rgba(255,255,255,.4)}
+    #sidebar-buscador:focus{outline:none;background:rgba(255,255,255,.12);border-color:rgba(129,140,248,.6)}
     .nav-group-title{
       font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
       color:rgba(255,255,255,.35);padding:16px 22px 6px;
@@ -310,6 +317,10 @@
   <nav id="sidebar">
     <h1><span class="logo-badge">📱</span>GreatPhones<span>ERP Web</span></h1>
 
+    <div id="sidebar-buscador-wrap">
+      <input type="text" id="sidebar-buscador" placeholder="🔎 Buscar sección..." oninput="sidebarFiltrar(this.value)" onkeydown="sidebarBuscadorKeydown(event)"/>
+    </div>
+
     <div class="nav-group-title">Principal</div>
     <div class="nav-btn activo" data-vista="dashboard" onclick="cargarVista('dashboard')">🏠 Dashboard</div>
 
@@ -328,11 +339,13 @@
 
     <div class="nav-group-title">Taller y gastos</div>
     <div class="nav-btn" data-vista="reparaciones" onclick="cargarVista('reparaciones')">🔧 Registrar Reparación</div>
+    <div class="nav-btn" data-vista="entregar_reparacion" onclick="cargarVista('entregar_reparacion')">📦 Entregar Reparación</div>
     <div class="nav-btn" data-vista="tarifario_reparaciones" onclick="cargarVista('tarifario_reparaciones')">🔧 Tarifario Reparaciones</div>
     <div class="nav-btn" data-vista="gastos" onclick="cargarVista('gastos')">💸 Registrar Gasto</div>
+    <div class="nav-btn" data-vista="devoluciones" onclick="cargarVista('devoluciones')">💵 Registrar Devolución</div>
 
     <div class="nav-group-title">Análisis</div>
-    <div class="nav-btn" data-vista="reportes" onclick="cargarVista('reportes')">📈 Reportes</div>
+    <div class="nav-btn" data-vista="reportes" onclick="cargarVista('reportes')">💰 Caja</div>
 
     <div class="nav-group-title">Inventario</div>
     <div class="nav-btn" data-vista="stock_accesorios" onclick="cargarVista('stock_accesorios')">📦 Stock Accesorios</div>
@@ -341,6 +354,9 @@
     <div class="nav-group-title">Gestión</div>
     <div class="nav-btn" data-vista="mis_operaciones" onclick="cargarVista('mis_operaciones')">🗂️ Mis Operaciones</div>
     <div class="nav-btn" data-vista="comisiones" onclick="cargarVista('comisiones')">💼 Comisiones</div>
+
+    <div class="nav-group-title">Ayuda</div>
+    <div class="nav-btn" data-vista="guia" onclick="cargarVista('guia')">📖 Guía del sistema</div>
   </nav>
 
   <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -381,13 +397,17 @@
       <?!= include('preventas'); ?>
       <?!= include('entregar_preventa'); ?>
       <?!= include('reparaciones'); ?>
+      <?!= include('entregar_reparacion'); ?>
       <?!= include('tarifario_reparaciones'); ?>
       <?!= include('gastos'); ?>
+      <?!= include('vista_devoluciones'); ?>
       <?!= include('reportes'); ?>
       <?!= include('stock_accesorios'); ?>
       <?!= include('stock_general'); ?>
       <?!= include('mis_operaciones'); ?>
       <?!= include('comisiones'); ?>
+      <?!= include('guia'); ?>
+      <?!= include('firma_cliente'); ?>
     </div>
   </div>
 
@@ -395,6 +415,298 @@
 
 <div id="spinner-overlay"><div class="spinner"></div></div>
 <div id="toast-container"></div>
+
+<!-- ============================================================
+     ENTREGA RÁPIDA DE PREVENTA — modal compartido, disparable desde
+     cualquier vista (Dashboard, panel de seguimiento en preventas.html)
+     con entregaRapidaAbrir(p). Vive FUERA de cualquier .view (a
+     diferencia del modal de edición del Dashboard, que sí puede quedar
+     adentro de #view-dashboard porque solo se dispara con esa vista ya
+     activa) para no quedar oculto por el display:none de la vista que
+     esté activa en ese momento. Llama a procesarEntregaPreventaConOperador
+     — el mismo backend que usa la pantalla completa "Entregar Preventa"
+     — no inventa un camino de guardado nuevo, solo lo hace accesible en
+     un paso desde donde ya se está mirando la preventa.
+     ============================================================ -->
+<style>
+  #gp-er-overlay {
+    position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 300;
+    display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px);
+  }
+  #gp-er-overlay.activo { display: flex; }
+  #gp-er-modal {
+    background: #fff; border-radius: 22px; width: 100%; max-width: 440px; max-height: 88vh;
+    display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+  }
+  #gp-er-header {
+    display: flex; justify-content: space-between; align-items: center; padding: 18px 22px;
+    background: linear-gradient(135deg, #16A34A, #22C55E); color: #fff; flex-shrink: 0;
+  }
+  #gp-er-header b { font-family: "Manrope", sans-serif; font-size: 16px; }
+  #gp-er-header button {
+    background: rgba(255,255,255,.2); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%;
+    cursor: pointer; font-size: 13px; line-height: 1;
+  }
+  #gp-er-body { padding: 18px 22px; overflow-y: auto; }
+  #gp-er-resumen { background: #F4F5FA; border-radius: 13px; padding: 12px 14px; margin-bottom: 14px; font-size: 13.5px; }
+  #gp-er-resumen b { font-size: 15px; }
+  #gp-er-aviso { background: #FFF7ED; border: 1px solid #FDE0B0; border-radius: 13px; padding: 14px; font-size: 13px; line-height: 1.5; }
+  #gp-er-aviso button {
+    display: block; margin-top: 10px; background: #4F46E5; color: #fff; border: none; border-radius: 100px;
+    padding: 9px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #gp-er-body label { display: block; font-size: 12px; font-weight: 700; color: #767A94; margin-top: 12px; margin-bottom: 4px; }
+  #gp-er-body label:first-of-type { margin-top: 0; }
+  #gp-er-body input, #gp-er-body select {
+    width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid #E4E5F0;
+    background: #F7F7FB; font-size: 14px; font-family: inherit; color: #191B2E;
+  }
+  #gp-er-body input:focus, #gp-er-body select:focus { outline: none; border-color: #16A34A; background: #fff; box-shadow: 0 0 0 3px rgba(22,163,74,.12); }
+  #gp-er-cobros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  #gp-er-total { background: #E7F8EF; border-radius: 11px; padding: 8px 12px; margin-top: 10px; font-weight: 700; font-size: 13px; color: #0D7A3B; }
+  .gp-er-check { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 13px; font-weight: 600; color: #4B4D63; }
+  .gp-er-check input { width: auto; }
+  #gp-er-footer { display: flex; gap: 10px; padding: 16px 22px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+  #gp-er-footer button { flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
+  #gp-er-btnCancelar { background: #F0F0F6; color: #4B4D63; }
+  #gp-er-btnConfirmar { background: linear-gradient(135deg, #16A34A, #22C55E); color: #fff; box-shadow: 0 6px 16px rgba(22,163,74,.35); }
+</style>
+
+<div id="gp-er-overlay" onclick="if(event.target===this) entregaRapidaCerrar()">
+  <div id="gp-er-modal">
+    <div id="gp-er-header">
+      <b id="gp-er-titulo">🚚 Entregar</b>
+      <button type="button" onclick="entregaRapidaCerrar()">✕</button>
+    </div>
+    <div id="gp-er-body">
+      <div id="gp-er-resumen"></div>
+
+      <div id="gp-er-sinCompra" style="display:none" class="gp-er-aviso">
+        Esta preventa todavía no tiene una compra registrada. Por ahora podés entregarla igual: se va a crear una compra placeholder con costo $0 que podés completar más adelante desde "Entregar Preventa" completo.
+        <button type="button" onclick="entregaRapidaIrCompleta()">Completar datos de la compra ahora →</button>
+      </div>
+
+      <div id="gp-er-camposCobro">
+        <label>Operador que entrega: <span class="req">*</span></label>
+        <select id="er_operador">
+          <option value="" disabled selected>Seleccionar...</option>
+          <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+        </select>
+
+        <label>Cobro ahora (saldo pendiente)</label>
+        <div id="gp-er-cobros">
+          <div><label style="margin-top:0;font-size:10.5px">Efectivo</label><input type="text" inputmode="numeric" id="er_efec" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">Transf.</label><input type="text" inputmode="numeric" id="er_transf" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">Cuotas</label><input type="text" inputmode="numeric" id="er_cuotas" oninput="formatearInputMoneda(this); entregaRapidaCalcTotal()"/></div>
+          <div><label style="margin-top:0;font-size:10.5px">USD</label><input type="number" id="er_usd" min="0" oninput="entregaRapidaCalcTotal()"/></div>
+        </div>
+        <div id="gp-er-total">Total ingresado: $0</div>
+
+        <label class="gp-er-check"><input type="checkbox" id="er_regalos" checked/> Entregar regalo(s) de bienvenida si corresponde</label>
+        <label class="gp-er-check"><input type="checkbox" id="er_comprobante" checked/> Preguntar por el comprobante al confirmar</label>
+      </div>
+    </div>
+    <div id="gp-er-footer">
+      <button type="button" id="gp-er-btnCancelar" onclick="entregaRapidaCerrar()">Cancelar</button>
+      <button type="button" id="gp-er-btnConfirmar" onclick="entregaRapidaConfirmar()">✅ Confirmar entrega</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  ENTREGA RÁPIDA — un solo modal reutilizado desde cualquier vista
+  //  que ya tenga a mano los datos de una preventa pendiente (mismo
+  //  shape que entrega obtenerPreventasEntregables(): nPre, cliente,
+  //  modelo, saldo, nComp, tel). Si la preventa no tiene compra
+  //  asociada (nComp vacío), no se puede completar en un paso — se
+  //  ofrece ir a la pantalla completa con la preventa ya elegida.
+  // ============================================================
+  var _entregaRapidaActual = null;
+
+  /**
+   * ENTREGA INSTANTÁNEA — un solo click, sin modal ni cartel de confirmar.
+   * Pedido explícito: la mayoría de las entregas no necesitan tocar nada
+   * (la preventa ya se paga 100% al encargarla, así que lo normal es
+   * llegar a la entrega con saldo $0) — para esos casos, un modal con
+   * varios campos y un confirm() de por medio es fricción de sobra.
+   *
+   * UI optimista: la tarjeta/fila desaparece de la lista YA (antes de que
+   * el backend termine), como si ya estuviera entregada — el registro
+   * real (procesarEntregaPreventaConOperador) corre en segundo plano, sin
+   * el spinner bloqueante de llamarBackend() (por eso NO se usa acá:
+   * llamarBackend tapa toda la pantalla y bloquea otras acciones mientras
+   * espera, justo lo que se quiere evitar). Si el backend llegara a
+   * fallar (raro: casi siempre es la falta de compra asociada, que ya no
+   * bloquea, o un problema de red), se avisa con un toast y se refresca
+   * la lista real — la tarjeta reaparece sola si en verdad no se entregó.
+   *
+   * Valores por defecto: operador Martin, se cobra el saldo pendiente
+   * completo en efectivo (si hay), se entregan regalos de bienvenida si
+   * corresponde. Para un cobro distinto (parcial, en cuotas, otro
+   * operador) sigue estando el modal de siempre (entregaRapidaAbrir) —
+   * accesible desde el link "Personalizar" al lado del botón.
+   */
+  function entregaInstantanea(p){
+    if (!p) return;
+
+    // Optimista: la sacamos YA de donde esté renderizada.
+    if (typeof _dashPreventas !== "undefined" && _dashPreventas) {
+      _dashPreventas = _dashPreventas.filter(function(x){ return x.nPre !== p.nPre; });
+      if (typeof dashPreRenderStats === "function") dashPreRenderStats();
+      if (typeof dashPreRender === "function") dashPreRender();
+    }
+    if (typeof _segPreventas !== "undefined" && _segPreventas) {
+      _segPreventas = _segPreventas.filter(function(x){ return x.nPre !== p.nPre; });
+      if (typeof preventasSegRenderCalendario === "function") preventasSegRenderCalendario();
+      if (typeof preventasSegRenderLista === "function") preventasSegRenderLista();
+    }
+    mostrarToast("🚚 Entregando " + p.nPre + "…", "info");
+
+    var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+    var telCliente = p.tel;
+    var nPre = p.nPre;
+    var payload = {
+      nPre: nPre,
+      fecha: new Date().toISOString().split("T")[0],
+      efec: saldo, transf: 0, cuotas: 0, usd: 0,
+      obs: "",
+      imei: "", costoEquipo: 0, proveedor: "", fechaCompra: "",
+      accesorios: [],
+      operador: "Martin",
+      entregarRegalos: true
+    };
+
+    // Directo por google.script.run (NO llamarBackend): sin spinner de
+    // pantalla completa, la UI ya "avanzó" con el cambio optimista de arriba.
+    google.script.run
+      .withSuccessHandler(function(msg){
+        mostrarToastOperacion(msg, telCliente);
+        cargarDashboard();
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ No se pudo entregar " + nPre + " (" + e.message + ") — se restauró en la lista.", "error");
+        cargarDashboard();
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      })
+      .procesarEntregaPreventaConOperador(payload);
+  }
+
+  function entregaRapidaAbrir(p){
+    if (!p) return;
+    _entregaRapidaActual = p;
+    document.getElementById("gp-er-titulo").textContent = "🚚 Entregar " + p.nPre;
+    document.getElementById("gp-er-resumen").innerHTML =
+      "<b>" + _dashEscGlobal(p.cliente) + "</b> — " + _dashEscGlobal(p.modelo) + "<br>" +
+      "Saldo pendiente: <b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b>";
+
+    var sinCompra = !p.nComp;
+    document.getElementById("gp-er-sinCompra").style.display = sinCompra ? "block" : "none";
+    document.getElementById("gp-er-camposCobro").style.display = "block";
+    document.getElementById("gp-er-btnConfirmar").style.display = "inline-block";
+
+    document.getElementById("er_operador").value = "Martin";
+    var saldo = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+    setInputMoneda(document.getElementById("er_efec"), saldo);
+    setInputMoneda(document.getElementById("er_transf"), 0);
+    setInputMoneda(document.getElementById("er_cuotas"), 0);
+    document.getElementById("er_usd").value = "";
+    entregaRapidaCalcTotal();
+    document.getElementById("gp-er-overlay").classList.add("activo");
+  }
+
+  function _dashEscGlobal(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function entregaRapidaCerrar(){
+    document.getElementById("gp-er-overlay").classList.remove("activo");
+    _entregaRapidaActual = null;
+  }
+
+  /** La preventa no tiene compra asociada: manda a la pantalla completa de "Entregar Preventa" con la preventa ya elegida, en vez de forzar a cargar los datos de compra en un modal chico. */
+  function entregaRapidaIrCompleta(){
+    var nPre = _entregaRapidaActual ? _entregaRapidaActual.nPre : "";
+    entregaRapidaCerrar();
+    cargarVista("entregar_preventa");
+    setTimeout(function(){
+      var sel = document.getElementById("e_nPre");
+      if (sel && nPre && sel.querySelector("option[value='" + nPre + "']")) {
+        sel.value = nPre;
+        entregaActualizarInfo();
+      }
+    }, 350);
+  }
+
+  function entregaRapidaCalcTotal(){
+    var ef = valorNumerico(document.getElementById("er_efec"));
+    var tr = valorNumerico(document.getElementById("er_transf"));
+    var cu = valorNumerico(document.getElementById("er_cuotas"));
+    var us = parseFloat(document.getElementById("er_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var t = ef + tr + cu + usPesos;
+    var txt = "Total ingresado: " + fmtP(t);
+    if (us > 0) txt += " (incluye " + us + " USD ≈ " + fmtP(usPesos) + ")";
+    document.getElementById("gp-er-total").textContent = txt;
+  }
+
+  function entregaRapidaConfirmar(){
+    if (!_entregaRapidaActual) return;
+    var p = _entregaRapidaActual;
+    var operador = document.getElementById("er_operador").value || "Martin";
+
+    var ef = valorNumerico(document.getElementById("er_efec"));
+    var tr = valorNumerico(document.getElementById("er_transf"));
+    var cu = valorNumerico(document.getElementById("er_cuotas"));
+    var us = parseFloat(document.getElementById("er_usd").value) || 0;
+    var usPesos = us * cotizacionActual.venta;
+    var totalCobrarAhora = ef + tr + cu + usPesos;
+    var necesario = Number(p.saldo) > 0 ? Number(p.saldo) : 0;
+
+    if (totalCobrarAhora > necesario + 1) {
+      mostrarToast("Lo que estás cobrando ahora (" + fmtP(totalCobrarAhora) + ") supera el saldo pendiente (" + fmtP(necesario) + ").", "error");
+      return;
+    }
+
+    var payload = {
+      nPre: p.nPre,
+      fecha: new Date().toISOString().split("T")[0],
+      efec: ef, transf: tr, cuotas: cu, usd: us,
+      obs: "",
+      imei: "", costoEquipo: 0, proveedor: "", fechaCompra: "",
+      accesorios: [],
+      operador: operador,
+      entregarRegalos: document.getElementById("er_regalos").checked
+    };
+
+    var mensajeConfirm = (necesario > 0 && totalCobrarAhora <= 0)
+      ? "Corresponde cobrar " + fmtP(necesario) + " y no ingresaste ningún cobro.\n¿Confirmás entregar de todas formas (quedará como deuda)?"
+      : "¿Confirmás la entrega de " + p.nPre + "?";
+
+    confirmarAccion(mensajeConfirm).then(function(ok){
+      if (!ok) return;
+      var preguntarComprobante = document.getElementById("er_comprobante").checked;
+      var telCliente = p.tel;
+      var nPre = p.nPre;
+      llamarBackend("procesarEntregaPreventaConOperador", payload, function(msg){
+        mostrarToastOperacion(msg);
+        if (preguntarComprobante) {
+          mostrarToast("📄 ¿Imprimir o enviar el comprobante de entrega?", "info", {
+            persistente: true,
+            botones: [
+              { texto: "🖨 Entrega", fn: function(){ imprimirReciboEntregaPreventa(nPre); } },
+              { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("ENTREGA_PREVENTA", nPre, telCliente); } }
+            ]
+          });
+        }
+        entregaRapidaCerrar();
+        cargarDashboard(); // ya refresca el panel de preventas del Dashboard (dashPreCargar) adentro
+        if (typeof preventasSegCargar === "function") preventasSegCargar();
+      });
+    });
+  }
+</script>
 
 <div id="operador-prompt-overlay">
   <div id="operador-prompt-box">
@@ -444,6 +756,53 @@
   function fmtP(n){ return "$" + Number(n || 0).toLocaleString("es-AR"); }
   function fmtUSDweb(n){ return "USD " + Number(n || 0).toLocaleString("en-US"); }
 
+  /**
+   * Inputs de precio/monto: arrancan vacíos (no en "0") y se autoformatean
+   * con separador de miles a medida que se escribe ("500000" -> "$500.000").
+   * Guarda el valor crudo en data-raw para que valorNumerico() lo lea exacto
+   * sin tener que parsear el "$" ni los puntos. Usar junto con
+   * type="text" inputmode="numeric" (nunca type="number", que no admite "$").
+   */
+  function formatearInputMoneda(el){
+    var digits = el.value.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+    if (!digits) { el.value = ""; el.dataset.raw = ""; return; }
+    el.dataset.raw = digits;
+    el.value = "$" + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  /**
+   * Lee el número real de un input (formateado con formatearInputMoneda o
+   * no). Reemplaza a parseFloat(el.value)||0 en todos los formularios.
+   * Si el campo está vacío devuelve 0 directo, sin mirar dataset.raw: un
+   * form.reset() (limpiarFormulario()) vacía el value pero NO borra
+   * data-raw, así que confiar en data-raw con el value ya vacío devolvería
+   * un monto viejo que ya no está a la vista.
+   */
+  function valorNumerico(el){
+    if (!el) return 0;
+    if (!el.value) return 0;
+    if (el.dataset && el.dataset.raw) return Number(el.dataset.raw) || 0;
+    return parseFloat(String(el.value).replace(/[^\d.-]/g, "")) || 0;
+  }
+
+  /** Setea un input de precio/monto programáticamente (precarga de una corrección, reset de formulario, etc.), dejándolo vacío si el valor es 0/vacío — igual criterio que formatearInputMoneda(). */
+  function setInputMoneda(el, n){
+    n = Number(n) || 0;
+    if (!el) return;
+    if (!n) { el.value = ""; el.dataset.raw = ""; return; }
+    el.dataset.raw = String(n);
+    el.value = "$" + n.toLocaleString("es-AR");
+  }
+
+  /** CUIL/CUIT: autoformatea a medida que se escribe como "20-12345678-9". */
+  function formatearInputCUIL(el){
+    var digits = el.value.replace(/[^\d]/g, "").slice(0, 11);
+    var out = digits;
+    if (digits.length > 2)  out = digits.slice(0, 2) + "-" + digits.slice(2);
+    if (digits.length > 10) out = digits.slice(0, 2) + "-" + digits.slice(2, 10) + "-" + digits.slice(10);
+    el.value = out;
+  }
+
   // Convierte una fecha "dd/MM/yyyy" o "dd/MM/yyyy HH:mm:ss" (formato en el
   // que el backend manda las fechas de una operación al precargar una
   // corrección — ver obtenerOperacionCompleta_() en operadores.gs) al
@@ -459,6 +818,44 @@
     var abrir = (forzar !== undefined) ? forzar : !document.getElementById("sidebar").classList.contains("abierto");
     document.getElementById("sidebar").classList.toggle("abierto", abrir);
     document.getElementById("sidebar-overlay").classList.toggle("activo", abrir);
+  }
+
+  /**
+   * Buscador de secciones en la barra lateral: filtra los .nav-btn cuyo
+   * texto no matchea la búsqueda, y oculta el título de un grupo entero
+   * (.nav-group-title) si ningún botón de ese grupo quedó visible — así
+   * un operador nuevo encuentra la pantalla que necesita sin tener que
+   * memorizar en qué grupo está.
+   */
+  /** Sin tildes ni mayúsculas, para que buscar "reparacion" encuentre "Reparación" igual. */
+  function _sidebarNormalizar(s){
+    return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function sidebarFiltrar(q){
+    q = _sidebarNormalizar(q).trim();
+    document.querySelectorAll("#sidebar .nav-group-title").forEach(function(titulo){
+      var algunoVisible = false;
+      var el = titulo.nextElementSibling;
+      while (el && el.classList.contains("nav-btn")) {
+        var visible = !q || _sidebarNormalizar(el.textContent).indexOf(q) >= 0;
+        el.style.display = visible ? "" : "none";
+        if (visible) algunoVisible = true;
+        el = el.nextElementSibling;
+      }
+      titulo.style.display = algunoVisible ? "" : "none";
+    });
+  }
+
+  /** Enter en el buscador: va directo a la primera sección que matchea, sin tener que tocarla con el mouse. */
+  function sidebarBuscadorKeydown(ev){
+    if (ev.key !== "Enter") return;
+    var primero = document.querySelector('#sidebar .nav-btn:not([style*="display: none"])');
+    if (!primero) return;
+    primero.click();
+    ev.target.value = "";
+    sidebarFiltrar("");
+    ev.target.blur();
   }
 
   // ---------- Navegación SPA (sin recargar la app) ----------
@@ -477,10 +874,11 @@
       preventas:"🟡 Registrar Preventa", entregar_preventa:"📦 Entregar Preventa",
       precios:"💰 Lista de Precios", precios_mac_ipad:"💻 Precios Mac / iPad", toma_precios:"🔄 Precios de Toma", calculadora_toma:"🧮 Calculadora de Toma",
       calculadora_cuotas:"💳 Calculadora de Cuotas",
-      reparaciones:"🔧 Registrar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
-      gastos:"💸 Registrar Gasto", reportes:"📈 Reportes",
+      reparaciones:"🔧 Registrar Reparación", entregar_reparacion:"📦 Entregar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
+      gastos:"💸 Registrar Gasto", devoluciones:"💵 Registrar Devolución", reportes:"💰 Caja",
       stock_accesorios:"📦 Stock Accesorios", stock_general:"📋 Stock General",
-      mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones"
+      mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones",
+      guia:"📖 Guía del sistema"
     };
     document.getElementById("tituloVista").textContent = titulos[nombre] || nombre;
 
@@ -501,7 +899,9 @@
     if (nombre === "calculadora_toma") calculadoraTomaInit();
     if (nombre === "calculadora_cuotas") calculadoraCuotasInit();
     if (nombre === "ventas") ventasInit();
+    if (nombre === "preventas") preventasInit();
     if (nombre === "reparaciones") reparacionesInit();
+    if (nombre === "entregar_reparacion") entregaRepInit();
     if (nombre === "tarifario_reparaciones") tarifarioReparacionesInit();
     if (nombre === "entregar_preventa") entregaInit();
     if (nombre === "reportes") reportesInit();
@@ -522,7 +922,11 @@
   }
 
   // ---------- Toasts ----------
-  // `opciones` (todas opcionales): { persistente: bool, accionTexto: string, accionFn: function }
+  // `opciones` (todas opcionales): { persistente: bool, accionTexto: string,
+  // accionFn: function, botones: [{texto, fn}, ...] }. `botones` es la forma
+  // genérica (varios botones de acción, ej. "Ver operación" + "🖨 Recibo");
+  // accionTexto/accionFn se mantienen para no tocar a quien ya los use con
+  // un solo botón — si se pasan ambas formas, se muestran todos los botones.
   function mostrarToast(mensaje, tipo, opciones){
     tipo = tipo || "info";
     opciones = opciones || {};
@@ -535,16 +939,19 @@
     texto.textContent = mensaje;
     el.appendChild(texto);
 
-    if (opciones.persistente || (opciones.accionTexto && opciones.accionFn)) {
+    var botones = (opciones.botones || []).slice();
+    if (opciones.accionTexto && opciones.accionFn) botones.unshift({ texto: opciones.accionTexto, fn: opciones.accionFn });
+
+    if (opciones.persistente || botones.length > 0) {
       var fila = document.createElement("div");
       fila.className = "toast-acciones";
-      if (opciones.accionTexto && opciones.accionFn) {
+      botones.forEach(function(b){
         var btnAccion = document.createElement("button");
         btnAccion.className = "toast-btn";
-        btnAccion.textContent = opciones.accionTexto;
-        btnAccion.onclick = opciones.accionFn;
+        btnAccion.textContent = b.texto;
+        btnAccion.onclick = b.fn;
         fila.appendChild(btnAccion);
-      }
+      });
       if (opciones.persistente) {
         var btnCerrar = document.createElement("button");
         btnCerrar.className = "toast-cerrar";
@@ -570,15 +977,28 @@
   // Detecta el número de operación (CMP/VTA/PRE/REP/GST/ACC-xxx) en el
   // mensaje de éxito ya devuelto por el backend y ofrece "Ver operación"
   // reutilizando el modal de Mis Operaciones. Si no encuentra un número
-  // reconocible, se degrada a un toast normal con el mismo mensaje.
-  function mostrarToastOperacion(mensaje){
+  // reconocible, se degrada a un toast normal con el mismo mensaje. Para
+  // ventas (VTA) y preventas (PRE), agrega además el mismo botón "🖨 Recibo"
+  // que ya existe en Mis Operaciones (imprimirReciboVenta/ventas.html,
+  // imprimirReciboPreventa/preventas.html) — mismo patrón de abrir+pedir el
+  // HTML en el mismo click, sin el hueco de tiempo que hacía fallar el
+  // auto-abrir apenas se confirmaba la operación.
+  /** telefonoCliente es opcional — si se pasa, además de "🖨 Recibo" aparece "📲 WhatsApp" (firma en pantalla + PDF + WhatsApp, ver firmarYEnviarPorWhatsapp). */
+  function mostrarToastOperacion(mensaje, telefonoCliente){
     var m = String(mensaje || "").match(/\b(CMP|VTA|PRE|REP|GST|ACC|CAC|CAM|AJC)-\S+/);
     if (!m) { mostrarToast(mensaje, "exito"); return; }
     var numero = m[0].replace(/[.,;:]+$/, "");
-    mostrarToast("✅ Operación realizada correctamente\n\nNúmero: " + numero, "exito", {
+    var botones = [{ texto: "Ver operación", fn: function(){ misOperacionesVer(numero); } }];
+    if (numero.indexOf("VTA-") === 0) {
+      botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboVenta(numero); } });
+      botones.push({ texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("VENTA", numero, telefonoCliente); } });
+    } else if (numero.indexOf("PRE-") === 0) {
+      botones.push({ texto: "🖨 Recibo", fn: function(){ imprimirReciboPreventa(numero); } });
+      botones.push({ texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("PREVENTA", numero, telefonoCliente); } });
+    }
+    mostrarToast(mensaje, "exito", {
       persistente: true,
-      accionTexto: "Ver operación",
-      accionFn: function(){ misOperacionesVer(numero); }
+      botones: botones
     });
   }
 
@@ -657,7 +1077,14 @@
   }
 
   function cancelarCorreccion(){
+    // Mismo criterio que enviarCorreccion() al terminar: dejar el
+    // cuestionario en blanco y listo para cargar otra cosa, no solo ocultar
+    // el banner de corrección — si no, quedaban los datos de la operación
+    // que se estaba corrigiendo pisando el formulario.
+    var nombreLimpiar = _correccion && FORM_LIMPIAR_POR_VISTA[_correccion.vista];
     _limpiarEstadoCorreccion_();
+    var fnLimpiar = nombreLimpiar && window[nombreLimpiar];
+    if (fnLimpiar) fnLimpiar();
     mostrarToast("Corrección cancelada.", "info");
   }
 
@@ -676,7 +1103,7 @@
         var fnLimpiar = nombreLimpiar && window[nombreLimpiar];
         if (fnLimpiar) fnLimpiar();
         cargarDashboard();
-        if (document.getElementById("view-mis_operaciones").classList.contains("activa")) misOperacionesInit();
+        if (document.getElementById("view-mis_operaciones").classList.contains("activa")) misOperacionesRecargar();
       });
     });
   }
@@ -706,6 +1133,65 @@
       });
     if (args === undefined) runner[nombreFuncion]();
     else runner[nombreFuncion](args);
+  }
+
+  // ---------- Firmar en pantalla y enviar por WhatsApp ----------
+  // Camino alternativo a imprimir: el cliente firma en la pantalla del
+  // empleado (capturarFirmaCliente(), firma_cliente.html), el backend arma
+  // el mismo recibo de siempre con esa firma insertada y lo devuelve como
+  // PDF; acá se baja al dispositivo y se abre WhatsApp para que solo falte
+  // adjuntar ese PDF recién bajado y tocar Enviar (WhatsApp no tiene forma
+  // gratuita de adjuntar un archivo automáticamente desde un link).
+  //
+  // tipo ∈ "VENTA" | "PREVENTA" | "CESION" | "REPARACION" |
+  //        "ENTREGA_REPARACION" | "ENTREGA_PREVENTA" (ver generarReciboPdfConFirma en recibos.gs)
+  function firmarYEnviarPorWhatsapp(tipo, numero, telefonoCliente){
+    capturarFirmaCliente("Firma del cliente — " + numero).then(function(firmaBase64){
+      if (!firmaBase64) return; // canceló o no firmó
+      llamarBackend("generarReciboPdfConFirma", { tipo: tipo, numero: numero, firmaClienteBase64: firmaBase64 }, function(res){
+        _descargarPdfBase64(res.pdfBase64, res.nombreArchivo);
+        // Preferí el teléfono que el backend leyó del propio recibo recién
+        // armado (res.telefono) — así el WhatsApp manda siempre al número
+        // que el cliente ve impreso, sin depender de que cada pantalla lo
+        // haya pasado bien por separado. telefonoCliente (el que ya venía
+        // del formulario) queda solo de respaldo si por algo esa lectura
+        // no encontró nada.
+        var linkWa = _linkWhatsapp(res.telefono || telefonoCliente);
+        mostrarToast("📄 PDF firmado descargado. Abrí WhatsApp, adjuntá el archivo que se acaba de bajar y enviá.", "exito", {
+          persistente: true,
+          accionTexto: "💬 Abrir WhatsApp",
+          accionFn: function(){ window.open(linkWa, "_blank"); }
+        });
+      });
+    });
+  }
+
+  /** Convierte un PDF en base64 (como lo devuelve el backend) en una descarga real del navegador, sin pasar por Drive ni por ningún servidor intermedio. */
+  function _descargarPdfBase64(base64, nombreArchivo){
+    var byteChars = atob(base64);
+    var bytes = new Uint8Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+    var blob = new Blob([bytes], { type: "application/pdf" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = nombreArchivo || "recibo.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+  }
+
+  /** Heurística simple para armar el link de WhatsApp a partir de un teléfono cargado a mano (sin formato fijo) — antepone 54 9 si hace falta (celulares argentinos). Si el teléfono no está cargado, abre WhatsApp sin destinatario y el empleado busca el contacto. */
+  function _linkWhatsapp(telefono){
+    var digitos = String(telefono || "").replace(/[^\d]/g, "");
+    if (!digitos) return "https://wa.me/";
+    if (digitos.indexOf("54") === 0) {
+      if (digitos.indexOf("549") !== 0) digitos = "549" + digitos.slice(2);
+    } else {
+      digitos = "549" + digitos.replace(/^0/, "").replace(/^15/, "");
+    }
+    return "https://wa.me/" + digitos;
   }
 
   // ---------- Limpieza de formularios tras registrar con éxito ----------

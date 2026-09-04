@@ -1,4 +1,185 @@
 <div id="view-preventas" class="view">
+  <style>
+    #view-preventas .preventas-layout { display: flex; align-items: flex-start; gap: 18px; flex-wrap: wrap; }
+    #view-preventas .preventas-layout > .panel:first-child { flex: 1 1 480px; min-width: 320px; }
+    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex: 1 1 320px; position: sticky; top: 14px; }
+    #view-preventas .preventas-layout > .panel#p_seguimientoPanel { flex-basis: 720px; max-width: 720px; }
+    #view-preventas #p_calGrid { gap: 5px; }
+    #view-preventas .p-cal-dia {
+      aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border-radius: 8px; cursor: default; position: relative; gap: 1px; min-height: 44px; font-size: 13px;
+    }
+    #view-preventas .p-cal-dia.p-cal-otromes { opacity: .3; }
+    #view-preventas .p-cal-dia.p-cal-hoy { outline: 2px solid #4F46E5; outline-offset: -2px; }
+    #view-preventas .p-cal-dia.p-cal-clickable { cursor: pointer; font-weight: 700; color: #fff; }
+    #view-preventas .p-cal-dia.p-cal-clickable:hover { transform: scale(1.07); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    #view-preventas .p-cal-dia.p-cal-dragover { outline: 2px dashed #fff; outline-offset: -3px; }
+    #view-preventas .p-cal-dia .p-cal-badge {
+      font-size: 10px; font-weight: 700; background: rgba(255,255,255,.28); border-radius: 100px;
+      padding: 0 5px; line-height: 1.4;
+    }
+    #view-preventas .p-cal-roja { background: #C0392B; }
+    #view-preventas .p-cal-amarilla { background: #B7860B; }
+    #view-preventas .p-cal-verde { background: #1E8449; }
+    #view-preventas .p-cal-dia.p-cal-nohabil {
+      background: repeating-linear-gradient(135deg, #F0F1F3, #F0F1F3 4px, #E4E6E9 4px, #E4E6E9 8px);
+      color: #B0B7C0;
+    }
+    #view-preventas .p-cal-dia.p-cal-nohabil.p-cal-clickable { color: #fff; }
+    #view-preventas .p-cal-tooltip {
+      position: fixed; z-index: 50; background: #1F2937; color: #fff; border-radius: 8px;
+      padding: 8px 10px; font-size: 11.5px; max-width: 240px; box-shadow: 0 4px 16px rgba(0,0,0,.3);
+      pointer-events: none; display: none;
+    }
+    #view-preventas .p-cal-tooltip b { display: block; margin-bottom: 4px; font-size: 11px; opacity: .8; }
+    #view-preventas .p-cal-tooltip .p-cal-tt-row { padding: 2px 0; border-top: 1px solid rgba(255,255,255,.12); }
+    #view-preventas .p-cal-tooltip .p-cal-tt-row:first-of-type { border-top: none; }
+    #view-preventas .p-fp-wrap { position: relative; }
+    #view-preventas #p_fechaHasta_txt { cursor: pointer; background: #fff; }
+    #view-preventas .p-fp-cal {
+      position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; width: 280px;
+      background: #fff; border: 1px solid #E4E7EC; border-radius: 10px; padding: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15); font-size: 12px;
+    }
+    #view-preventas .p-fp-cal .p-fp-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    #view-preventas .p-fp-cal .p-fp-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; text-align: center; }
+    #view-preventas .p-fp-cal .p-cal-dia { min-height: 32px; font-size: 11.5px; border-radius: 6px; }
+    #view-preventas .p-fp-cal .p-cal-dia.p-fp-lleno {
+      background: repeating-linear-gradient(135deg, #FBDCD7, #FBDCD7 4px, #F6C6BE 4px, #F6C6BE 8px);
+      color: #B03A2E; cursor: not-allowed;
+    }
+    #view-preventas .p-fp-cal .p-cal-dia.p-fp-seleccionado { outline: 2px solid #4F46E5; outline-offset: -2px; }
+    #view-preventas .p-fp-cal .p-fp-leyenda { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; font-size: 10px; color: #7B8794; }
+    #view-preventas .p-seg-buscador { width: 100%; margin: 0 0 8px; }
+    #view-preventas .p-seg-btn-entregar {
+      background: #4F46E5; color: #fff; border: none; border-radius: 100px; padding: 4px 6px;
+      font-size: 9.5px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    #view-preventas .p-seg-btn-entregar:hover { background: #3730A3; }
+    #view-preventas .p-seg-tabla-wrap { max-height: 480px; overflow-y: auto; overflow-x: hidden; border: 1px solid #E4E7EC; border-radius: 8px; }
+    #view-preventas table.p-seg-tabla { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; }
+    #view-preventas table.p-seg-tabla thead th {
+      position: sticky; top: 0; background: #F4F6F8; text-align: left; padding: 6px 5px;
+      font-size: 9.5px; color: #7B8794; text-transform: uppercase; letter-spacing: .3px; z-index: 1;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #view-preventas table.p-seg-tabla tbody tr {
+      cursor: grab; border-top: 1px solid #ECEEF1; transition: filter .15s;
+    }
+    #view-preventas table.p-seg-tabla tbody tr:hover { filter: brightness(0.96); }
+    #view-preventas table.p-seg-tabla tbody tr.p-seg-dragging { opacity: .4; }
+    #view-preventas table.p-seg-tabla td { padding: 5px 5px; white-space: normal; word-break: break-word; overflow: hidden; }
+    #view-preventas table.p-seg-tabla td.p-seg-td-objeto { white-space: normal; }
+    #view-preventas table.p-seg-tabla th:last-child, #view-preventas table.p-seg-tabla td:last-child { width: 62px; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-roja { background: #FDECEA; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-amarilla { background: #FEF6E0; }
+    #view-preventas table.p-seg-tabla tr.p-seg-fila-verde { background: #EAF6EE; }
+    #view-preventas .p-seg-fecha-chip { font-size: 10px; padding: 1px 6px; border-radius: 100px; font-weight: 700; color: #fff; white-space: nowrap; }
+    #view-preventas .p-seg-nombre { font-weight: 700; }
+    #view-preventas .p-seg-sub { color: #7B8794; font-size: 10.5px; }
+
+    /* Asistente paso a paso (mismo lenguaje visual de compras.html), solo
+       en el panel de carga — el panel de seguimiento (calendario/lista) no
+       lo usa. */
+    #view-preventas .preventas-layout > .panel:first-child {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 640px; padding: 4px 48px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-preventas .preventas-layout > .panel:first-child::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-preventas .preventas-layout > .panel:first-child > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+    #view-preventas .preventas-layout > .panel:first-child .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-preventas .preventas-layout > .panel:first-child .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .paso-num { display: none; }
+    #view-preventas .preventas-layout > .panel:first-child .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+    #view-preventas .preventas-layout > .panel:first-child label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-preventas .preventas-layout > .panel:first-child .paso > label:first-child,
+    #view-preventas .preventas-layout > .panel:first-child .paso > .fila2:first-child label,
+    #view-preventas .preventas-layout > .panel:first-child .paso > .fila4:first-child label { margin-top: 0; }
+    #view-preventas .preventas-layout > .panel:first-child input,
+    #view-preventas .preventas-layout > .panel:first-child select,
+    #view-preventas .preventas-layout > .panel:first-child textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-preventas .preventas-layout > .panel:first-child input::placeholder,
+    #view-preventas .preventas-layout > .panel:first-child textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-preventas .preventas-layout > .panel:first-child input:focus,
+    #view-preventas .preventas-layout > .panel:first-child select:focus,
+    #view-preventas .preventas-layout > .panel:first-child textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .req { color: #E11D48; }
+    #view-preventas .preventas-layout > .panel:first-child .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-preventas .preventas-layout > .panel:first-child .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-preventas .preventas-layout > .panel:first-child .box-info { background: #EEECFD; }
+    #view-preventas .preventas-layout > .panel:first-child .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+    #view-preventas .preventas-layout > .panel:first-child .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-preventas .preventas-layout > .panel:first-child .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-paso-final > .btn {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-preventas .preventas-layout > .panel:first-child .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="preventas-layout">
   <div class="panel">
     <h3>🟡 Registrar Preventa</h3>
 
@@ -6,20 +187,11 @@
 
     <div class="paso">
       <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién toma el pedido y cuándo?</p>
-      <div class="fila2">
-        <div>
-          <label>Operador: <span class="req">*</span></label>
-          <select id="p_operador" required>
-            <option value="" disabled selected>Seleccionar...</option>
-            <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
-          </select>
-        </div>
-        <div>
-          <label>Vendedor: <span class="req">*</span></label>
-          <input type="text" id="p_vendedor" placeholder="Nombre del vendedor" value="Martin"/>
-        </div>
-      </div>
-      <div class="hint">"Vendedor" es quien concretó la venta con el cliente — puede ser distinto de "Operador" (arriba), que es quien está cargando esta pantalla ahora mismo.</div>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="p_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
 
       <label>Fecha preventa:</label>
       <input type="date" id="p_fecha"/>
@@ -38,62 +210,158 @@
       <div class="fila2">
         <div>
           <label>CUIL cliente (opcional):</label>
-          <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9"/>
+          <input type="text" id="p_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
+          <div class="hint">El DNI del recibo se calcula solo a partir de este dato.</div>
         </div>
         <div>
           <label>Teléfono:</label>
           <input type="text" id="p_tel" placeholder="Ej: 2914123456"/>
         </div>
       </div>
-    </div>
-
-    <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">3</span> Plazo de entrega</p>
-      <div class="box box-info" style="margin-top:0">
-        <label style="margin-top:0">📅 Plazo de entrega (7 a 10 días hábiles)</label>
-        <div class="fila2">
-          <div>
-            <label style="font-size:11px">Fecha Prometida Desde</label>
-            <input type="date" id="p_fechaDesde"/>
-          </div>
-          <div>
-            <label style="font-size:11px">Fecha Prometida Hasta</label>
-            <input type="date" id="p_fechaHasta"/>
-          </div>
+      <div class="fila2">
+        <div>
+          <label>Domicilio cliente (opcional):</label>
+          <input type="text" id="p_domicilio" placeholder="Para el recibo — no es obligatorio"/>
         </div>
-        <div class="hint" id="p_plazoHint">Calculando plazo permitido...</div>
-        <div class="hint">Estas fechas se completan solas apenas elegís la "Fecha preventa" — esperá que aparezca el rango antes de registrar. Si hace falta, las podés editar a mano.</div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="p_email" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>IMEI (si se conoce, opcional):</label>
+          <input type="text" id="p_imei" placeholder="Si el equipo ya está identificado"/>
+        </div>
+        <div>
+          <label>Color pedido (opcional):</label>
+          <input type="text" id="p_color" placeholder="Ej: Negro"/>
+        </div>
+      </div>
+      <label>Estado requerido (opcional):</label>
+      <input type="text" id="p_estadoRequerido" placeholder="Ej: Como nuevo, sin marcas"/>
+
+      <label style="display:flex;align-items:center;gap:6px;margin-top:10px">
+        <input type="checkbox" id="p_ppCheck" style="width:auto" onchange="preventasTogglePartePago()"/>
+        🔁 El cliente va a entregar un equipo en parte de pago
+      </label>
+      <div id="p_ppWrap" class="fila2" style="display:none;margin-top:6px">
+        <div>
+          <label style="font-size:11px">Equipo que entrega</label>
+          <input type="text" id="p_ppEquipo" placeholder="Ej: iPhone 8 64GB"/>
+        </div>
+        <div>
+          <label style="font-size:11px">Valor acordado (opcional)</label>
+          <input type="text" inputmode="numeric" id="p_ppValor" placeholder="$0" oninput="formatearInputMoneda(this)"/>
+        </div>
       </div>
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
+      <p class="paso-titulo"><span class="paso-num">3</span> Precio y cobro</p>
 
       <label>Precio de venta pactado ($): <span class="req">*</span></label>
-      <input type="number" id="p_precioVenta" value="0" min="0" oninput="preventasCalcTotal()"/>
+      <input type="text" inputmode="numeric" id="p_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal(); preventasRecalcularPlazoEntrega();"/>
       <div class="hint">Buscá el "Modelo solicitado" en Lista de Precios (Precio Preventa) si no estás seguro del valor.</div>
       <button type="button" class="btn" style="background:#8E44AD;margin-top:8px" onclick="preventasAbrirCalculadoraCuotas()">💳 Calcular cuotas</button>
 
       <label>Cobrado en ($):</label>
       <div class="fila4">
-        <div><label style="font-size:11px">Efectivo</label><input type="number" id="p_efec" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Transferencia</label><input type="number" id="p_transf" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Cuotas</label><input type="number" id="p_cuotas" value="0" min="0" oninput="preventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="0" min="0" oninput="preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="p_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="p_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="p_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); preventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="p_usd" value="" placeholder="0" min="0" oninput="preventasCalcTotal()"/></div>
       </div>
       <div class="total" id="p_totalDiv">Total cobrado: $0</div>
     </div>
 
-    <label>Observaciones:</label>
-    <input type="text" id="p_obs" placeholder="Opcional"/>
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">4</span> Fecha de entrega</p>
+      <div class="box box-info" style="margin-top:0">
+        <label style="margin-top:0">📅 Fecha de entrega</label>
+        <div class="p-fp-wrap">
+          <input type="text" id="p_fechaHasta_txt" readonly placeholder="Elegí una fecha" onclick="preventasFechaEntregaAbrir()"/>
+          <input type="hidden" id="p_fechaHasta"/>
+          <div id="p_fechaEntregaCal" class="p-fp-cal" style="display:none"></div>
+        </div>
+        <div class="hint" id="p_plazoHint">Calculando fecha sugerida...</div>
+        <div class="hint">Se sugiere sola a 10 días hábiles desde la "Fecha preventa" (sin contar sábados, domingos ni feriados) y ya tiene en cuenta el cupo diario/de fin de mes — esperá que aparezca antes de registrar. El calendario marca en gris los días no hábiles y en rojo los que ya tienen el cupo de entregas completo: no se pueden elegir, tocá otro día.</div>
+      </div>
 
-    <button type="button" class="btn" onclick="preventasEnviar()">✅ Registrar preventa</button>
+      <label>Observaciones:</label>
+      <input type="text" id="p_obs" placeholder="Opcional"/>
+
+      <button type="button" class="btn" onclick="preventasEnviar()">✅ Registrar preventa</button>
+    </div>
     </form>
+  </div>
+
+  <!-- ============================================================
+       PANEL DE SEGUIMIENTO — calendario + lista de preventas pendientes
+       de entrega, para reorganizarse por fecha límite. Solo lectura +
+       atajo a "Editar": el guardado real sigue siendo 100% el mecanismo
+       de corrección que ya existe (misOperacionesCorregir → iniciarCorreccion
+       → preventasPrecargarCorreccion → corregirPreventa, operadores.gs), así
+       que cualquier cambio que se haga desde acá queda en Preventas,
+       Libro Diario, Auditoría y Correcciones exactamente igual que si se
+       editara desde Mis Operaciones — no hay ninguna copia de los datos.
+       ============================================================ -->
+  <div class="panel" id="p_seguimientoPanel">
+    <h3 style="margin-bottom:2px">📅 Entregas pendientes</h3>
+    <div class="hint" style="margin-top:0">Tocá un día o una fila de la lista para editarla. También podés <b>arrastrar una fila y soltarla sobre un día</b> del calendario para reprogramar esa entrega (te abre la corrección con la fecha ya cargada, vos confirmás).</div>
+
+    <div id="p_calWrap" style="margin-top:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <button type="button" class="btn" style="width:auto;padding:4px 10px;margin:0;background:#5D6D7E" onclick="preventasCalMes(-1)">‹</button>
+        <b id="p_calTitulo" style="font-size:13px"></b>
+        <button type="button" class="btn" style="width:auto;padding:4px 10px;margin:0;background:#5D6D7E" onclick="preventasCalMes(1)">›</button>
+      </div>
+      <div id="p_calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:10.5px;color:#7B8794">
+        <span>🔴 Vencida</span><span>🟡 Hoy/mañana</span><span>🟢 En plazo</span><span>🚫 No hábil (fin de semana/feriado)</span><span>El numerito es cuántas entregan ese día — pasá el mouse para ver cuáles</span>
+      </div>
+      <div id="p_calTooltip" class="p-cal-tooltip"></div>
+    </div>
+
+    <hr style="border:none;border-top:1px solid #E4E7EC;margin:14px 0">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <b style="font-size:12.5px">Todas las pendientes</b>
+      <span id="p_segCant" style="font-size:11px;color:#7B8794"></span>
+    </div>
+    <input type="text" id="p_segBuscar" class="p-seg-buscador" placeholder="🔎 Buscar por cliente, modelo o Nº..." oninput="preventasSegRenderLista()"/>
+    <div class="p-seg-tabla-wrap">
+      <table class="p-seg-tabla">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Persona</th><th>Objeto</th><th>Monto</th><th>Saldo</th><th>Monto diario</th><th>Toma</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="p_segLista"></tbody>
+      </table>
+    </div>
+  </div>
   </div>
 </div>
 
 <script>
   document.getElementById("p_fecha").value = new Date().toISOString().split("T")[0];
+
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardPreventa = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#preventas_form .paso")),
+    { validar: function(i){
+        if (i === 0 && !document.getElementById("p_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+        if (i === 1) {
+          if (!document.getElementById("p_modelo").value.trim()) return { ok:false, msg:"Ingresá el modelo solicitado." };
+          if (!document.getElementById("p_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
+        }
+        if (i === 2 && valorNumerico(document.getElementById("p_precioVenta")) <= 0) return { ok:false, msg:"Ingresá el precio de venta pactado." };
+        return { ok:true };
+      }
+    }
+  );
 
   // ------------------------------------------------------------
   //  PLAZO DE ENTREGA (7 a 10 días hábiles) — dias_habiles.gs.
@@ -109,23 +377,197 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
 
-  /** Recalcula fechaDesde/fechaHasta sugeridas y el hint de plazo. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve el rango). */
+  /** Sugiere la fecha de entrega (10 días hábiles desde "Fecha preventa", sin contar sábados/domingos/feriados) y actualiza el hint. Se llama al cargar la vista y cada vez que cambia "Fecha preventa" (incluyendo si un feriado nuevo mueve la fecha). */
+  // Mapa "yyyy-MM-dd" -> descripción, cargado desde CONFIG_FERIADOS
+  // (dias_habiles.gs) para que el calendario del panel de seguimiento
+  // pueda marcar los días no hábiles — mismo criterio que ya usa el
+  // backend (operadores.gs) para no reprogramar entregas en fin de
+  // semana/feriado.
+  var _feriadosMap = {};
+
+  /**
+   * Sugiere la fecha de entrega YA respetando el cupo diario/de fin de mes
+   * (calcularRangoEntregaPreventaConCupo, operadores.gs) — antes solo se
+   * calculaban los 10 días hábiles sin mirar el cupo, así que acá podía
+   * aparecer sugerido un día que el calendario de al lado ya mostraba
+   * lleno; recién al confirmar el backend lo reprogramaba en silencio. Se
+   * llama al cargar la vista, si cambia "Fecha preventa", y cada vez que
+   * cambia el precio pactado (el cupo también depende del monto).
+   */
   function preventasRecalcularPlazoEntrega(){
     var fecha = document.getElementById("p_fecha").value;
     if (!fecha) return;
+    var monto = valorNumerico(document.getElementById("p_precioVenta"));
     google.script.run
       .withSuccessHandler(function(rango){
-        document.getElementById("p_fechaDesde").value = rango.fechaMinima;
-        document.getElementById("p_fechaHasta").value = rango.fechaMaxima;
-        document.getElementById("p_plazoHint").textContent =
-          "Plazo permitido: del " + preventasFmtDDMMYYYY(rango.fechaMinima) + " al " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (7 a 10 días hábiles).";
+        // Una sola fecha (Parte 6): se pide un único "Fecha de entrega",
+        // no un rango — se sugiere la de 10 días hábiles (rango.fechaMaxima),
+        // ya ajustada por cupo, que es el mismo dato que ya usa el resto del
+        // sistema (cupo diario, calendario del panel) como "Fecha Prometida Hasta".
+        preventasFechaEntregaSet(rango.fechaMaxima);
+        document.getElementById("p_plazoHint").textContent = rango.reprogramada
+          ? "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (los 10 días hábiles caían en un día sin cupo disponible, se corrió a la próxima fecha libre)."
+          : "Fecha sugerida: " + preventasFmtDDMMYYYY(rango.fechaMaxima) + " (10 días hábiles).";
+        _feriadosMap = rango.feriados || {};
+        preventasSegRenderCalendario();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .calcularRangoEntregaPreventa(fecha);
+      .calcularRangoEntregaPreventaConCupo(fecha, monto);
   }
 
   document.getElementById("p_fecha").addEventListener("change", preventasRecalcularPlazoEntrega);
-  preventasRecalcularPlazoEntrega();
+  // Deferida a "load" (mismo mecanismo que _comprasCuandoListo en
+  // compras.html): esta función ahora usa valorNumerico(), definida en el
+  // <script> de index.html, que en la página final puede terminar de
+  // ejecutarse DESPUÉS que este archivo — llamarla ya mismo reproduciría el
+  // mismo "ReferenceError" de orden de scripts que se encontró en Compras.
+  _comprasCuandoListo(preventasRecalcularPlazoEntrega);
+
+  // ============================================================
+  //  MINI-CALENDARIO PARA "FECHA DE ENTREGA" — reemplaza al <input
+  //  type="date"> nativo (que no puede marcar días bloqueados). Usa
+  //  exactamente las mismas reglas que ya aplica el backend
+  //  (_capacidadEntregaPreventa_/_usadosParaFecha_, operadores.gs) para que
+  //  el operador vea de entrada qué días no puede elegir, en vez de
+  //  enterarse recién después de registrar que la fecha se reprogramó
+  //  sola. Si de todos modos elige algo inválido (dato viejo, carrera con
+  //  otra carga simultánea), el backend sigue siendo la autoridad final:
+  //  reprograma solo igual.
+  // ============================================================
+  var _fpMes = new Date();
+
+  function preventasFechaEntregaSet(iso){
+    document.getElementById("p_fechaHasta").value = iso || "";
+    document.getElementById("p_fechaHasta_txt").value = iso ? preventasFmtDDMMYYYY(iso) : "";
+  }
+
+  function preventasFechaEntregaAbrir(){
+    var cal = document.getElementById("p_fechaEntregaCal");
+    var abriendo = cal.style.display === "none";
+    if (abriendo) {
+      var actual = document.getElementById("p_fechaHasta").value;
+      if (actual) { var p = actual.split("-"); _fpMes = new Date(+p[0], +p[1]-1, 1); }
+      preventasFechaEntregaRender();
+    }
+    cal.style.display = abriendo ? "block" : "none";
+  }
+
+  document.addEventListener("click", function(ev){
+    var wrap = document.querySelector("#view-preventas .p-fp-wrap");
+    if (!wrap) return;
+    // composedPath() en vez de ev.target: los botones de mes (‹ ›) vuelven a
+    // dibujar el calendario en su propio click (preventasFechaEntregaMes →
+    // innerHTML nuevo), así que el <button> que se tocó queda desconectado
+    // del documento justo antes de que este listener se ejecute — con
+    // ev.target, wrap.contains(ev.target) daba false (nodo ya removido) y
+    // el calendario se cerraba solo en cada cambio de mes. composedPath()
+    // conserva la cadena de ancestros tal como estaba en el momento del
+    // click, sin importar qué se haya reemplazado después.
+    var path = ev.composedPath ? ev.composedPath() : [ev.target];
+    if (path.indexOf(wrap) === -1) document.getElementById("p_fechaEntregaCal").style.display = "none";
+  });
+
+  function _fpEsFinDeMes_(fecha){
+    var diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth()+1, 0).getDate();
+    return (diasEnMes - fecha.getDate()) < 5;
+  }
+  function _fpCapacidad_(fecha){
+    return _fpEsFinDeMes_(fecha) ? { maxEquipos: 5, maxMonto: 5000000 } : { maxEquipos: 3, maxMonto: 2500000 };
+  }
+  /** Igual criterio que el backend: si `fecha` cae en el bloque de fin de mes, suma lo usado en los últimos 5 días juntos; si no, solo ese día. */
+  function _fpUsados_(fecha, porDia){
+    if (!_fpEsFinDeMes_(fecha)) {
+      var key = _fpISO_(fecha);
+      return porDia[key] || { cant: 0, monto: 0 };
+    }
+    var anio = fecha.getFullYear(), mes = fecha.getMonth();
+    var diasEnMes = new Date(anio, mes+1, 0).getDate();
+    var total = { cant: 0, monto: 0 };
+    for (var d = diasEnMes - 4; d <= diasEnMes; d++) {
+      var u = porDia[_fpISO_(new Date(anio, mes, d))];
+      if (u) { total.cant += u.cant; total.monto += u.monto; }
+    }
+    return total;
+  }
+  function _fpISO_(fecha){
+    return fecha.getFullYear() + "-" + String(fecha.getMonth()+1).padStart(2,"0") + "-" + String(fecha.getDate()).padStart(2,"0");
+  }
+
+  function preventasFechaEntregaRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var anio = _fpMes.getFullYear(), mes = _fpMes.getMonth();
+
+    // Cupo ya usado por día, a partir de las preventas pendientes ya cargadas
+    // (_segPreventas, panel de seguimiento) — no hace falta otra llamada al
+    // backend. Si se está corrigiendo una preventa existente, se excluye a
+    // sí misma (si no, se contaría dos veces contra su propio cupo).
+    var excluirNPre = (typeof _correccion !== "undefined" && _correccion && _correccion.numeroOriginal) || null;
+    var porDia = {};
+    (_segPreventas || []).forEach(function(p){
+      if (excluirNPre && p.nPre === excluirNPre) return;
+      if (!p.fechaHasta) return;
+      if (!porDia[p.fechaHasta]) porDia[p.fechaHasta] = { cant: 0, monto: 0 };
+      porDia[p.fechaHasta].cant++;
+      porDia[p.fechaHasta].monto += Number(p.precio) || 0;
+    });
+    var montoNuevo = valorNumerico(document.getElementById("p_precioVenta"));
+
+    var seleccionada = document.getElementById("p_fechaHasta").value;
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes+1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1;padding:2px 0'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='p-cal-dia p-cal-otromes'></div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var iso = _fpISO_(fechaDia);
+      var diaSemana = fechaDia.getDay();
+      var descFeriado = _feriadosMap[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var esSeleccionada = iso === seleccionada;
+
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (esSeleccionada ? " p-fp-seleccionado" : "");
+      var attrs = "";
+      if (esNoHabil) {
+        clases += " p-cal-nohabil";
+        attrs = " title='" + (descFeriado ? esc_(descFeriado) : "Fin de semana") + " — no hábil'";
+      } else {
+        var limites = _fpCapacidad_(fechaDia);
+        var usados = _fpUsados_(fechaDia, porDia);
+        var entra = usados.cant < limites.maxEquipos && (usados.monto + montoNuevo) <= limites.maxMonto;
+        if (entra) {
+          attrs = " onclick=\"preventasFechaEntregaElegir('" + iso + "')\" style='cursor:pointer'";
+        } else {
+          clases += " p-fp-lleno";
+          attrs = " title='Cupo de entregas completo para esta fecha'";
+        }
+      }
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + "</div>");
+    }
+
+    document.getElementById("p_fechaEntregaCal").innerHTML =
+      "<div class='p-fp-nav'>" +
+        "<button type='button' class='btn' style='width:auto;padding:2px 8px;margin:0;background:#5D6D7E' onclick='preventasFechaEntregaMes(-1)'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' class='btn' style='width:auto;padding:2px 8px;margin:0;background:#5D6D7E' onclick='preventasFechaEntregaMes(1)'>›</button>" +
+      "</div>" +
+      "<div class='p-fp-grid'>" + celdas.join("") + "</div>" +
+      "<div class='p-fp-leyenda'><span>🚫 Gris: no hábil</span><span>🔴 Rojo: cupo de entregas completo</span></div>";
+  }
+
+  function preventasFechaEntregaMes(delta){
+    _fpMes.setMonth(_fpMes.getMonth() + delta);
+    preventasFechaEntregaRender();
+  }
+
+  function preventasFechaEntregaElegir(iso){
+    preventasFechaEntregaSet(iso);
+    document.getElementById("p_fechaEntregaCal").style.display = "none";
+  }
 
   // Precio Inteligente (precio_automatico.html, mismo helper que Ventas):
   // autocompleta Precio Preventa al seleccionar modelo SOLO si el operador
@@ -140,8 +582,11 @@
   // SOLO puede elegir un modelo existente, no texto libre. Autocompleta
   // SIEMPRE el Precio Preventa (nunca el Contado) — vía _precioAutoPreventas,
   // que decide si corresponde.
+  // No-strict: si el cliente pide un modelo que todavía no está en la Lista
+  // de Precios, el operador tiene que poder dejarlo cargado igual (el precio
+  // sugerido simplemente no se autocompleta en ese caso — se carga a mano).
   var _selectorModeloPreventas = crearSelectorModelos(document.getElementById("p_modelo"), {
-    strict: true,
+    strict: false,
     obtenerDatos: function(cb){ catalogoCompletoCargar(cb); },
     onSeleccion: function(fila){
       _precioAutoPreventas.autocompletar(fila.preventaARS || 0);
@@ -173,10 +618,19 @@
     });
   }
 
+  function preventasTogglePartePago(){
+    var on = document.getElementById("p_ppCheck").checked;
+    document.getElementById("p_ppWrap").style.display = on ? "flex" : "none";
+    if (!on) {
+      document.getElementById("p_ppEquipo").value = "";
+      document.getElementById("p_ppValor").value = "";
+    }
+  }
+
   function preventasCalcTotal(){
-    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("p_efec"));
+    var tr = valorNumerico(document.getElementById("p_transf"));
+    var cu = valorNumerico(document.getElementById("p_cuotas"));
     var us = parseFloat(document.getElementById("p_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var t = ef + tr + cu + usPesos;
@@ -191,26 +645,39 @@
     _selectorModeloPreventas.setValor(datos["Modelo Solicitado"] || "");
     document.getElementById("p_cliente").value     = datos["Cliente"] || "";
     document.getElementById("p_cuil").value        = datos["CUIL Cliente"] || "";
-    document.getElementById("p_vendedor").value    = datos["Vendedor"] || "Martin";
+    document.getElementById("p_domicilio").value   = datos["Domicilio Cliente"] || "";
+    document.getElementById("p_email").value       = datos["Email Cliente"] || "";
+    document.getElementById("p_imei").value        = datos["IMEI Solicitado"] || "";
+    document.getElementById("p_color").value       = datos["Color Solicitado"] || "";
+    document.getElementById("p_estadoRequerido").value = datos["Estado Requerido"] || "";
     document.getElementById("p_tel").value         = datos["Teléfono"] || "";
+    var ppEquipo = datos["Equipo Parte De Pago"] || "";
+    document.getElementById("p_ppCheck").checked = !!ppEquipo;
+    document.getElementById("p_ppEquipo").value = ppEquipo;
+    setInputMoneda(document.getElementById("p_ppValor"), datos["Valor Parte De Pago"] || 0);
+    preventasTogglePartePago();
     _precioAutoPreventas.setValorConfirmado(datos["Precio Venta Pactado"] || 0);
-    document.getElementById("p_efec").value        = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("p_transf").value      = datos["Cobrado Transferencia"] || 0;
-    document.getElementById("p_cuotas").value       = datos["Cobrado Cuotas"] || 0;
-    document.getElementById("p_usd").value          = datos["Cobrado USD"] || 0;
+    setInputMoneda(document.getElementById("p_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("p_transf"), datos["Cobrado Transferencia"] || 0);
+    setInputMoneda(document.getElementById("p_cuotas"), datos["Cobrado Cuotas"] || 0);
+    document.getElementById("p_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("p_obs").value          = datos["Observaciones"] || "";
-    var fDesde = fechaParaInput(datos["Fecha Prometida Desde"]);
     var fHasta = fechaParaInput(datos["Fecha Prometida Hasta"]);
-    if (fDesde) document.getElementById("p_fechaDesde").value = fDesde;
-    if (fHasta) document.getElementById("p_fechaHasta").value = fHasta;
+    if (fHasta) preventasFechaEntregaSet(fHasta);
+    if (_segDropTargetFecha) {
+      preventasFechaEntregaSet(_segDropTargetFecha);
+      mostrarToast("📅 Fecha de entrega propuesta: " + preventasFmtDDMMYYYY(_segDropTargetFecha) + ". Revisá y confirmá la corrección.", "info");
+      _segDropTargetFecha = null;
+    }
     preventasCalcTotal();
+    if (_wizardPreventa) _wizardPreventa.ir(0);
   }
 
   function preventasEnviar(){
-    var pv = parseFloat(document.getElementById("p_precioVenta").value) || 0;
-    var ef = parseFloat(document.getElementById("p_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("p_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("p_cuotas").value) || 0;
+    var pv = valorNumerico(document.getElementById("p_precioVenta"));
+    var ef = valorNumerico(document.getElementById("p_efec"));
+    var tr = valorNumerico(document.getElementById("p_transf"));
+    var cu = valorNumerico(document.getElementById("p_cuotas"));
     var us = parseFloat(document.getElementById("p_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var total = ef + tr + cu + usPesos;
@@ -218,9 +685,11 @@
     if (!document.getElementById("p_operador").value) { mostrarToast("Seleccioná el operador.", "error"); return; }
     if (!document.getElementById("p_cliente").value.trim()) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
     if (!document.getElementById("p_modelo").value.trim()) { mostrarToast("Ingresá el modelo solicitado.", "error"); return; }
-    if (!document.getElementById("p_vendedor").value.trim()) { mostrarToast("Ingresá el nombre del vendedor.", "error"); return; }
     if (pv <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
     if (total <= 0) { mostrarToast("Debe registrarse al menos un cobro.", "error"); return; }
+    if (document.getElementById("p_ppCheck").checked && !document.getElementById("p_ppEquipo").value.trim()) {
+      mostrarToast("Indicá qué equipo entrega el cliente en parte de pago (o destildá la opción).", "error"); return;
+    }
 
     var d = {
       fecha: document.getElementById("p_fecha").value,
@@ -228,10 +697,21 @@
       cliente: document.getElementById("p_cliente").value.trim(),
       cuil: document.getElementById("p_cuil").value.trim(),
       tel: document.getElementById("p_tel").value.trim(),
-      vendedor: document.getElementById("p_vendedor").value.trim(),
+      domicilio: document.getElementById("p_domicilio").value.trim(),
+      email: document.getElementById("p_email").value.trim(),
+      imei: document.getElementById("p_imei").value.trim(),
+      color: document.getElementById("p_color").value.trim(),
+      estadoRequerido: document.getElementById("p_estadoRequerido").value.trim(),
+      partePagoEquipo: document.getElementById("p_ppCheck").checked ? document.getElementById("p_ppEquipo").value.trim() : "",
+      partePagoValor: document.getElementById("p_ppCheck").checked ? valorNumerico(document.getElementById("p_ppValor")) : 0,
+      vendedor: document.getElementById("p_operador").value,
       precioVenta: pv,
       efec: ef, transf: tr, cuotas: cu, usd: us,
-      fechaDesde: document.getElementById("p_fechaDesde").value,
+      // Una sola fecha de entrega (Parte 6): se manda el mismo valor como
+      // Desde y Hasta — el backend (Code.gs/operadores.gs) sigue guardando
+      // ambas columnas por compatibilidad con el cupo diario y el
+      // calendario del panel, que usan "Fecha Prometida Hasta".
+      fechaDesde: document.getElementById("p_fechaHasta").value,
       fechaHasta: document.getElementById("p_fechaHasta").value,
       obs: document.getElementById("p_obs").value.trim(),
       operador: document.getElementById("p_operador").value
@@ -242,11 +722,26 @@
     confirmarAccion("¿Confirmás registrar la preventa de " + d.modelo + " para " + d.cliente + "?").then(function(ok){
       if (!ok) return;
       llamarBackend("procesarPreventaConOperador", d, function(msg){
-        mostrarToastOperacion(msg);
+        mostrarToastOperacion(msg, d.tel);
         cargarDashboard();
         preventasLimpiarForm();
       });
     });
+  }
+
+  /** Reutilizable desde el botón "🖨 Recibo" del toast de éxito (mostrarToastOperacion, index.html) y desde Mis Operaciones (reimpresión) — mismo patrón que imprimirReciboVenta (ventas.html): el click del operador abre la ventana en el momento, sin ningún hueco de por medio antes de pedirle el HTML al backend. */
+  function imprimirReciboPreventa(numeroPreventa){
+    if (!numeroPreventa) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboPreventa(numeroPreventa);
   }
 
   /** Deja "Registrar Preventa" en blanco y listo para la próxima carga. Reutilizada tanto tras una preventa normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
@@ -258,7 +753,229 @@
       despues: function(){
         preventasCalcTotal();
         preventasRecalcularPlazoEntrega(); // form.reset() no dispara "change" en p_fecha
+        preventasTogglePartePago(); // form.reset() no dispara "change" en el checkbox
+        document.getElementById("p_fechaEntregaCal").style.display = "none";
       }
     });
+    preventasSegCargar(); // refresca el panel de seguimiento con lo que se acaba de guardar
+    if (_wizardPreventa) _wizardPreventa.ir(0);
+  }
+
+  // ============================================================
+  //  PANEL DE SEGUIMIENTO (calendario + lista) — solo lectura + atajo a
+  //  "Editar". El único camino real de guardado sigue siendo
+  //  misOperacionesCorregir() → iniciarCorreccion() (index.html) →
+  //  preventasPrecargarCorreccion() → corregirPreventa() (operadores.gs):
+  //  este panel no escribe nada por su cuenta, solo lee y dispara ese
+  //  mismo mecanismo — así cualquier edición hecha desde acá queda
+  //  registrada en Preventas/Libro Diario/Auditoría/Correcciones igual
+  //  que si se hiciera desde Mis Operaciones.
+  // ============================================================
+  var _segPreventas = [];
+  var _segCalFecha = new Date(); // mes que se está mostrando en el calendario
+  var _segDropTargetFecha = null; // fecha (ISO) soltada por drag&drop, se aplica al precargar la corrección
+
+  function preventasInit(){
+    preventasSegCargar();
+  }
+
+  function preventasSegCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var hoy = new Date(); hoy.setHours(0,0,0,0);
+        _segPreventas = (datos || []).filter(function(p){ return p.fechaHasta; }).map(function(p){
+          var partes = p.fechaHasta.split("-");
+          var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+          var diasRestantes = Math.round((limite - hoy) / 86400000);
+          // "Monto diario" = cuánto tendría que ir cobrando por día, en promedio, para llegar
+          // sin saldo a la fecha límite — la misma idea que la columna "MONTO DIARIO" de la
+          // planilla manual, pero calculada sola a partir del saldo y los días que faltan.
+          var montoDiario = (p.saldo > 0) ? p.saldo / Math.max(diasRestantes, 1) : 0;
+          p.diasRestantes = diasRestantes;
+          p.montoDiario = montoDiario;
+          return p;
+        });
+        preventasSegRenderCalendario();
+        preventasSegRenderLista();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregables();
+  }
+
+  /** "Roja" (vencida), "amarilla" (hoy o mañana) o "verde" (en plazo) según cuántos días faltan hasta fechaHasta. */
+  function preventasSegSeveridad(fechaHastaISO){
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var partes = fechaHastaISO.split("-");
+    var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+    var dias = Math.round((limite - hoy) / 86400000);
+    if (dias < 0) return "roja";
+    if (dias <= 1) return "amarilla";
+    return "verde";
+  }
+
+  function preventasCalMes(delta){
+    _segCalFecha.setMonth(_segCalFecha.getMonth() + delta);
+    preventasSegRenderCalendario();
+  }
+
+  function preventasSegRenderCalendario(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var anio = _segCalFecha.getFullYear(), mes = _segCalFecha.getMonth();
+    document.getElementById("p_calTitulo").textContent = MESES[mes] + " " + anio;
+
+    // Peor severidad del día (roja > amarilla > verde) y cantidad de preventas, agrupando por fecha.
+    var porDia = {};
+    _segPreventas.forEach(function(p){
+      var partes = p.fechaHasta.split("-");
+      if (+partes[0] !== anio || (+partes[1]-1) !== mes) return;
+      var dia = +partes[2];
+      var sev = preventasSegSeveridad(p.fechaHasta);
+      var rango = { roja: 3, amarilla: 2, verde: 1 };
+      if (!porDia[dia]) porDia[dia] = { sev: sev, cant: 0 };
+      if (rango[sev] > rango[porDia[dia].sev]) porDia[dia].sev = sev;
+      porDia[dia].cant++;
+    });
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay(); // 0=domingo
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1;padding:2px 0'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='p-cal-dia p-cal-otromes'></div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var info = porDia[d];
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var iso = anio + "-" + String(mes+1).padStart(2,"0") + "-" + String(d).padStart(2,"0");
+      var diaSemana = new Date(anio, mes, d).getDay();
+      var descFeriado = _feriadosMap[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var clases = "p-cal-dia" + (esHoy ? " p-cal-hoy" : "") + (esNoHabil ? " p-cal-nohabil" : "") + (info ? " p-cal-clickable p-cal-" + info.sev : "");
+      var attrs = " data-fecha='" + iso + "'" +
+        (esNoHabil ? " title='" + (descFeriado ? esc_(descFeriado) : "Fin de semana") + " — no hábil'" : "") +
+        " ondragover=\"preventasSegDragOver(event)\" ondragleave=\"preventasSegDragLeave(event)\" ondrop=\"preventasSegDrop(event,'" + iso + "')\"";
+      if (info) {
+        attrs += " onclick=\"preventasSegFiltrarDia(" + anio + "," + mes + "," + d + ")\"" +
+          " onmouseenter=\"preventasSegTooltipMostrar(event,'" + iso + "')\" onmouseleave=\"preventasSegTooltipOcultar()\"";
+      }
+      var badge = info ? "<span class='p-cal-badge'>" + info.cant + "</span>" : "";
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + badge + "</div>");
+    }
+    document.getElementById("p_calGrid").innerHTML = celdas.join("");
+  }
+
+  function preventasSegTooltipMostrar(ev, isoFecha){
+    var deEseDia = _segPreventas.filter(function(p){ return p.fechaHasta === isoFecha; });
+    if (deEseDia.length === 0) return;
+    var partes = isoFecha.split("-");
+    var tt = document.getElementById("p_calTooltip");
+    tt.innerHTML = "<b>" + partes[2] + "/" + partes[1] + " — " + deEseDia.length + " entrega" + (deEseDia.length > 1 ? "s" : "") + "</b>" +
+      deEseDia.map(function(p){
+        return "<div class='p-cal-tt-row'><b style='margin:0;font-size:11.5px;font-weight:700;color:#fff'>" + esc_(p.cliente) + "</b> — " + esc_(p.modelo) + "</div>";
+      }).join("");
+    var rect = ev.currentTarget.getBoundingClientRect();
+    tt.style.display = "block";
+    tt.style.left = Math.min(rect.left, window.innerWidth - 260) + "px";
+    tt.style.top = (rect.bottom + 6) + "px";
+  }
+  function preventasSegTooltipOcultar(){
+    document.getElementById("p_calTooltip").style.display = "none";
+  }
+
+  function preventasSegDragOver(ev){ ev.preventDefault(); ev.currentTarget.classList.add("p-cal-dragover"); }
+  function preventasSegDragLeave(ev){ ev.currentTarget.classList.remove("p-cal-dragover"); }
+  function preventasSegDrop(ev, isoFecha){
+    ev.preventDefault();
+    ev.currentTarget.classList.remove("p-cal-dragover");
+    var nPre = ev.dataTransfer.getData("text/plain");
+    if (!nPre) return;
+    _segDropTargetFecha = isoFecha;
+    if (ev.currentTarget.classList.contains("p-cal-nohabil")) {
+      mostrarToast("⚠ Ese día no es hábil (fin de semana/feriado) — al confirmar, el sistema va a reprogramar la entrega sola al próximo día disponible.", "info");
+    }
+    preventasSegEditar(nPre);
+  }
+
+  var _segFiltroDia = null;
+  function preventasSegFiltrarDia(anio, mes, dia){
+    var key = anio + "-" + String(mes+1).padStart(2,"0") + "-" + String(dia).padStart(2,"0");
+    _segFiltroDia = (_segFiltroDia === key) ? null : key; // click de nuevo = saca el filtro
+    preventasSegRenderLista();
+  }
+
+  function preventasSegRenderLista(){
+    var lista = _segPreventas.slice().sort(function(a,b){ return a.fechaHasta.localeCompare(b.fechaHasta); });
+    if (_segFiltroDia) lista = lista.filter(function(p){ return p.fechaHasta === _segFiltroDia; });
+
+    var q = (document.getElementById("p_segBuscar").value || "").trim().toLowerCase();
+    if (q) {
+      lista = lista.filter(function(p){
+        return (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.nPre||"").toLowerCase().indexOf(q) >= 0 ||
+               (p.partePagoEquipo||"").toLowerCase().indexOf(q) >= 0;
+      });
+    }
+
+    document.getElementById("p_segCant").textContent = lista.length + (_segFiltroDia ? " ese día" : " en total");
+
+    if (lista.length === 0) {
+      document.getElementById("p_segLista").innerHTML = "<tr><td colspan='8' class='hint' style='margin:0'>" +
+        (q ? "Sin resultados para \"" + esc_(q) + "\"." : (_segFiltroDia ? "Nada para ese día." : "No hay preventas pendientes de entrega.")) + "</td></tr>";
+      return;
+    }
+
+    var ETIQUETAS = { roja: "Vencida", amarilla: "Próxima", verde: "En plazo" };
+    var COLORES = { roja: "#C0392B", amarilla: "#B7860B", verde: "#1E8449" };
+
+    document.getElementById("p_segLista").innerHTML = lista.map(function(p){
+      var sev = preventasSegSeveridad(p.fechaHasta);
+      var partesFecha = p.fechaHasta.split("-");
+      var fechaLinda = partesFecha[2] + "/" + partesFecha[1];
+      var subDias = p.diasRestantes < 0 ? "hace " + Math.abs(p.diasRestantes) + " días" :
+                    (p.diasRestantes === 0 ? "hoy" : "en " + p.diasRestantes + " días");
+      var toma = p.partePagoEquipo
+        ? "<div class='p-seg-nombre' style='font-size:11px'>🔁 " + esc_(p.partePagoEquipo) + "</div>" +
+          (p.partePagoValor > 0 ? "<div class='p-seg-sub'>" + fmtP(p.partePagoValor) + "</div>" : "")
+        : "<span class='p-seg-sub'>—</span>";
+      return "<tr class='p-seg-fila-" + sev + "' draggable='true'" +
+          " ondragstart=\"preventasSegDragStart(event,'" + p.nPre + "')\"" +
+          " ondragend=\"preventasSegDragEnd(event)\"" +
+          " onclick=\"preventasSegEditar('" + p.nPre + "')\">" +
+        "<td><span class='p-seg-fecha-chip' style='background:" + COLORES[sev] + "'>" + fechaLinda + "</span><div class='p-seg-sub'>" + subDias + "</div></td>" +
+        "<td><div class='p-seg-nombre'>" + esc_(p.cliente) + "</div>" + (p.tel ? "<div class='p-seg-sub'>" + esc_(p.tel) + "</div>" : "") + "</td>" +
+        "<td class='p-seg-td-objeto'>" + esc_(p.modelo) + "<div class='p-seg-sub'>" + p.nPre + " · " + ETIQUETAS[sev] + "</div></td>" +
+        "<td>" + fmtP(p.precio) + "</td>" +
+        "<td>" + (p.saldo > 0 ? fmtP(p.saldo) : "<span class='p-seg-sub'>saldado</span>") + "</td>" +
+        "<td>" + (p.montoDiario > 0 ? fmtP(Math.round(p.montoDiario)) : "—") + "</td>" +
+        "<td class='p-seg-td-objeto'>" + toma + "</td>" +
+        "<td><button type='button' class='p-seg-btn-entregar' title='Entregar (un click, con los valores por defecto)' onclick=\"event.stopPropagation(); preventasSegEntregarInstantaneo('" + p.nPre + "')\">🚚</button></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function preventasSegDragStart(ev, nPre){
+    ev.dataTransfer.setData("text/plain", nPre);
+    ev.dataTransfer.effectAllowed = "move";
+    ev.currentTarget.classList.add("p-seg-dragging");
+  }
+  function preventasSegDragEnd(ev){
+    ev.currentTarget.classList.remove("p-seg-dragging");
+  }
+
+  /** Igual que Mis Operaciones → "✏️ Editar": abre el formulario precargado, cualquier cambio pide motivo y queda registrado como corrección real. Si vino de un drag&drop sobre el calendario, precarga la fecha soltada en "Fecha Prometida Hasta" — el operador la ve y todavía tiene que confirmar la corrección. */
+  function preventasSegEditar(nPre){
+    misOperacionesCorregir(nPre);
+  }
+
+  /** Entrega en un click, sin modal (entregaInstantanea(), index.html): pensado para el caso normal, saldo $0 u operador Martin. Para cobro parcial u otro operador, tocá la fila para editar antes (preventasSegEditar). */
+  function preventasSegEntregarInstantaneo(nPre){
+    var p = _segPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (p && typeof entregaInstantanea === "function") entregaInstantanea(p);
+  }
+
+  function esc_(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 </script>

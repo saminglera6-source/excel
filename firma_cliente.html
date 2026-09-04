@@ -1,0 +1,115 @@
+<!-- ============================================================
+     Firma del cliente en pantalla — componente compartido, incluido una
+     sola vez desde index.html y usado desde cualquier vista (ventas,
+     preventas, compras, reparaciones, entregas) vía firmarYEnviarPorWhatsapp().
+     No reemplaza la impresión en papel: es un camino alternativo para
+     cuando el recibo se firma digital y se manda por WhatsApp en vez de
+     imprimirse.
+     ============================================================ -->
+<div id="firmaCliente-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.6);display:none;align-items:center;justify-content:center;z-index:10000">
+  <div style="background:#fff;border-radius:12px;padding:20px;max-width:480px;width:94%;box-shadow:0 12px 30px rgba(0,0,0,.3)">
+    <h3 id="firmaCliente-titulo" style="margin:0 0 4px;color:#1A5276">Firma del cliente</h3>
+    <div class="hint" style="margin-bottom:10px">Pasale el celular/tablet al cliente para que firme abajo con el dedo (o el mouse si es notebook).</div>
+    <div style="border:2px dashed #B8C4CE;border-radius:8px;touch-action:none">
+      <canvas id="firmaCliente-canvas" style="width:100%;display:block;cursor:crosshair;touch-action:none"></canvas>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" class="btn" style="margin:0;background:#5D6D7E" onclick="_firmaClienteBorrar()">🧹 Borrar</button>
+      <button type="button" class="btn" style="margin:0;background:#888" onclick="_firmaClienteCancelar()">Cancelar</button>
+      <button type="button" class="btn" style="margin:0;background:#1E8449" onclick="_firmaClienteConfirmar()">✅ Confirmar firma</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  var _firmaClienteResolve = null;
+  var _firmaClienteCtx = null;
+  var _firmaClienteDibujando = false;
+  var _firmaClienteTieneTrazo = false;
+
+  /** Devuelve una Promise<string|null>: el PNG en base64 (sin el prefijo "data:image/png;base64,") de la firma, o null si el empleado canceló o no se firmó nada. Usar con .then(), igual que confirmarAccion()/pedirOperador(). */
+  function capturarFirmaCliente(tituloOpcional){
+    document.getElementById("firmaCliente-titulo").textContent = tituloOpcional || "Firma del cliente";
+    document.getElementById("firmaCliente-overlay").style.display = "flex";
+    _firmaClienteInitCanvas();
+    return new Promise(function(resolve){ _firmaClienteResolve = resolve; });
+  }
+
+  function _firmaClienteInitCanvas(){
+    var canvas = document.getElementById("firmaCliente-canvas");
+    var ancho = canvas.parentElement.clientWidth;
+    // Pad grande: más superficie para dibujar la firma cómodo con el dedo.
+    var alto = Math.max(260, Math.round(ancho * 0.75));
+    var ratio = window.devicePixelRatio || 1;
+    canvas.width = ancho * ratio;
+    canvas.height = alto * ratio;
+    canvas.style.height = alto + "px";
+    _firmaClienteCtx = canvas.getContext("2d");
+    _firmaClienteCtx.scale(ratio, ratio);
+    _firmaClienteCtx.lineWidth = 2.6;
+    _firmaClienteCtx.lineCap = "round";
+    _firmaClienteCtx.lineJoin = "round";
+    _firmaClienteCtx.strokeStyle = "#1a1a1a";
+    _firmaClienteTieneTrazo = false;
+
+    var ultimoPunto = null;
+
+    // Pointer Events cubre mouse + touch + lápiz con el mismo código, sin
+    // tener que manejar mousedown/touchstart por separado. setPointerCapture +
+    // preventDefault en down/move evitan que el primer toque en un trackpad
+    // se "coma" el navegador (gesto de scroll/zoom) en vez de arrancar el
+    // trazo, que es lo que obligaba a tocar dos veces para poder escribir.
+    canvas.onpointerdown = function(e){
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      _firmaClienteDibujando = true;
+      ultimoPunto = _firmaClientePos(canvas, e);
+      _firmaClienteCtx.beginPath();
+      _firmaClienteCtx.moveTo(ultimoPunto.x, ultimoPunto.y);
+    };
+    canvas.onpointermove = function(e){
+      if (!_firmaClienteDibujando) return;
+      e.preventDefault();
+      var p = _firmaClientePos(canvas, e);
+      // Punto medio entre el anterior y el actual: suaviza el trazo para que
+      // los micro-movimientos del trackpad no generen líneas quebradas
+      // (menos "sensibilidad" percibida, trazo más parecido a una lapicera).
+      var medio = { x: (ultimoPunto.x + p.x) / 2, y: (ultimoPunto.y + p.y) / 2 };
+      _firmaClienteCtx.quadraticCurveTo(ultimoPunto.x, ultimoPunto.y, medio.x, medio.y);
+      _firmaClienteCtx.stroke();
+      ultimoPunto = p;
+      _firmaClienteTieneTrazo = true;
+    };
+    canvas.onpointerup = function(){ _firmaClienteDibujando = false; ultimoPunto = null; };
+    canvas.onpointerleave = function(){ _firmaClienteDibujando = false; ultimoPunto = null; };
+  }
+
+  function _firmaClientePos(canvas, e){
+    var rect = canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function _firmaClienteBorrar(){
+    var canvas = document.getElementById("firmaCliente-canvas");
+    _firmaClienteCtx.clearRect(0, 0, canvas.width, canvas.height);
+    _firmaClienteTieneTrazo = false;
+  }
+
+  function _firmaClienteCerrar(){
+    document.getElementById("firmaCliente-overlay").style.display = "none";
+  }
+
+  function _firmaClienteCancelar(){
+    _firmaClienteCerrar();
+    if (_firmaClienteResolve) { _firmaClienteResolve(null); _firmaClienteResolve = null; }
+  }
+
+  function _firmaClienteConfirmar(){
+    if (!_firmaClienteTieneTrazo) { mostrarToast("El cliente todavía no firmó — dibujá la firma en el recuadro.", "error"); return; }
+    var canvas = document.getElementById("firmaCliente-canvas");
+    var dataUrl = canvas.toDataURL("image/png");
+    var base64 = dataUrl.split(",")[1];
+    _firmaClienteCerrar();
+    if (_firmaClienteResolve) { _firmaClienteResolve(base64); _firmaClienteResolve = null; }
+  }
+</script>

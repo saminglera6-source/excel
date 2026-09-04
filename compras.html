@@ -1,18 +1,138 @@
 <div id="view-compras" class="view">
-  <div class="panel">
-    <h3>🛒 Registrar Compra / Consignación</h3>
+  <style>
+    /* ============================================================
+       REDISEÑO VISUAL — asistente paso a paso de Compras, con un
+       lenguaje mucho más limpio: menos "caja dentro de caja", tipografía
+       grande y clara, barra de progreso fina + puntos (en vez de
+       círculos numerados con etiquetas), botones tipo píldora, campos
+       sin bordes duros. Todo escapado a #view-compras — el resto del
+       ERP no cambia. No toca ningún id/función existente, solo el CSS
+       y la forma en que crearWizard() arma su propia navegación.
+       ============================================================ */
+    #view-compras {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-    <label>¿Qué querés registrar?</label>
-    <select id="c_modo" onchange="comprasToggleModo()">
-      <option value="EQUIPO">Compra equipo / Consignación</option>
-      <option value="ACCESORIOS">Compra accesorios</option>
-    </select>
+    /* Los dos cuestionarios (equipo/accesorios) uno al lado del otro,
+       independientes — sin selector que alterne entre ellos. Se apilan
+       en pantallas angostas. */
+    #view-compras .gp-compras-layout {
+      display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; justify-content: center;
+    }
+    #view-compras .gp-compras-layout > .panel {
+      flex: 1 1 480px; max-width: 560px; margin: 0; padding: 4px 40px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    /* Franja superior en degradé índigo-violeta, marca del ERP — le da presencia a la tarjeta en vez de ser un rectángulo blanco liso */
+    #view-compras .gp-compras-layout > .panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-compras .gp-compras-layout > .panel > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+
+    /* ---- Cabecera del paso: "PASO X DE N" + barra fina + puntos ---- */
+    #view-compras .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-compras .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-compras .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-compras .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-compras .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-compras .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-compras .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-compras .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+
+    /* ---- El "paso" pasa a ser contenido suelto, sin caja propia ---- */
+    #view-compras .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-compras .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-compras .paso-num { display: none; } /* el número ya lo dice el eyebrow */
+    /* Línea decorativa corta bajo el título de cada paso — mismo degradé de marca */
+    #view-compras .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+
+    /* ---- Campos: sin borde, fondo gris azulado clarito, foco en índigo ---- */
+    #view-compras label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-compras .paso > label:first-child,
+    #view-compras .paso > .fila2:first-child label,
+    #view-compras .paso > .fila4:first-child label { margin-top: 0; }
+    #view-compras input, #view-compras select, #view-compras textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-compras input::placeholder, #view-compras textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-compras input:focus, #view-compras select:focus, #view-compras textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-compras .req { color: #E11D48; }
+    #view-compras .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-compras .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-compras .box-info { background: #EEECFD; }
+    #view-compras .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+
+    /* ---- Botones: píldora en degradé de marca, con relieve sutil ---- */
+    #view-compras .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-compras .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-compras .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+
+    #view-compras .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-compras .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-compras .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-compras .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-compras .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+
+    /* Botón final de confirmación: ancho completo, más presencia, verde de marca */
+    #view-compras .gp-wizard-paso-final > .btn {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-compras .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="gp-compras-layout">
+  <div class="panel">
+    <h3>🛒 Registrar Compra de Equipo</h3>
 
     <form id="compras_form" onsubmit="return false;">
     <div id="c_bloqueEquipo">
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién carga esto y qué tipo de ingreso es?</p>
+      <p class="paso-titulo"><span class="paso-num">1</span> 👤 ¿Quién carga esto y qué tipo de ingreso es?</p>
       <label>Operador: <span class="req">*</span></label>
       <select id="c_operador" required>
         <option value="" disabled selected>Seleccionar...</option>
@@ -31,14 +151,39 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">2</span> Datos del equipo</p>
+      <p class="paso-titulo"><span class="paso-num">2</span> 🏢 Datos del proveedor</p>
 
       <label>Proveedor / Origen:</label>
       <input type="text" id="c_proveedor" placeholder="Ej: Juan Pérez, Particular"/>
 
-      <label>CUIL/CUIT proveedor (opcional):</label>
-      <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9"/>
-      <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
+      <div class="fila2">
+        <div>
+          <label>CUIL/CUIT proveedor (opcional):</label>
+          <input type="text" id="c_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
+        </div>
+        <div>
+          <label>Teléfono proveedor (opcional):</label>
+          <input type="text" id="c_telProveedor" placeholder="Ej: 2914123456"/>
+        </div>
+      </div>
+      <div class="hint">El CUIL/CUIT: completalo solo si necesitás facturar esta compra. El DNI de la cesión de titularidad se calcula solo a partir de este dato.</div>
+
+      <div class="fila2">
+        <div>
+          <label>Domicilio proveedor (opcional):</label>
+          <input type="text" id="c_domicilio" placeholder="Para la cesión de titularidad"/>
+        </div>
+        <div>
+          <label>Localidad proveedor (opcional):</label>
+          <input type="text" id="c_localidad" placeholder="Ej: Bahía Blanca"/>
+        </div>
+      </div>
+      <label>Email/Gmail proveedor (opcional):</label>
+      <input type="text" id="c_email" placeholder="Para la cesión de titularidad"/>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">3</span> 📱 Datos del equipo</p>
 
       <div class="fila2">
         <div>
@@ -69,16 +214,16 @@
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">3</span> Precio y forma de pago</p>
+      <p class="paso-titulo"><span class="paso-num">4</span> 💰 Precio y forma de pago</p>
 
       <div id="c_wrapPrecioCompra">
         <label>Precio de compra ($): <span class="req">*</span></label>
-        <input type="number" id="c_precioCompra" value="0" min="0"/>
+        <input type="text" inputmode="numeric" id="c_precioCompra" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
       </div>
 
       <div id="c_wrapPrecioConsig">
         <label>Precio acordado consignación ($): <span class="req">*</span></label>
-        <input type="number" id="c_precioConsig" value="0" min="0"/>
+        <input type="text" inputmode="numeric" id="c_precioConsig" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
       </div>
 
       <label>Forma de pago:</label>
@@ -89,26 +234,13 @@
     </div>
 
     <div class="paso paso-opcional">
-      <p class="paso-titulo"><span class="paso-num">4</span> ¿Necesita arreglo antes de ponerlo a la venta?</p>
-      <select id="c_reparacion" onchange="comprasActualizarVisibilidad()"><option>No</option><option>Sí</option></select>
+      <p class="paso-titulo"><span class="paso-num">5</span> 🔧 Reparación y preventa</p>
 
-      <div id="c_wrapReparacionEstimados" style="display:none;margin-top:10px">
-        <div class="hint">Son estimaciones para uso interno — no bloquean el registro de la compra. Cuando el equipo quede reparado, se marca desde "Mis Operaciones" (botón "🔧 Reparación lista") para que pase a estar disponible en la venta.</div>
-        <div class="fila2">
-          <div>
-            <label>Costo reparación estimado ($):</label>
-            <input type="number" id="c_costoRep" value="0" min="0"/>
-          </div>
-          <div>
-            <label>Precio estimado de venta ($):</label>
-            <input type="number" id="c_precioVenta" value="0" min="0"/>
-          </div>
-        </div>
-      </div>
-    </div>
+      <label>¿Necesita arreglo antes de ponerlo a la venta?</label>
+      <select id="c_reparacion"><option>No</option><option>Sí</option></select>
+      <div class="hint">Cuando el equipo quede reparado, se marca desde "Mis Operaciones" (botón "🔧 Reparación lista") para que pase a estar disponible en la venta.</div>
 
-    <div class="paso paso-opcional">
-      <p class="paso-titulo"><span class="paso-num">5</span> ¿Es para una preventa ya pactada?</p>
+      <label style="margin-top:20px">¿Es para una preventa ya pactada?</label>
       <select id="c_esPreventa" onchange="comprasTogglePreventa()">
         <option value="No">No</option>
         <option value="Si">Sí — vincular a preventa existente</option>
@@ -120,16 +252,25 @@
       </div>
     </div>
 
-    <label>Observaciones:</label>
-    <textarea id="c_obs"></textarea>
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">6</span> ✅ Revisión y confirmación</p>
+      <label>Observaciones:</label>
+      <textarea id="c_obs"></textarea>
 
-    <button type="button" class="btn" onclick="comprasEnviar()">✅ Registrar compra</button>
+      <button type="button" class="btn" onclick="comprasEnviar()">✅ Registrar compra</button>
     </div>
+    </div>
+    </form>
+  </div>
 
-    <div id="c_bloqueAccesorios" style="display:none">
+  <div class="panel">
+    <h3>📦 Registrar Compra de Accesorios</h3>
+
+    <form id="compras_acc_form" onsubmit="return false;">
+    <div id="c_bloqueAccesorios">
 
       <div class="paso">
-        <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién carga esto y cuándo?</p>
+        <p class="paso-titulo"><span class="paso-num">1</span> 👤 ¿Quién carga esto y cuándo?</p>
         <label>Operador: <span class="req">*</span></label>
         <select id="ca_operador" required>
           <option value="" disabled selected>Seleccionar...</option>
@@ -140,41 +281,154 @@
       </div>
 
       <div class="paso">
-        <p class="paso-titulo"><span class="paso-num">2</span> Proveedor</p>
+        <p class="paso-titulo"><span class="paso-num">2</span> 🏢 Proveedor</p>
         <label>Proveedor:</label>
         <input type="text" id="ca_proveedor" placeholder="Ej: Distribuidora ElectroMax"/>
         <label>CUIL/CUIT proveedor (opcional):</label>
-        <input type="text" id="ca_cuil" placeholder="Ej: 20-12345678-9"/>
+        <input type="text" id="ca_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
         <div class="hint">Completalo solo si necesitás facturar esta compra.</div>
       </div>
 
       <div class="paso">
-        <p class="paso-titulo"><span class="paso-num">3</span> Productos comprados</p>
+        <p class="paso-titulo"><span class="paso-num">3</span> 📦 Productos comprados</p>
+
+        <div class="box box-info">
+          <div class="hint" style="margin-top:0">Para lotes (ej. varios modelos de funda en una misma compra): completá acá lo que se repite en casi todas las líneas — cada línea nueva ya nace con estos valores, y solo te queda tocar modelo/color/cantidad en cada una.</div>
+          <div class="fila2">
+            <div><label style="font-size:11px">Categoría por defecto</label><select id="ca_defCat"></select></div>
+            <div><label style="font-size:11px">Marca / Calidad por defecto</label><input type="text" id="ca_defMarca" placeholder="Ej: Original, Alternativa, Genérica China"/></div>
+          </div>
+          <div class="fila2">
+            <div><label style="font-size:11px">Costo unitario por defecto ($)</label><input type="text" inputmode="numeric" id="ca_defCosto" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+            <div><label style="font-size:11px">Precio venta por defecto ($)</label><input type="text" inputmode="numeric" id="ca_defPrecio" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          </div>
+          <label style="font-size:11px">Stock mínimo por defecto</label><input type="number" id="ca_defMin" value="0" min="0" style="max-width:120px"/>
+        </div>
+
         <div id="ca_lineas"></div>
-        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="comprasAccLineaAgregar()">➕ Agregar línea</button>
+        <button type="button" class="btn" style="background:#2E86C1;margin-top:8px" onclick="comprasAccLineaAgregarConDefaults()">➕ Agregar línea</button>
         <div class="box box-info" id="ca_totalDiv" style="margin-top:10px;font-weight:bold">Costo total: $0</div>
       </div>
 
       <div class="paso">
-        <p class="paso-titulo"><span class="paso-num">4</span> ¿Cómo se pagó?</p>
+        <p class="paso-titulo"><span class="paso-num">4</span> 💳 ¿Cómo se pagó?</p>
         <div class="fila2" style="grid-template-columns:1fr 1fr 1fr">
-          <div><label style="font-size:11px">Efectivo</label><input type="number" id="ca_pagEfec" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Transferencia</label><input type="number" id="ca_pagTransf" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="ca_pagUsd" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="ca_pagEfec" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="ca_pagTransf" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="ca_pagUsd" value="" placeholder="0" min="0" oninput="comprasAccCalcTotal()"/></div>
         </div>
         <div class="total" id="ca_totalPagadoDiv">Total pagado: $0</div>
       </div>
 
-      <label>Observaciones:</label>
-      <textarea id="ca_obs"></textarea>
+      <div class="paso">
+        <p class="paso-titulo"><span class="paso-num">5</span> ✅ Revisión y confirmación</p>
+        <label>Observaciones:</label>
+        <textarea id="ca_obs"></textarea>
 
-      <button type="button" class="btn" onclick="comprasAccEnviar()">✅ Registrar compra de accesorios</button>
+        <button type="button" class="btn" onclick="comprasAccEnviar()">✅ Registrar compra de accesorios</button>
+      </div>
     </div>
     </form>
+  </div>
   </div>
 </div>
 
 <script>
+  // ============================================================
+  //  ASISTENTE PASO A PASO — antes se veían las 5-6 secciones de compras
+  //  todas juntas (el operador se sentía abrumado con tantos campos de
+  //  entrada); ahora se muestran de a una, con una barra de progreso
+  //  arriba (clickeable para volver a un paso ya visto) y botones
+  //  Atrás/Siguiente. "Siguiente" valida lo mínimo de ese paso antes de
+  //  dejar avanzar — la validación completa de siempre sigue estando en
+  //  comprasEnviar()/comprasAccEnviar() al confirmar, esto es solo para
+  //  no dejar avanzar con lo obviamente incompleto.
+  //  Reutilizable: recibe los .paso ya existentes en el DOM, no duplica
+  //  ningún campo ni lógica de negocio.
+  // ============================================================
+  function crearWizard(pasos, opts){
+    opts = opts || {};
+    var actual = 0;
+
+    // Cabecera: "PASO X DE N" + barra fina de progreso + puntos (clickeables,
+    // para saltar a un paso ya visto) — reemplaza los círculos numerados con
+    // etiqueta de antes por algo más parecido a un onboarding de app: menos
+    // texto en pantalla, la jerarquía la da el tamaño/orden, no las cajas.
+    var eyebrow = document.createElement("div");
+    eyebrow.className = "gp-wizard-eyebrow";
+    var progreso = document.createElement("div");
+    progreso.className = "gp-wizard-progreso";
+    progreso.innerHTML = "<div class='gp-wizard-progreso-fill'></div>";
+    var dots = document.createElement("div");
+    dots.className = "gp-wizard-dots";
+    pasos[0].parentNode.insertBefore(eyebrow, pasos[0]);
+    pasos[0].parentNode.insertBefore(progreso, pasos[0]);
+    pasos[0].parentNode.insertBefore(dots, pasos[0]);
+    pasos[pasos.length - 1].classList.add("gp-wizard-paso-final"); // botón final en verde (ver CSS)
+
+    var nav = document.createElement("div");
+    nav.className = "gp-wizard-nav";
+    nav.innerHTML =
+      '<button type="button" class="btn gp-wizard-atras">‹ Atrás</button>' +
+      '<button type="button" class="btn gp-wizard-siguiente">Siguiente ›</button>';
+    pasos[pasos.length - 1].parentNode.insertBefore(nav, pasos[pasos.length - 1].nextSibling);
+    var btnAtras = nav.querySelector(".gp-wizard-atras");
+    var btnSiguiente = nav.querySelector(".gp-wizard-siguiente");
+
+    dots.addEventListener("click", function(ev){
+      var punto = ev.target.closest(".gp-wizard-dot");
+      if (punto) ir(parseInt(punto.dataset.i, 10));
+    });
+    btnAtras.addEventListener("click", function(){ ir(actual - 1); });
+    btnSiguiente.addEventListener("click", function(){
+      var r = opts.validar ? opts.validar(actual) : null;
+      if (r && r.ok === false) { mostrarToast(r.msg || "Completá los datos de este paso.", "error"); return; }
+      ir(actual + 1);
+    });
+
+    function renderCabecera(){
+      eyebrow.textContent = "Paso " + (actual + 1) + " de " + pasos.length;
+      progreso.querySelector(".gp-wizard-progreso-fill").style.width = (((actual + 1) / pasos.length) * 100) + "%";
+      dots.innerHTML = pasos.map(function(p, i){
+        var estado = i < actual ? "hecho" : (i === actual ? "activo" : "");
+        return "<span class='gp-wizard-dot " + estado + "' data-i='" + i + "'></span>";
+      }).join("");
+    }
+
+    function ir(i){
+      if (i < 0 || i >= pasos.length) return;
+      actual = i;
+      pasos.forEach(function(p, idx){ p.style.display = (idx === actual) ? "" : "none"; });
+      btnAtras.style.display = (actual === 0) ? "none" : "inline-block";
+      btnSiguiente.style.display = (actual === pasos.length - 1) ? "none" : "inline-block";
+      renderCabecera();
+      if (opts.onCambiar) opts.onCambiar(actual);
+      pasos[actual].scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    ir(0);
+    return { ir: ir, actual: function(){ return actual; } };
+  }
+
+  /**
+   * Corre `fn` ya mismo si la página ya terminó de cargar del todo, o la
+   * deja pendiente hasta que termine (evento "load"). Apps Script arma la
+   * página final uniendo varios archivos, y el orden real en que cada
+   * <script> se ejecuta puede no ser el que uno espera — comprobado en
+   * producción: comprasActualizarVisibilidad() y comprasAccLineaAgregar()
+   * usan funciones definidas en el <script> de index.html
+   * (setInputMoneda/fmtP/cotizacionActual) que a veces todavía no existen
+   * en el instante exacto en que el navegador llega a esta parte del
+   * archivo. setTimeout(fn, 0) NO alcanza para esto — se probó y el error
+   * seguía apareciendo, el navegador puede disparar el timer antes de que
+   * terminen de correr los demás <script> de la página. El evento "load"
+   * sí espera a que la página esté 100% lista, sea cual sea el orden real.
+   */
+  function _comprasCuandoListo(fn){
+    if (document.readyState === "complete") fn();
+    else window.addEventListener("load", fn);
+  }
+
   document.getElementById("c_fecha").value = new Date().toISOString().split("T")[0];
   document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
 
@@ -189,73 +443,111 @@
   // incluye en index.html antes que precios_mac_ipad.html: para el momento
   // en que esta función realmente se ejecuta (usuario abriendo el dropdown)
   // todos los <script> de la página ya cargaron.
+  // No-strict: el buscador sugiere modelos de la Lista de Precios, pero el
+  // operador puede dejar cargado cualquier texto — hace falta poder
+  // registrar un equipo que todavía no está en esa lista (modelo nuevo,
+  // poco común, etc.) sin que quede bloqueado.
   var _selectorModeloCompras = crearSelectorModelos(document.getElementById("c_modelo"), {
-    strict: true,
+    strict: false,
     obtenerDatos: function(cb){ catalogoCompletoCargar(cb); }
   });
 
   var CATS_ACCESORIOS = ["Cargadores", "Auriculares", "Fundas", "Vidrios templados", "Cables", "Accesorios varios", "Otros"];
+  // Fundas y vidrios templados son específicos de un modelo — no tiene
+  // sentido cargar "100 fundas" como un solo producto genérico, porque
+  // después nada sabe para qué equipo sirve cada una (ni el regalo
+  // automático de bienvenida ni una venta futura pueden buscarla por
+  // modelo). Estas categorías obligan a elegir el modelo compatible, que
+  // se agrega al nombre del producto para que quede buscable por modelo
+  // igual que lo espera CONFIG_REGALOS/entregarRegalosAutomaticos_ (Code.gs).
+  var CATS_MODELO_ESPECIFICO = ["Fundas", "Vidrios templados"];
 
-  function comprasToggleModo(){
-    var modo = document.getElementById("c_modo").value;
-    document.getElementById("c_bloqueEquipo").style.display      = (modo === "EQUIPO") ? "block" : "none";
-    document.getElementById("c_bloqueAccesorios").style.display  = (modo === "ACCESORIOS") ? "block" : "none";
-  }
+  document.getElementById("ca_defCat").innerHTML = "<option value=''>— sin default —</option>" +
+    CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("");
 
   /**
    * Muestra solo el campo de precio que corresponde al tipo de ingreso
-   * elegido (COMPRA vs CONSIGNACION), y solo los campos de estimación de
-   * reparación si "¿Necesita arreglo?" está en "Sí". El campo que se oculta
-   * se resetea a 0 para no dejar un valor viejo cargado por error en un
-   * campo que ya no aplica (riesgo detectado en la auditoría de usabilidad:
-   * antes los dos precios quedaban siempre visibles y editables).
+   * elegido (COMPRA vs CONSIGNACION). El campo que se oculta se resetea a 0
+   * para no dejar un valor viejo cargado por error en un campo que ya no
+   * aplica (riesgo detectado en la auditoría de usabilidad: antes los dos
+   * precios quedaban siempre visibles y editables).
    */
   function comprasActualizarVisibilidad(){
     var tipo = document.getElementById("c_tipo").value;
     var esCompra = tipo === "COMPRA";
     document.getElementById("c_wrapPrecioCompra").style.display = esCompra ? "block" : "none";
     document.getElementById("c_wrapPrecioConsig").style.display = esCompra ? "none" : "block";
-    if (esCompra) document.getElementById("c_precioConsig").value = 0;
-    else document.getElementById("c_precioCompra").value = 0;
-
-    var necesitaRep = document.getElementById("c_reparacion").value === "Sí";
-    document.getElementById("c_wrapReparacionEstimados").style.display = necesitaRep ? "block" : "none";
-    if (!necesitaRep) {
-      document.getElementById("c_costoRep").value = 0;
-      document.getElementById("c_precioVenta").value = 0;
-    }
+    if (esCompra) setInputMoneda(document.getElementById("c_precioConsig"), 0);
+    else setInputMoneda(document.getElementById("c_precioCompra"), 0);
   }
-  comprasActualizarVisibilidad();
+  // Se difiere con setTimeout(...,0) en vez de llamarla directo acá: esta
+  // función usa setInputMoneda(), definida en el <script> de index.html —
+  // en algunos ordenes de carga real (Apps Script arma la página uniendo
+  // varios archivos, y el <script> de index.html puede terminar de
+  // ejecutarse después que el de compras.html) esa función todavía no
+  // existe en el instante exacto en que el navegador llega a esta línea,
+  // y tirar ReferenceError acá cortaba la ejecución de TODO lo que venía
+  // después en este mismo <script> — incluida la puesta en marcha del
+  // asistente paso a paso más abajo. setTimeout(fn, 0) pospone la llamada
+  // hasta que termine de correr el resto de los <script> de la página
+  // (sea cual sea el orden real), sin depender de adivinar ese orden.
+  _comprasCuandoListo(comprasActualizarVisibilidad);
+
+  /** Escapa para uso seguro dentro de un atributo value="..." armado con concatenación de strings (duplicar línea/defaults pueden traer texto con comillas). */
+  function _escAttr(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+  }
 
   var _caContador = 0;
-  function comprasAccLineaAgregar(){
+  /**
+   * valoresIniciales (opcional) precarga la línea nueva — desde los
+   * defaults del lote (comprasAccLineaAgregar() sin argumentos, botón
+   * "➕ Agregar línea") o clonando una línea existente entera
+   * (comprasAccLineaDuplicar()). En compras por lote (ej. 10 modelos de
+   * funda de la misma marca/costo/precio) esto evita re-tipear los mismos
+   * 5-6 campos en cada línea — solo quedan por tocar los que de verdad
+   * cambian línea a línea (modelo/color/cantidad).
+   */
+  function comprasAccLineaAgregar(valoresIniciales){
     _caContador++;
     var id = _caContador;
+    var v = valoresIniciales || {};
     var div = document.createElement("div");
     div.className = "box";
     div.id = "ca_linea-" + id;
     div.style.marginTop = "8px";
     div.innerHTML =
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'">' +
-          CATS_ACCESORIOS.map(function(c){ return "<option>"+c+"</option>"; }).join("") +
+        '<div><label style="font-size:11px">Categoría</label><select id="ca_cat-'+id+'" onchange="comprasAccToggleModelo('+id+')">' +
+          CATS_ACCESORIOS.map(function(c){ return "<option"+(c===v.categoria?" selected":"")+">"+c+"</option>"; }).join("") +
         '</select></div>' +
-        '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'"/></div>' +
+        '<div><label style="font-size:11px">Producto</label><input type="text" id="ca_prod-'+id+'" value="'+_escAttr(v.producto)+'"/></div>' +
+      '</div>' +
+      '<div id="ca_modeloWrap-'+id+'" style="display:none">' +
+        '<label style="font-size:11px">Modelo compatible <span class="req">*</span></label>' +
+        '<div class="gp-modelo-wrap" style="position:relative"><input type="text" id="ca_modelo-'+id+'" placeholder="Buscar modelo..." value="'+_escAttr(v.modelo)+'"/></div>' +
+        '<div class="hint">Se agrega al nombre del producto (ej. "Funda — iPhone 14 Pro") para que quede buscable por modelo.</div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Marca</label><input type="text" id="ca_marca-'+id+'"/></div>' +
-        '<div><label style="font-size:11px">Color</label><input type="text" id="ca_color-'+id+'"/></div>' +
+        '<div><label style="font-size:11px">Marca / Calidad</label><input type="text" id="ca_marca-'+id+'" placeholder="Ej: Original, Alternativa, Genérica" value="'+_escAttr(v.marca)+'"/></div>' +
+        '<div><label style="font-size:11px">Color</label><input type="text" id="ca_color-'+id+'" value="'+_escAttr(v.color)+'"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="1" min="1" oninput="comprasAccCalcTotal()"/></div>' +
-        '<div><label style="font-size:11px">Costo unitario ($)</label><input type="number" id="ca_costo-'+id+'" value="0" min="0" oninput="comprasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Cantidad</label><input type="number" id="ca_cant-'+id+'" value="'+(v.cantidad||1)+'" min="1" oninput="comprasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Costo unitario ($)</label><input type="text" inputmode="numeric" id="ca_costo-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this); comprasAccCalcTotal()"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Precio venta ($)</label><input type="number" id="ca_precio-'+id+'" value="0" min="0"/></div>' +
-        '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="0" min="0"/></div>' +
+        '<div><label style="font-size:11px">Precio venta ($)</label><input type="text" inputmode="numeric" id="ca_precio-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>' +
+        '<div><label style="font-size:11px">Stock mínimo</label><input type="number" id="ca_min-'+id+'" value="'+(v.stockMinimo||0)+'" min="0"/></div>' +
       '</div>' +
-      '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
+      '<div style="display:flex;gap:6px;margin-top:6px">' +
+        '<button type="button" class="btn" style="background:#5D6D7E;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaDuplicar('+id+')">📋 Duplicar línea</button>' +
+        '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="comprasAccLineaQuitar('+id+')">🗑 Quitar línea</button>' +
+      '</div>';
     document.getElementById("ca_lineas").appendChild(div);
+    if (v.costo)   setInputMoneda(document.getElementById("ca_costo-"+id), v.costo);
+    if (v.precio)  setInputMoneda(document.getElementById("ca_precio-"+id), v.precio);
+    if (v.categoria) comprasAccToggleModelo(id);
     comprasAccCalcTotal();
   }
 
@@ -265,23 +557,72 @@
     comprasAccCalcTotal();
   }
 
+  /** Clona una línea entera (todos sus campos, incluido modelo) — para variaciones puntuales dentro de un lote (ej. una marca distinta en el medio) sin tener que volver a completar todo desde cero. */
+  function comprasAccLineaDuplicar(id){
+    comprasAccLineaAgregar({
+      categoria:   document.getElementById("ca_cat-"+id).value,
+      producto:    document.getElementById("ca_prod-"+id).value,
+      modelo:      document.getElementById("ca_modelo-"+id) ? document.getElementById("ca_modelo-"+id).value : "",
+      marca:       document.getElementById("ca_marca-"+id).value,
+      color:       document.getElementById("ca_color-"+id).value,
+      cantidad:    parseInt(document.getElementById("ca_cant-"+id).value) || 1,
+      costo:       valorNumerico(document.getElementById("ca_costo-"+id)),
+      precio:      valorNumerico(document.getElementById("ca_precio-"+id)),
+      stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
+    });
+  }
+
+  /** ➕ Agregar línea (botón): arranca desde los defaults del lote, si hay alguno cargado. */
+  function comprasAccLineaAgregarConDefaults(){
+    comprasAccLineaAgregar({
+      categoria: document.getElementById("ca_defCat").value,
+      marca:     document.getElementById("ca_defMarca").value,
+      costo:     valorNumerico(document.getElementById("ca_defCosto")),
+      precio:    valorNumerico(document.getElementById("ca_defPrecio")),
+      stockMinimo: parseInt(document.getElementById("ca_defMin").value) || 0
+    });
+  }
+
+  /** Muestra/oculta y arma el selector de "Modelo compatible" para la línea id, según su categoría. No-strict: no todos los modelos posibles están necesariamente en "Lista de Precios" (ej. equipos viejos), así que se permite texto libre. */
+  var _selectoresModeloAcc = {};
+  function comprasAccToggleModelo(id){
+    var cat = document.getElementById("ca_cat-"+id).value;
+    var wrap = document.getElementById("ca_modeloWrap-"+id);
+    var esEspecifico = CATS_MODELO_ESPECIFICO.indexOf(cat) !== -1;
+    wrap.style.display = esEspecifico ? "block" : "none";
+    if (esEspecifico && !_selectoresModeloAcc[id]) {
+      _selectoresModeloAcc[id] = crearSelectorModelos(document.getElementById("ca_modelo-"+id), {});
+    }
+    if (!esEspecifico) document.getElementById("ca_modelo-"+id).value = "";
+  }
+
   function comprasAccLeerLineas(){
     var out = [];
+    var errores = [];
     document.querySelectorAll("[id^='ca_linea-']").forEach(function(div){
       var id = div.id.split("-")[1];
       var producto = document.getElementById("ca_prod-"+id).value.trim();
+      var categoria = document.getElementById("ca_cat-"+id).value;
+      if (!producto && CATS_MODELO_ESPECIFICO.indexOf(categoria) === -1) return;
+      var modelo = "";
+      if (CATS_MODELO_ESPECIFICO.indexOf(categoria) !== -1) {
+        modelo = document.getElementById("ca_modelo-"+id).value.trim();
+        if (!modelo) { errores.push('Falta el modelo compatible de "' + (producto || categoria) + '".'); return; }
+        producto = producto ? (producto + " — " + modelo) : (categoria.replace(/s$/, "") + " — " + modelo);
+      }
       if (!producto) return;
       out.push({
-        categoria: document.getElementById("ca_cat-"+id).value,
+        categoria: categoria,
         producto: producto,
         marca: document.getElementById("ca_marca-"+id).value.trim(),
         color: document.getElementById("ca_color-"+id).value.trim(),
         cantidad: parseInt(document.getElementById("ca_cant-"+id).value) || 0,
-        costoUnit: parseFloat(document.getElementById("ca_costo-"+id).value) || 0,
-        precioVenta: parseFloat(document.getElementById("ca_precio-"+id).value) || 0,
+        costoUnit: valorNumerico(document.getElementById("ca_costo-"+id)),
+        precioVenta: valorNumerico(document.getElementById("ca_precio-"+id)),
         stockMinimo: parseInt(document.getElementById("ca_min-"+id).value) || 0
       });
     });
+    out._errores = errores;
     return out;
   }
 
@@ -290,8 +631,8 @@
     var total = lineas.reduce(function(s,l){ return s + l.cantidad*l.costoUnit; }, 0);
     document.getElementById("ca_totalDiv").textContent = "Costo total: " + fmtP(total);
 
-    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
-    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var ef = valorNumerico(document.getElementById("ca_pagEfec"));
+    var tr = valorNumerico(document.getElementById("ca_pagTransf"));
     var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var totalPagado = ef + tr + usPesos;
@@ -305,13 +646,14 @@
     var operador = document.getElementById("ca_operador").value;
     if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
     var lineas = comprasAccLeerLineas();
+    if (lineas._errores && lineas._errores.length > 0) { mostrarToast(lineas._errores.join("\n"), "error"); return; }
     if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto.", "error"); return; }
     for (var i = 0; i < lineas.length; i++) {
       if (lineas[i].cantidad <= 0) { mostrarToast("Revisá la cantidad de: " + lineas[i].producto, "error"); return; }
     }
     var total = comprasAccCalcTotal();
-    var ef = parseFloat(document.getElementById("ca_pagEfec").value) || 0;
-    var tr = parseFloat(document.getElementById("ca_pagTransf").value) || 0;
+    var ef = valorNumerico(document.getElementById("ca_pagEfec"));
+    var tr = valorNumerico(document.getElementById("ca_pagTransf"));
     var us = parseFloat(document.getElementById("ca_pagUsd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var totalPagado = ef + tr + usPesos;
@@ -342,10 +684,14 @@
         ["ca_pagEfec","ca_pagTransf","ca_pagUsd"].forEach(function(id){ document.getElementById(id).value = 0; });
         document.getElementById("ca_fecha").value = new Date().toISOString().split("T")[0];
         comprasAccLineaAgregar();
+        if (_wizardAccesorios) _wizardAccesorios.ir(0);
       });
     });
   }
-  comprasAccLineaAgregar();
+  // Mismo motivo que el setTimeout de comprasActualizarVisibilidad más
+  // arriba: comprasAccLineaAgregar() → comprasAccCalcTotal() usa
+  // cotizacionActual y fmtP, definidas en index.html.
+  _comprasCuandoListo(comprasAccLineaAgregar);
 
   function comprasTogglePreventa(){
     var val = document.getElementById("c_esPreventa").value;
@@ -381,16 +727,18 @@
     document.getElementById("c_tipo").value          = datos["Tipo Ingreso"] || "COMPRA";
     document.getElementById("c_proveedor").value     = datos["Proveedor / Origen"] || "";
     document.getElementById("c_cuil").value          = datos["CUIL/CUIT Proveedor"] || "";
+    document.getElementById("c_telProveedor").value  = datos["Teléfono Proveedor"] || "";
+    document.getElementById("c_domicilio").value     = datos["Domicilio Proveedor"] || "";
+    document.getElementById("c_localidad").value     = datos["Localidad Proveedor"] || "";
+    document.getElementById("c_email").value         = datos["Email Proveedor"] || "";
     _selectorModeloCompras.setValor(datos["Equipo / Modelo"] || "");
     document.getElementById("c_imei").value          = datos["IMEI"] || "";
     document.getElementById("c_color").value         = datos["Color"] || "";
     document.getElementById("c_estadoFisico").value  = datos["Estado Físico"] || "Bueno";
-    document.getElementById("c_precioCompra").value  = datos["Precio Compra"] || 0;
-    document.getElementById("c_precioConsig").value  = datos["Precio Acordado Consignación"] || 0;
+    setInputMoneda(document.getElementById("c_precioCompra"), datos["Precio Compra"] || 0);
+    setInputMoneda(document.getElementById("c_precioConsig"), datos["Precio Acordado Consignación"] || 0);
     document.getElementById("c_formaPago").value     = datos["Forma de Pago Compra"] || "Efectivo";
     document.getElementById("c_reparacion").value    = datos["¿Necesita Reparación?"] || "No";
-    document.getElementById("c_costoRep").value      = datos["Costo Reparación Estimado"] || 0;
-    document.getElementById("c_precioVenta").value   = datos["Precio Estimado Venta"] || 0;
     document.getElementById("c_obs").value           = datos["Observaciones"] || "";
     comprasActualizarVisibilidad();
   }
@@ -401,16 +749,23 @@
       fecha: document.getElementById("c_fecha").value,
       proveedor: document.getElementById("c_proveedor").value.trim(),
       cuil: document.getElementById("c_cuil").value.trim(),
+      telProveedor: document.getElementById("c_telProveedor").value.trim(),
+      domicilio: document.getElementById("c_domicilio").value.trim(),
+      localidad: document.getElementById("c_localidad").value.trim(),
+      email: document.getElementById("c_email").value.trim(),
       modelo: document.getElementById("c_modelo").value.trim(),
       imei: document.getElementById("c_imei").value.trim(),
       color: document.getElementById("c_color").value.trim(),
       estadoFisico: document.getElementById("c_estadoFisico").value,
-      precioCompra: parseFloat(document.getElementById("c_precioCompra").value) || 0,
-      precioConsig: parseFloat(document.getElementById("c_precioConsig").value) || 0,
+      precioCompra: valorNumerico(document.getElementById("c_precioCompra")),
+      precioConsig: valorNumerico(document.getElementById("c_precioConsig")),
       formaPago: document.getElementById("c_formaPago").value,
       reparacion: document.getElementById("c_reparacion").value,
-      costoRep: parseFloat(document.getElementById("c_costoRep").value) || 0,
-      precioVenta: parseFloat(document.getElementById("c_precioVenta").value) || 0,
+      // Costo/Precio estimados de reparación se sacaron del cuestionario —
+      // el backend (Code.gs) sigue teniendo esas dos columnas opcionales en
+      // "Compras", se mandan en 0 para no romper esa estructura.
+      costoRep: 0,
+      precioVenta: 0,
       obs: document.getElementById("c_obs").value.trim(),
       esPreventa: document.getElementById("c_esPreventa").value,
       nPreAsociada: document.getElementById("c_esPreventa").value === "Si"
@@ -432,8 +787,42 @@
         mostrarToastOperacion(msg);
         cargarDashboard();
         comprasLimpiarForm();
+        // Cesión de titularidad: SOLO corresponde en una COMPRA real (en
+        // consignación el equipo sigue siendo del dueño original, no hay
+        // transferencia de titularidad que firmar). Toast aparte del de
+        // "Operación realizada" (mostrarToastOperacion) porque este botón
+        // es específico de Compras — no tiene sentido en el genérico de
+        // index.html, que también atiende Ventas/Preventas/Reparaciones/etc.
+        if (d.tipo === "COMPRA") {
+          var m = String(msg || "").match(/\bCMP-\S+/);
+          if (m) {
+            var numero = m[0].replace(/[.,;:]+$/, "");
+            mostrarToast("📄 ¿Imprimir o enviar la cesión de titularidad?", "info", {
+              persistente: true,
+              botones: [
+                { texto: "🖨 Cesión", fn: function(){ imprimirReciboCesion(numero); } },
+                { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("CESION", numero, d.telProveedor); } }
+              ]
+            });
+          }
+        }
       });
     });
+  }
+
+  /** Reutilizable desde el botón "🖨 Cesión" (Compras, ver arriba) y desde Mis Operaciones (reimpresión). Mismo patrón que imprimirReciboVenta/imprimirReciboPreventa: el click del operador abre la ventana en el momento, sin ningún hueco antes de pedirle el HTML al backend. */
+  function imprimirReciboCesion(numeroCompra){
+    if (!numeroCompra) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir la cesión.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboCesion(numeroCompra);
   }
 
   /** Deja "Registrar Compra" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una compra normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
@@ -446,5 +835,60 @@
         comprasActualizarVisibilidad();
       }
     });
+    if (_wizardEquipo) _wizardEquipo.ir(0);
   }
+
+  /**
+   * Validación mínima antes de dejar avanzar de paso (equipo) — la
+   * validación completa de siempre sigue en comprasEnviar() al confirmar.
+   * Pasos: 0 Operador, 1 Datos del proveedor, 2 Datos del equipo,
+   * 3 Precio, 4 Reparación y preventa, 5 Confirmar.
+   */
+  function _comprasValidarPasoEquipo(i){
+    if (i === 0 && !document.getElementById("c_operador").value) {
+      return { ok: false, msg: "Seleccioná el operador." };
+    }
+    if (i === 2 && !document.getElementById("c_modelo").value.trim()) {
+      return { ok: false, msg: "Ingresá el equipo/modelo." };
+    }
+    if (i === 3) {
+      var esCompra = document.getElementById("c_tipo").value === "COMPRA";
+      var precio = esCompra
+        ? valorNumerico(document.getElementById("c_precioCompra"))
+        : valorNumerico(document.getElementById("c_precioConsig"));
+      if (precio <= 0) return { ok: false, msg: "Ingresá el precio " + (esCompra ? "de compra" : "acordado de consignación") + "." };
+    }
+    if (i === 4 && document.getElementById("c_esPreventa").value === "Si" && !document.getElementById("c_nPreAsociada").value) {
+      return { ok: false, msg: "Seleccioná la preventa a vincular (o poné \"No\" si no corresponde)." };
+    }
+    return { ok: true };
+  }
+
+  /** Ídem para accesorios: paso 3 reutiliza comprasAccLeerLineas() (ya valida modelo-por-categoría) para no duplicar esa lógica. */
+  function _comprasValidarPasoAccesorios(i){
+    if (i === 0 && !document.getElementById("ca_operador").value) {
+      return { ok: false, msg: "Seleccioná el operador." };
+    }
+    if (i === 2) {
+      var lineas = comprasAccLeerLineas();
+      if (lineas._errores && lineas._errores.length > 0) return { ok: false, msg: lineas._errores.join("\n") };
+      if (lineas.length === 0) return { ok: false, msg: "Agregá al menos una línea con producto." };
+    }
+    return { ok: true };
+  }
+
+  var _wizardEquipo = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#c_bloqueEquipo > .paso")),
+    {
+      etiquetas: ["Operador", "Proveedor", "Equipo", "Precio", "Reparación/Preventa", "Confirmar"],
+      validar: _comprasValidarPasoEquipo
+    }
+  );
+  var _wizardAccesorios = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#c_bloqueAccesorios > .paso")),
+    {
+      etiquetas: ["Operador", "Proveedor", "Productos", "Pago", "Confirmar"],
+      validar: _comprasValidarPasoAccesorios
+    }
+  );
 </script>

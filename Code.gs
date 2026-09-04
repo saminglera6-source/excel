@@ -142,9 +142,10 @@ function fmt(fecha) {
   return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
 }
 
-/** Formatea número como $#,### */
+/** Formatea número como $#,### — si n no es un número válido (NaN/undefined/null), muestra $0 en vez de "$NaN" (encontrado corriendo casos límite contra la lógica real). */
 function fmtPeso(n) {
-  return "$" + Number(n).toLocaleString("es-AR");
+  const num = Number(n);
+  return "$" + (isNaN(num) ? 0 : num).toLocaleString("es-AR");
 }
 
 /** Formatea cantidad de dólares como USD 1,234 */
@@ -518,12 +519,23 @@ function procesarCompra(d) {
   const ss  = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_COMPRAS || "Compras");
   if (!sheet) throw new Error("❌ Hoja 'Compras' no encontrada.");
+  // Mismos requisitos que ya exige compras.html antes de enviar — revalidados
+  // acá para que el backend no dependa exclusivamente de esa pantalla.
+  if (!String(d.modelo || "").trim()) throw new Error("❌ Ingresá el modelo del equipo.");
+  if (d.tipo === "COMPRA" && !(Number(d.precioCompra) > 0)) throw new Error("❌ Para COMPRA, el precio de compra debe ser mayor a 0.");
+  if (d.tipo === "CONSIGNACION" && !(Number(d.precioConsig) > 0)) throw new Error("❌ Para CONSIGNACIÓN, el precio acordado debe ser mayor a 0.");
 
   const filaEnc = 2;
-  // CUIL/CUIT del proveedor: columna nueva, autocreada si la hoja todavía no
-  // la tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
-  // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // CUIL/CUIT/Domicilio/Localidad/Email del proveedor: columnas nuevas,
+  // autocreadas si la hoja todavía no las tiene (mismo mecanismo que
+  // asegurarColumnaGenerica_() usa para OPERADOR en operadores.gs) para no
+  // exigir que alguien edite la planilla a mano. Domicilio/Localidad/Email
+  // son opcionales — solo alimentan la Cesión de Titularidad (recibos.gs).
   asegurarColumnaGenerica_(sheet, filaEnc, "CUIL/CUIT Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Teléfono Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Domicilio Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Localidad Proveedor");
+  asegurarColumnaGenerica_(sheet, filaEnc, "Email Proveedor");
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 14 llamadas a
   // getCol() (cada una hacía su propio roundtrip getRange().getValues()).
   const headers = sheet.getRange(filaEnc, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -537,6 +549,10 @@ function procesarCompra(d) {
   const colTipo = idxDe("Tipo Ingreso");
   const colProv = idxDe("Proveedor / Origen");
   const colCuil = idxDe("CUIL/CUIT Proveedor");
+  const colTelP = idxDe("Teléfono Proveedor");
+  const colDom  = idxDe("Domicilio Proveedor");
+  const colLoc  = idxDe("Localidad Proveedor");
+  const colEmlP = idxDe("Email Proveedor");
   const colMod  = idxDe("Equipo / Modelo");
   const colIMEI = idxDe("IMEI");
   const colCol  = idxDe("Color");
@@ -583,6 +599,10 @@ function procesarCompra(d) {
   fila2D[colTipo]   = d.tipo;
   fila2D[colProv]   = d.proveedor;
   fila2D[colCuil]   = d.cuil || "";
+  fila2D[colTelP]   = d.telProveedor || "";
+  fila2D[colDom]    = d.domicilio || "";
+  fila2D[colLoc]    = d.localidad || "";
+  fila2D[colEmlP]   = d.email || "";
   fila2D[colMod]    = d.modelo;
   fila2D[colIMEI]   = d.imei;
   fila2D[colCol]    = d.color;
@@ -852,6 +872,17 @@ function procesarVenta(d) {
   const ventasSheet  = ss.getSheetByName(cfg.HOJA_VENTAS   || "Ventas");
   const comprasSheet = ss.getSheetByName(cfg.HOJA_COMPRAS  || "Compras");
   if (!ventasSheet || !comprasSheet) throw new Error("❌ Hojas Ventas/Compras no encontradas.");
+  // Sin esto, un d.nOp vacío (por ejemplo al reenviar una corrección sin
+  // volver a elegir el equipo) tiraba un error críptico de JS ("Cannot read
+  // properties of null (reading 'trim')") en vez de un mensaje claro —
+  // encontrado corriendo corregirVenta() con datos incompletos.
+  if (!d.nOp) throw new Error("❌ Falta seleccionar el equipo (N° OP) de esta venta.");
+  // El frontend (ventas.html) ya exige cliente y precio > 0 antes de
+  // enviar, pero el backend no los revalidaba — cualquier otro camino que
+  // llegue a procesarVenta() sin pasar por esa pantalla (ej. una API, un
+  // bug futuro en el formulario) podía grabar una venta sin cliente.
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!(Number(d.precioVenta) > 0)) throw new Error("❌ El precio de venta debe ser mayor a 0.");
 
   const filaEnc = 2;
   // Una sola lectura de encabezados de Compras
@@ -891,10 +922,14 @@ function procesarVenta(d) {
   const consigEquip = parseFloat(rowC[cCO]) || 0;
 
   const vFE = 2;
-  // CUIL del cliente: columna nueva, autocreada si la hoja todavía no la
-  // tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
-  // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // CUIL/Domicilio/Email del cliente: columnas nuevas, autocreadas si la
+  // hoja todavía no las tiene (mismo mecanismo que asegurarColumnaGenerica_()
+  // usa para OPERADOR en operadores.gs) para no exigir que alguien edite la
+  // planilla a mano. Domicilio y Email son 100% opcionales — solo alimentan
+  // el recibo imprimible (recibos.gs), no se validan acá.
   asegurarColumnaGenerica_(ventasSheet, vFE, "CUIL Cliente");
+  asegurarColumnaGenerica_(ventasSheet, vFE, "Domicilio Cliente");
+  asegurarColumnaGenerica_(ventasSheet, vFE, "Email Cliente");
   // Una sola lectura de encabezados de Ventas
   const headersVentas = ventasSheet.getRange(vFE, 1, 1, ventasSheet.getLastColumn()).getValues()[0];
   const idxVta = (nombre) => {
@@ -910,6 +945,8 @@ function procesarVenta(d) {
   const vIM  = idxVta("IMEI");
   const vCL  = idxVta("Cliente");
   const vCUIL = idxVta("CUIL Cliente");
+  const vDOM = idxVta("Domicilio Cliente");
+  const vEML = idxVta("Email Cliente");
   const vTL  = idxVta("Teléfono Cliente");
   const vPV  = idxVta("Precio Venta");
   const vEF  = idxVta("Cobrado Efectivo");
@@ -989,6 +1026,8 @@ function procesarVenta(d) {
   filaVta2D[vIM]  = imeiEquip;
   filaVta2D[vCL]  = d.cliente;
   filaVta2D[vCUIL] = d.cuil || "";
+  filaVta2D[vDOM] = d.domicilio || "";
+  filaVta2D[vEML] = d.email || "";
   filaVta2D[vTL]  = d.tel;
   filaVta2D[vPV]  = d.precioVenta;
   filaVta2D[vEF]  = ef;
@@ -1050,14 +1089,26 @@ function procesarVenta(d) {
   // Registrar accesorios en Venta Accesorios, con su porción prorrateada
   // del pago (Problema 2): NO se asume que se cobraron en efectivo.
   let resumenAccesorios = "";
+  let tocoStockAccesorios = false;
   if (accesorios.length > 0) {
     try {
       accesorios.forEach((acc, i) => {
         const dist = distribucion[i + 1]; // 0 es el celular
-        registrarAccesorioAsociado_({
+        // Si el accesorio viene vinculado a un producto real de "Stock
+        // Accesorios" (acc.skuId, elegido con el selector — antes esto era
+        // texto libre y no descontaba nada del stock), se usa su nombre y
+        // costo reales y se taguea el SKU en la fila para que
+        // actualizarStockAccesorios_() lo descuente igual que un accesorio
+        // vendido suelto o entregado de regalo.
+        const sku = acc.skuId ? _buscarSkuAccesorioPorId_(acc.skuId) : null;
+        const nAcc = registrarAccesorioAsociado_({
           fecha:       d.fecha,
           vendedor:    d.operador || "",
-          producto:    acc.nombre,
+          categoria:   sku ? sku.categoria : undefined,
+          producto:    sku ? sku.producto : acc.nombre,
+          marca:       sku ? sku.marca : "",
+          modeloAcc:   sku ? sku.color : "",
+          costoUnit:   sku ? sku.costoPromedio : 0,
           precio:      acc.precio || 0,
           cliente:     d.cliente,
           cuil:        d.cuil,
@@ -1070,19 +1121,28 @@ function procesarVenta(d) {
           cotizacion:  cotizacion,
           obs:         `Asociado a venta celular ${nVta}`
         });
+        if (sku && nAcc) {
+          _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);
+          tocoStockAccesorios = true;
+        }
       });
       resumenAccesorios = `\n📦 ${accesorios.length} accesorio/s registrado/s en Ventas Accesorios (pago prorrateado).`;
+      if (tocoStockAccesorios) actualizarStockAccesorios_();
     } catch(e) {
       resumenAccesorios = `\n⚠️ Accesorios no registrados: ${e.message}`;
     }
   }
 
   Logger.log("procesarVenta: " + (Date.now() - t0) + " ms");
+  const hayAccesorios = valorTotalOperacion > valorCelular;
   return `✅ Venta registrada.\nN° Venta: ${nVta}\nEquipo: ${modeloEquip}\n` +
-         `Precio celular: ${fmtPeso(d.precioVenta)}\nGanancia teórica: ${fmtPeso(gananciaTeorica)}\nGanancia cobrada: ${fmtPeso(gananciaCobrada)}` +
+         (hayAccesorios
+           ? `Total operación (celular + accesorios): ${fmtPeso(valorTotalOperacion)}\nPrecio celular: ${fmtPeso(d.precioVenta)}\n`
+           : `Precio: ${fmtPeso(d.precioVenta)}\n`) +
+         `Ganancia teórica: ${fmtPeso(gananciaTeorica)}\nGanancia cobrada: ${fmtPeso(gananciaCobrada)}` +
          (usdMontoReal > 0 ? `\nUSD (celular): ${usdMontoReal} → ${fmtPeso(usdEnPesos)} (cotización ${fmtPeso(cotizacion.venta)})` : ``) +
          `\nCobrado por el celular: ${fmtPeso(totalCobradoPesos)}` +
-         (valorTotalOperacion > valorCelular ? `\nTotal operación (celular + accesorios): ${fmtPeso(valorTotalOperacion)}` : ``) +
+         (hayAccesorios ? `\nCobrado total (celular + accesorios): ${fmtPeso(totalIngresadoPesos)}` : ``) +
          resumenAccesorios;
 }
 
@@ -1202,6 +1262,13 @@ function procesarReparacion(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_REPARACIONES || "Reparaciones");
   if (!sheet) throw new Error("❌ Hoja 'Reparaciones' no encontrada.");
+  // Mismos requisitos que ya exige reparaciones.html antes de enviar —
+  // revalidados acá para que el backend no dependa exclusivamente de esa
+  // pantalla (encontrado corriendo procesarReparacion() directo con datos
+  // incompletos: no tiraba ningún error).
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!String(d.equipo  || "").trim()) throw new Error("❌ Ingresá el equipo.");
+  if (!String(d.falla1  || "").trim()) throw new Error("❌ Describí la falla principal.");
 
   const fE  = 2;
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 17 getCol()
@@ -1240,6 +1307,12 @@ function procesarReparacion(d) {
   // Evolución del flujo (auditoría comercial + presupuesto de diagnóstico):
   const cDIF    = asegurarColumnaGenerica_(sheet, fE, "Diferencia")            - 1;
   const cPRESD  = asegurarColumnaGenerica_(sheet, fE, "PRESUPUESTO_DIAGNOSTICO") - 1;
+  // Datos opcionales para el ticket de ingreso imprimible (recibos.gs) —
+  // no se usan en ningún cálculo, solo para completar el recibo.
+  const cDNI  = asegurarColumnaGenerica_(sheet, fE, "DNI Cliente")   - 1;
+  const cEML  = asegurarColumnaGenerica_(sheet, fE, "Email Cliente") - 1;
+  const cCOL  = asegurarColumnaGenerica_(sheet, fE, "Color")         - 1;
+  const cBAT  = asegurarColumnaGenerica_(sheet, fE, "Batería")       - 1;
 
   const cNR1based = cNR + 1;
   const nRep  = genCorrelativo(sheet, cNR1based, cfg.PREFIJO_REP || "REP", fE + 1);
@@ -1255,9 +1328,13 @@ function procesarReparacion(d) {
   filaData[cTI] = d.tipo;
   filaData[cCL] = d.cliente;
   filaData[cTE] = d.tel;
+  filaData[cDNI] = d.dni || "";
+  filaData[cEML] = d.email || "";
   filaData[cEQ] = d.equipo;
   filaData[cIM] = d.imei;
   filaData[cPI] = d.pin;
+  filaData[cCOL] = d.color || "";
+  filaData[cBAT] = d.bateria || "";
   filaData[cF1] = d.falla1;
   filaData[cF2] = d.falla2;
   filaData[cPC] = d.precioCob;
@@ -1528,6 +1605,9 @@ function procesarGasto(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(cfg.HOJA_GASTOS || "Gastos");
   if (!sheet) throw new Error("❌ Hoja 'Gastos' no encontrada.");
+  // Mismo requisito que ya exige gastos.html antes de enviar — revalidado
+  // acá para que el backend no dependa exclusivamente de esa pantalla.
+  if (!String(d.desc || "").trim()) throw new Error("❌ Ingresá una descripción.");
 
   const fE  = 2;
   // OPTIMIZACIÓN: una sola lectura de encabezados en vez de 9 getCol()
@@ -2437,7 +2517,9 @@ function onOpen() {
       .addItem("Registrar preventa",          "registrarPreventa")
       .addItem("Entregar preventa",           "entregarPreventa")
       .addSeparator()
-      .addItem("Carga masiva (pegar texto)",  "abrirCargaMasiva"))
+      .addItem("Carga masiva (pegar texto)",  "abrirCargaMasiva")
+      .addSeparator()
+      .addItem("📦 Reorganizar cupos (respetar reglas)", "diagnosticarCupoPreventas"))
     .addSubMenu(ui.createMenu("🛍️ Accesorios")
       .addItem("Registrar compra de accesorios","registrarCompraAccesorios")
       .addItem("Registrar venta de accesorio","registrarVentaAccesorio")
@@ -2466,7 +2548,19 @@ function onOpen() {
       .addItem("Instalar health check automático", "instalarTriggerHealthCheckManual")
       .addItem("Ver backups de operación",      "verBackupsOperacionUI")
       .addSeparator()
-      .addItem("Sincronizar numeración de inversores", "sincronizarNumeracionInversoresManual"))
+      .addItem("Sincronizar numeración de inversores", "sincronizarNumeracionInversoresManual")
+      .addSeparator()
+      .addItem("📈 Reporte vendedor real (Vendedor vs OPERADOR)", "generarReporteVendedoresReal")
+      .addItem("🔧 Reparar OPERADOR según vendedor real", "repararOperadorSegunVendedorReal")
+      .addItem("📅 Reporte vendedores de agosto (nombres unificados)", "generarReporteVendedoresAgosto")
+      .addItem("✏️ Revisar vendedores sospechosos (agosto)", "abrirRevisarVendedoresAgosto")
+      .addSeparator()
+      .addItem("🔎 Auditoría de duplicados/canceladas", "generarAuditoriaDuplicados")
+      .addItem("🧹 Aplicar limpieza (auditoría agosto)", "aplicarLimpiezaAuditoriaDuplicados")
+      .addItem("🧹 Reintentar cancelación (PRE-017/041/052)", "reintentarCancelacionPreventasBloqueadas")
+      .addSeparator()
+      .addItem("🏁 Reporte final de ventas reales (todo)", "generarReporteFinalVentasReales")
+      .addItem("🏁 Reporte final de ventas reales — SOLO agosto", "generarReporteFinalVentasRealesAgosto"))
     .addSeparator()
     .addItem("🔍 Validar consistencia",       "validarConsistencia")
     .addSeparator()
@@ -2552,11 +2646,11 @@ function obtenerSaldosCaja() {
 
 /**
  * Lee "Libro Diario" (sin modificarla, solo consumirla) y devuelve los
- * movimientos de las últimas 96 horas (4 días), más reciente primero.
- * Alimenta el bloque "📒 Libro Diario (Últimas 96 horas)" en Reportes.
- * Mismo criterio que obtenerSaldosCaja() (excluye ANULADO si la columna
- * ESTADO_REGISTRO existe) y que obtenerOperacionesRecientes() (ordena por
- * un campo numérico de fecha y lo descarta antes de devolver).
+ * movimientos de los últimos 14 días, más reciente primero. Alimenta el
+ * bloque "📒 Libro Diario (Últimos 14 días)" en Caja. Mismo criterio que
+ * obtenerSaldosCaja() (excluye ANULADO si la columna ESTADO_REGISTRO
+ * existe) y que obtenerOperacionesRecientes() (ordena por un campo
+ * numérico de fecha y lo descarta antes de devolver).
  */
 function obtenerLibroDiarioReciente() {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
@@ -2580,7 +2674,7 @@ function obtenerLibroDiarioReciente() {
   if (lastRow <= filaEnc) return [];
 
   const datos = libro.getRange(filaEnc + 1, 1, lastRow - filaEnc, libro.getLastColumn()).getValues();
-  const limite = Date.now() - 96 * 60 * 60 * 1000;
+  const limite = Date.now() - 14 * 24 * 60 * 60 * 1000;
   const tz = Session.getScriptTimeZone();
 
   const salida = [];
@@ -4032,12 +4126,39 @@ function procesarPreventa(d) {
   const ss    = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Preventas");
   if (!sheet) throw new Error("❌ Hoja 'Preventas' no encontrada. Creala con los encabezados indicados.");
+  // Mismos requisitos que ya exige preventas.html antes de enviar —
+  // revalidados acá para que el backend no dependa exclusivamente de esa
+  // pantalla.
+  if (!String(d.cliente || "").trim()) throw new Error("❌ Ingresá el nombre del cliente.");
+  if (!String(d.modelo || "").trim()) throw new Error("❌ Ingresá el modelo solicitado.");
+  if (!(Number(d.precioVenta) > 0)) throw new Error("❌ El precio pactado debe ser mayor a 0.");
 
   const fE   = 2;
-  // CUIL del cliente: columna nueva, autocreada si la hoja todavía no la
+  // CUIL/Domicilio/Email del cliente + IMEI/Color/Estado del equipo
+  // solicitado: columnas nuevas, autocreadas si la hoja todavía no las
   // tiene (mismo mecanismo que asegurarColumnaGenerica_() usa para OPERADOR
   // en operadores.gs) para no exigir que alguien edite la planilla a mano.
+  // Todas opcionales — solo alimentan el recibo imprimible (recibos.gs).
   asegurarColumnaGenerica_(sheet, fE, "CUIL Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "Domicilio Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "Email Cliente");
+  asegurarColumnaGenerica_(sheet, fE, "IMEI Solicitado");
+  asegurarColumnaGenerica_(sheet, fE, "Color Solicitado");
+  asegurarColumnaGenerica_(sheet, fE, "Estado Requerido");
+  // Sin esto, si la hoja "Preventas" nunca tuvo estas dos columnas creadas
+  // a mano, cED/cEH quedaban en -1 para siempre (idx(...,true) las trata
+  // como opcionales y no rompe nada, pero tampoco las crea) — la fecha de
+  // entrega calculada en el formulario nunca se guardaba, y por eso el
+  // recibo de preventa (generarReciboPreventa, recibos.gs) mostraba
+  // "Fecha de entrega" vacía pese a que dias_habiles.gs ya calculaba bien
+  // el rango de 7 a 10 días hábiles en pantalla.
+  asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Desde");
+  asegurarColumnaGenerica_(sheet, fE, "Fecha Prometida Hasta");
+  // Equipo que el cliente entrega en parte de pago de esta preventa (si
+  // corresponde) — opcional, solo para que el panel de seguimiento y el
+  // recibo lo muestren; no genera ningún movimiento de stock por sí solo.
+  asegurarColumnaGenerica_(sheet, fE, "Equipo Parte De Pago");
+  asegurarColumnaGenerica_(sheet, fE, "Valor Parte De Pago");
   const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
   const idx = (n, opcional) => {
     const i = hdrs.findIndex(h => String(h).trim() === n.trim());
@@ -4048,6 +4169,11 @@ function procesarPreventa(d) {
   const cFP  = idx("Fecha Preventa");
   const cCL  = idx("Cliente");
   const cCUIL = idx("CUIL Cliente");
+  const cDOM = idx("Domicilio Cliente");
+  const cEML = idx("Email Cliente");
+  const cIME = idx("IMEI Solicitado");
+  const cCOL = idx("Color Solicitado");
+  const cESR = idx("Estado Requerido");
   const cTL  = idx("Teléfono");
   const cMO  = idx("Modelo Solicitado");
   const cPV  = idx("Precio Venta Pactado");
@@ -4069,6 +4195,8 @@ function procesarPreventa(d) {
   // convertidos a pesos (columna nueva, opcional) para poder reconstruir
   // caja/ganancias/reportes sin perder ninguno de los dos valores.
   const cUSC  = idx("Cobrado USD Convertido", true);
+  const cPPE  = idx("Equipo Parte De Pago",   true);
+  const cPPV  = idx("Valor Parte De Pago",    true);
 
   const nPre = genCorrelativo(sheet, cNP + 1, "PRE", fE + 1);
   const fila = getFilaVacia(sheet, cNP + 1, fE + 1);
@@ -4088,11 +4216,16 @@ function procesarPreventa(d) {
     throw new Error(`❌ Lo cobrado (${fmtPeso(totalCobrado)}) no puede superar el precio pactado (${fmtPeso(d.precioVenta)}).`);
   }
 
-  // Descripción automática de entrega si observaciones vacías (Parte 3)
+  // Descripción automática de entrega si observaciones vacías (Parte 3).
+  // Parte 6: el formulario ahora pide una sola "Fecha de entrega" (no un
+  // rango) — manda el mismo valor en fechaDesde y fechaHasta, así que acá
+  // se describe como fecha única en vez de "del X al Y".
   const fechaDesde = d.fechaDesde ? parseDate(d.fechaDesde) : null;
   const fechaHasta = d.fechaHasta ? parseDate(d.fechaHasta) : null;
   let entregaDesc = "";
-  if (fechaDesde && fechaHasta) {
+  if (fechaDesde && fechaHasta && fechaDesde.getTime() === fechaHasta.getTime()) {
+    entregaDesc = `Entrega prometida: el ${fmt(fechaHasta)}`;
+  } else if (fechaDesde && fechaHasta) {
     entregaDesc = `Entrega prometida: ${fmt(fechaDesde)} a ${fmt(fechaHasta)}`;
   } else if (fechaDesde) {
     entregaDesc = `Entrega prometida: a partir del ${fmt(fechaDesde)}`;
@@ -4110,6 +4243,11 @@ function procesarPreventa(d) {
   filaData[cFP]  = parseDate(d.fecha);
   filaData[cCL]  = d.cliente;
   filaData[cCUIL] = d.cuil || "";
+  filaData[cDOM] = d.domicilio || "";
+  filaData[cEML] = d.email || "";
+  filaData[cIME] = d.imei || "";
+  filaData[cCOL] = d.color || "";
+  filaData[cESR] = d.estadoRequerido || "";
   filaData[cTL]  = d.tel;
   filaData[cMO]  = d.modelo;
   filaData[cPV]  = d.precioVenta;
@@ -4127,6 +4265,8 @@ function procesarPreventa(d) {
   if (cED   >= 0) filaData[cED]   = fechaDesde || "";
   if (cEH   >= 0) filaData[cEH]   = fechaHasta || "";
   if (cUSC  >= 0) filaData[cUSC]  = usdEnPesos;
+  if (cPPE  >= 0) filaData[cPPE]  = d.partePagoEquipo || "";
+  if (cPPV  >= 0) filaData[cPPV]  = d.partePagoEquipo ? (Number(d.partePagoValor) || 0) : "";
 
   sheet.getRange(fila, 1, 1, totalCols).setValues([filaData]);
   sheet.getRange(fila, cFP + 1).setNumberFormat("dd/mm/yyyy");
@@ -4139,6 +4279,7 @@ function procesarPreventa(d) {
   if (cED  >= 0) sheet.getRange(fila, cED  + 1).setNumberFormat("dd/mm/yyyy");
   if (cEH  >= 0) sheet.getRange(fila, cEH  + 1).setNumberFormat("dd/mm/yyyy");
   if (cUSC >= 0) sheet.getRange(fila, cUSC + 1).setNumberFormat("$#,##0");
+  if (cPPV >= 0) sheet.getRange(fila, cPPV + 1).setNumberFormat("$#,##0");
   sheet.getRange(fila, cNP + 1, 1, totalCols).setBackground("#F5EEF8");
 
   // Registrar SOLO lo efectivamente cobrado (puede ser parcial). Cambio 3:
@@ -4173,6 +4314,7 @@ function procesarPreventa(d) {
     (usdMontoReal > 0 ? `\nUSD: ${usdMontoReal} → ${fmtPeso(usdEnPesos)} (cotización ${fmtPeso(cotizacion.venta)})` : ``) +
     `\nSaldo pendiente: ${fmtPeso(saldoPendiente)}` +
     (entregaDesc ? `\n📅 ${entregaDesc}` : ``) +
+    (d.partePagoEquipo ? `\n🔁 Entrega en parte de pago: ${d.partePagoEquipo}${Number(d.partePagoValor) > 0 ? " (" + fmtPeso(Number(d.partePagoValor)) + ")" : ""}` : ``) +
     `\n\n💰 Ingreso registrado en caja.`;
 }
 
@@ -4730,6 +4872,20 @@ function procesarEntregaPreventa(d) {
   preSheet.getRange(filaPreSh, cSP).setValue(saldoFinal).setNumberFormat("$#,##0");
   preSheet.getRange(filaPreSh, cES).setValue(estadoFinalPreventa);
   preSheet.getRange(filaPreSh, cNV).setValue(nVta);
+
+  // Datos exclusivos para el Comprobante de Entrega de Preventa (recibos.gs)
+  // — no participan de ningún cálculo de caja/ganancia, solo alimentan ese
+  // recibo. "Seña Abonada (Preventa)" se escribe UNA sola vez (la primera
+  // entrega, sea total o parcial) para no perderla si después se cobra el
+  // saldo restante en una segunda entrega — totalPrevio en ese segundo
+  // llamado ya incluiría el cobro de la primera entrega, no la seña real.
+  const cSenaOriginal = asegurarColumnaGenerica_(preSheet, fEP, "Seña Abonada (Preventa)");
+  const senaYaGuardada = preSheet.getRange(filaPreSh, cSenaOriginal).getValue();
+  if (senaYaGuardada === "" || senaYaGuardada === null) {
+    preSheet.getRange(filaPreSh, cSenaOriginal).setValue(totalPrevio).setNumberFormat("$#,##0");
+  }
+  const cFechaUltimaEntrega = asegurarColumnaGenerica_(preSheet, fEP, "Fecha Última Entrega");
+  preSheet.getRange(filaPreSh, cFechaUltimaEntrega).setValue(new Date()).setNumberFormat("dd/mm/yyyy");
   if (cUSC >= 0) preSheet.getRange(filaPreSh, cUSC).setValue(usFinalPesos).setNumberFormat("$#,##0");
 
   // Desglose de medios en observaciones (problema 5), incluyendo conversión USD del saldo cobrado ahora
@@ -4784,14 +4940,24 @@ function procesarEntregaPreventa(d) {
   // Registrar accesorios en Ventas Accesorios, con su porción prorrateada
   // del cobro de la entrega (Problema 2) — no se asume que se cobraron 100% en efectivo.
   let resumenAccesorios = "";
+  let tocoStockAccesoriosEntrega = false;
   if (accesorios.length > 0) {
     try {
       accesorios.forEach((acc, i) => {
         const dist = distribucionEntrega[i + 1]; // 0 es el saldo del celular
-        registrarAccesorioAsociado_({
+        // Mismo criterio que procesarVenta(): si el accesorio viene
+        // vinculado a un producto real de "Stock Accesorios" (acc.skuId,
+        // elegido con el selector), se usa su nombre/costo reales y se
+        // taguea el SKU para que actualizarStockAccesorios_() lo descuente.
+        const sku = acc.skuId ? _buscarSkuAccesorioPorId_(acc.skuId) : null;
+        const nAcc = registrarAccesorioAsociado_({
           fecha:       d.fecha,
           vendedor:    "Martin",
-          producto:    acc.nombre,
+          categoria:   sku ? sku.categoria : undefined,
+          producto:    sku ? sku.producto : acc.nombre,
+          marca:       sku ? sku.marca : "",
+          modeloAcc:   sku ? sku.color : "",
+          costoUnit:   sku ? sku.costoPromedio : 0,
           precio:      acc.precio || 0,
           cliente:     cliente,
           cuil:        cuilCliente,
@@ -4804,8 +4970,13 @@ function procesarEntregaPreventa(d) {
           cotizacion:  cotizacion,
           obs:         `Asociado a preventa ${d.nPre} / venta celular ${nVta}`
         });
+        if (sku && nAcc) {
+          _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);
+          tocoStockAccesoriosEntrega = true;
+        }
       });
       resumenAccesorios = `\n📦 ${accesorios.length} accesorio/s registrado/s en Ventas Accesorios (pago prorrateado).`;
+      if (tocoStockAccesoriosEntrega) actualizarStockAccesorios_();
     } catch(e) {
       resumenAccesorios = `\n⚠️ Accesorios no registrados: ${e.message}`;
     }
@@ -5628,6 +5799,20 @@ function resolverOCrearSkuAccesorio_(categoria, producto, marca, color) {
 }
 
 /** Busca en "Stock Accesorios" el primer producto de `categoria` cuyo nombre contenga `texto` (case-insensitive). Solo lectura. */
+/**
+ * Normaliza texto para comparaciones tolerantes: sin acentos, sin
+ * espacios/guiones/guiones bajos, minúsculas. Sin esto, "USB-C" (config)
+ * vs "USB C" o "Cable Usb-C a Lightning" (como haya quedado escrito el
+ * producto en el stock) no matcheaban por la diferencia de guión/espacio,
+ * y el regalo automático se reportaba "sin stock" aunque sí había.
+ */
+function _normalizarTextoAccesorio_(s) {
+  return String(s || "")
+    .trim().toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[\s\-_]+/g, "");
+}
+
 function _buscarSkuPorCategoriaYTexto_(categoria, texto) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Stock Accesorios");
   if (!sheet) return null;
@@ -5641,15 +5826,43 @@ function _buscarSkuPorCategoriaYTexto_(categoria, texto) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= fE) return null;
 
-  const textoNorm = String(texto || "").trim().toLowerCase();
-  const catNorm   = String(categoria || "").trim().toLowerCase();
+  const textoNorm = _normalizarTextoAccesorio_(texto);
+  const catNorm   = _normalizarTextoAccesorio_(categoria);
   const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
   for (let i = 0; i < datos.length; i++) {
     const row = datos[i];
-    if (String(row[cCAT] || "").trim().toLowerCase() !== catNorm) continue;
-    if (String(row[cPRD] || "").toLowerCase().indexOf(textoNorm) === -1) continue;
+    if (_normalizarTextoAccesorio_(row[cCAT]) !== catNorm) continue;
+    if (_normalizarTextoAccesorio_(row[cPRD]).indexOf(textoNorm) === -1) continue;
     return {
       skuId: row[cSKU], producto: row[cPRD], marca: row[cMRC], color: row[cCOL],
+      stock: Number(row[cSTK]) || 0, costoPromedio: Number(row[cCP]) || 0
+    };
+  }
+  return null;
+}
+
+/** Busca en "Stock Accesorios" el producto con ese SKU_ID exacto. Solo lectura — usada para vincular al stock real los accesorios que se cargan junto con la venta de un celular (antes quedaban en texto libre, sin descontar stock). */
+function _buscarSkuAccesorioPorId_(skuId) {
+  const id = String(skuId || "").trim();
+  if (!id) return null;
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Stock Accesorios");
+  if (!sheet) return null;
+  const fE = 2;
+  const hdrs = sheet.getRange(fE, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idx = (n) => hdrs.findIndex(h => String(h).trim() === n);
+  const cSKU = idx("SKU_ID"), cCAT = idx("Categoría"), cPRD = idx("Producto"),
+        cMRC = idx("Marca"), cCOL = idx("Color"), cSTK = idx("Stock"), cCP = idx("COSTO_PROMEDIO");
+  if (cSKU === -1) return null;
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow <= fE) return null;
+
+  const datos = sheet.getRange(fE + 1, 1, lastRow - fE, sheet.getLastColumn()).getValues();
+  for (let i = 0; i < datos.length; i++) {
+    const row = datos[i];
+    if (String(row[cSKU] || "").trim() !== id) continue;
+    return {
+      skuId: row[cSKU], categoria: row[cCAT], producto: row[cPRD], marca: row[cMRC], color: row[cCOL],
       stock: Number(row[cSTK]) || 0, costoPromedio: Number(row[cCP]) || 0
     };
   }
@@ -5937,6 +6150,12 @@ function procesarCompraAccesorios(d) {
     const cantidad = Number(l.cantidad) || 0;
     if (cantidad <= 0) throw new Error(`❌ La línea "${l.producto}" necesita una cantidad mayor a 0.`);
     const costoUnit  = Number(l.costoUnit) || 0;
+    // Sin este chequeo, un costo negativo (típicamente un typo con "-") pasa
+    // silencioso y contamina el COSTO_PROMEDIO de ese SKU para siempre —
+    // actualizarStockAccesorios_() promedia costoTotal/cantidad acumulando
+    // TODAS las compras de ese producto, así que un solo error de tipeo acá
+    // rompe la "Ganancia" reportada en cada venta futura de ese producto.
+    if (costoUnit < 0) throw new Error(`❌ La línea "${l.producto}" tiene un costo unitario negativo.`);
     const costoTotal = cantidad * costoUnit;
     costoTotalCompra += costoTotal;
     Logger.log("[AUDIT] >>> ANTES resolverOCrearSkuAccesorio_() | categoria=" + l.categoria + " producto=" + l.producto + " marca=" + l.marca + " color=" + l.color);
@@ -6380,11 +6599,31 @@ function determinarFamiliaYPuerto_(modelo) {
  * como advertencia en el mensaje final.
  */
 function entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, entregar) {
-  const resultado = { entregados: [], omitidos: [] };
+  const resultado = { entregados: [], omitidos: [], sinModelo: false, sinConfigurar: false };
   if (entregar === false) return resultado;
 
-  const info = determinarFamiliaYPuerto_(modelo);
-  if (!info) return resultado;
+  const modeloNorm = String(modelo || "").trim();
+  if (!modeloNorm) {
+    // Sin esto, un modelo vacío pasaba totalmente en silencio: ni se
+    // entregaba nada ni se avisaba nada, así que parecía que la casilla
+    // "entregar regalo" tildada no hacía nada.
+    resultado.sinModelo = true;
+    registrarAuditoria_("REGALO_AUTOMATICO", nVta, "SIN_MODELO",
+      "No se pudo determinar el modelo vendido (N° OP/Preventa sin modelo cargado) — no se buscó regalo.");
+    return resultado;
+  }
+
+  const info = determinarFamiliaYPuerto_(modeloNorm);
+  if (!info) {
+    // Mismo problema: si el modelo no matchea ninguna fila de CONFIG_REGALOS
+    // (familia mal escrita, o directamente no configurada para ese modelo)
+    // no había ningún aviso — quedaba indistinguible de "no tiene regalo
+    // configurado a propósito".
+    resultado.sinConfigurar = true;
+    registrarAuditoria_("REGALO_AUTOMATICO", nVta, "SIN_FAMILIA_CONFIGURADA",
+      `El modelo "${modeloNorm}" no matcheó ninguna familia en CONFIG_REGALOS — no se entregó regalo.`);
+    return resultado;
+  }
 
   const items = [];
   if (info.regalaFunda) items.push({ categoria: "Fundas", buscar: info.familia });
@@ -6418,7 +6657,13 @@ function entregarRegalosAutomaticos_(nVta, modelo, cliente, vendedor, operador, 
       cliente:     cliente || "",
       tel:         "",
       nVtaCelular: nVta,
-      obs:         `Regalo automático — ${modelo}`
+      // El texto "Asociado a venta celular <N° Venta>" es el mismo que usa
+      // registrarAccesorioAsociado_() para los accesorios comprados — el
+      // recibo (generarReciboVenta/generarReciboEntregaPreventa,
+      // recibos.gs) lo usa como respaldo para encontrar la fila si la
+      // columna "N° Venta Celular Asociada" viene vacía. Sin este texto acá,
+      // ese respaldo nunca encontraba los regalos (solo los comprados).
+      obs:         `Regalo automático — ${modelo} — Asociado a venta celular ${nVta}`
     });
     if (nAcc) {
       _tagColumnaGenericaPorId_("Venta Accesorios", 2, "N° Venta Accesorio", nAcc, "SKU_ID", sku.skuId);

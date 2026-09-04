@@ -1,13 +1,92 @@
 <div id="view-calculadora_cuotas" class="view">
-  <div class="panel" style="max-width:480px">
+  <style>
+    /* Calculadora de precio contado (compensado por el 2,5% de PosNet/Getnet)
+       + financiación — pensada para uso rápido desde el celular mientras se
+       atiende a un cliente. Todo el cálculo es 100% client-side (ningún
+       google.script.run acá): CC_CONFIG, más abajo en el bloque de JS, es el
+       único lugar con el descuento de PosNet y los coeficientes — para
+       cambiarlos no hace falta tocar nada más. Escapado a #view-calculadora_cuotas,
+       no toca el resto del ERP. */
+    #view-calculadora_cuotas .panel { max-width:480px; }
+    #view-calculadora_cuotas .cc-input-precio {
+      width:100%; font-size:28px; font-weight:800; text-align:center;
+      padding:16px 10px; margin-top:10px; border:2px solid var(--borde); border-radius:14px;
+      background:#F8F9FB; color:var(--texto); font-family:inherit;
+      transition:border-color .15s, background .15s;
+    }
+    #view-calculadora_cuotas .cc-input-precio::placeholder { color:#B7BAD1; font-weight:700; }
+    #view-calculadora_cuotas .cc-input-precio:focus { outline:none; border-color:var(--azul); background:#fff; }
+    #view-calculadora_cuotas .cc-input-precio.error { border-color:var(--rojo); }
+    #view-calculadora_cuotas .cc-msg-error { color:var(--rojo); font-size:13px; font-weight:600; text-align:center; margin-top:8px; display:none; }
+    #view-calculadora_cuotas .cc-msg-error.activo { display:block; }
+
+    #view-calculadora_cuotas .cc-resumen { margin-top:18px; display:flex; flex-direction:column; gap:10px; }
+    #view-calculadora_cuotas .cc-resumen-fila {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#F8F9FB; border-radius:13px; padding:13px 16px;
+    }
+    #view-calculadora_cuotas .cc-resumen-fila.neto { background:var(--verde-cl); }
+    #view-calculadora_cuotas .cc-resumen-fila .cc-rf-label { font-size:13px; font-weight:700; color:var(--texto-sua); }
+    #view-calculadora_cuotas .cc-resumen-fila.neto .cc-rf-label { color:#0D7A3B; }
+    #view-calculadora_cuotas .cc-resumen-fila .cc-rf-valor { font-size:18px; font-weight:800; letter-spacing:-.3px; }
+    #view-calculadora_cuotas .cc-resumen-fila.neto .cc-rf-valor { color:#0D7A3B; }
+
+    #view-calculadora_cuotas .cc-plan-titulo {
+      font-family:"Manrope","Inter",sans-serif; font-size:16px; font-weight:800;
+      margin:22px 0 12px 2px; color:var(--texto);
+    }
+    #view-calculadora_cuotas .cc-planes { display:flex; flex-direction:column; gap:10px; }
+    #view-calculadora_cuotas .cc-plan-card {
+      display:flex; justify-content:space-between; align-items:center;
+      background:#F8F9FB; border-radius:14px; padding:14px 16px;
+    }
+    #view-calculadora_cuotas .cc-plan-cuotas { font-size:15px; font-weight:800; color:var(--azul-osc); min-width:64px; }
+    #view-calculadora_cuotas .cc-plan-detalle { text-align:right; }
+    #view-calculadora_cuotas .cc-plan-total { font-size:12px; color:var(--texto-sua); font-weight:600; }
+    #view-calculadora_cuotas .cc-plan-cuota { font-size:18px; font-weight:800; letter-spacing:-.3px; }
+    #view-calculadora_cuotas .cc-plan-cuota small { font-size:12px; font-weight:700; color:var(--texto-sua); }
+
+    #view-calculadora_cuotas .cc-placeholder { text-align:center; color:var(--texto-sua); font-size:14px; padding:24px 10px; line-height:1.6; }
+
+    #view-calculadora_cuotas .cc-btn-copiar { margin-top:14px; }
+    #view-calculadora_cuotas .cc-btn-nueva { background:transparent; color:var(--texto-sua); border:1.5px solid var(--borde); box-shadow:none; margin-top:10px; }
+    #view-calculadora_cuotas .cc-btn-nueva:hover { transform:none; box-shadow:none; }
+  </style>
+
+  <div class="panel">
     <h3>💳 Calculadora de Cuotas</h3>
-    <div class="hint">Los coeficientes se leen en vivo desde la hoja "CONFIG_CUOTAS" — cualquier cambio ahí se refleja acá sin tocar código.</div>
+    <div class="hint">Ingresá el precio de contado del equipo. Se calcula el precio que hay que cobrar con tarjeta para que, después del 2,5% de PosNet/Getnet, ingrese ese mismo importe — y todas las opciones de financiación sobre ese precio.</div>
 
-    <label>Monto ($):</label>
-    <input type="number" id="cc_monto" value="0" min="0"/>
-    <button type="button" class="btn" onclick="cuotasStandaloneCalcular()">Calcular</button>
+    <label>Precio del equipo (contado, en pesos):</label>
+    <input type="text" inputmode="numeric" id="cc_precio" class="cc-input-precio" placeholder="$ 0" autocomplete="off" oninput="cuotasStandaloneOnInput()"/>
+    <div class="cc-msg-error" id="cc_msgError">Ingresá un precio válido y mayor a $0.</div>
 
-    <div id="cc_resultado" style="display:grid;gap:10px;margin-top:16px"></div>
+    <div class="cc-resumen" id="cc_resumen" style="display:none">
+      <div class="cc-resumen-fila">
+        <span class="cc-rf-label">💰 Precio del equipo</span>
+        <span class="cc-rf-valor" id="cc_rEquipo">—</span>
+      </div>
+      <div class="cc-resumen-fila">
+        <span class="cc-rf-label">💳 Precio contado al cliente</span>
+        <span class="cc-rf-valor" id="cc_rContado">—</span>
+      </div>
+      <div class="cc-resumen-fila neto">
+        <span class="cc-rf-label">🏦 Neto que recibimos</span>
+        <span class="cc-rf-valor" id="cc_rNeto">—</span>
+      </div>
+    </div>
+
+    <div id="cc_bloquePlanes" style="display:none">
+      <p class="cc-plan-titulo">📋 Opciones de financiación</p>
+      <div class="cc-planes" id="cc_planes"></div>
+
+      <button type="button" class="btn cc-btn-copiar" id="cc_btnCopiar" onclick="cuotasStandaloneCopiar()">📋 Copiar precios</button>
+      <button type="button" class="btn cc-btn-nueva" onclick="cuotasStandaloneNuevaVenta()">🔄 Nueva venta</button>
+    </div>
+
+    <div class="cc-placeholder" id="cc_placeholder">
+      Ingresá el precio de contado del equipo para ver el precio con tarjeta y todas las opciones de cuotas.
+    </div>
   </div>
 </div>
 
@@ -25,7 +104,127 @@
 </div>
 
 <script>
-  function calculadoraCuotasInit(){ /* nada que precargar: el cálculo es manual (botón Calcular) */ }
+  // ============================================================
+  //  CONFIGURACIÓN de la calculadora standalone (💳 Calculadora Cuotas,
+  //  sidebar) — descuento de PosNet/Getnet y coeficientes de financiación.
+  //  Todo el cálculo es client-side, sin llamar al backend: para cambiar
+  //  un número, se toca ÚNICAMENTE este objeto.
+  //  (No confundir con CONFIG_CUOTAS, la hoja que alimenta el modal
+  //  reutilizable renderCalculadoraCuotas() más abajo — son dos
+  //  herramientas distintas: esa calcula cuotas sobre un precio YA
+  //  pactado con el cliente; esta calcula, a partir del precio de
+  //  contado del equipo, cuánto hay que cobrar con tarjeta para
+  //  compensar el 2,5% de PosNet antes de aplicar cualquier cuota.)
+  // ============================================================
+  const CC_CONFIG = {
+    DESCUENTO_POSNET: 0.025,
+    COEFICIENTES_CUOTAS: [
+      { cuotas: 2,  coeficiente: 1.0671 },
+      { cuotas: 3,  coeficiente: 1.0913 },
+      { cuotas: 6,  coeficiente: 1.1666 },
+      { cuotas: 9,  coeficiente: 1.2724 },
+      { cuotas: 12, coeficiente: 1.3659 },
+      { cuotas: 18, coeficiente: 1.5690 },
+      { cuotas: 24, coeficiente: 1.7950 }
+    ]
+  };
+
+  /**
+   * Cálculo central de la calculadora standalone.
+   * precioContado = precioEquipo / (1 - DESCUENTO_POSNET) — dividir, NUNCA
+   * multiplicar por 1+descuento, para compensar el descuento correctamente.
+   * Cada plan se calcula sobre precioContado (que YA compensa el 2,5%);
+   * el descuento no se vuelve a aplicar después del coeficiente.
+   */
+  function _ccCalcular(precioEquipo){
+    const precioContado = Math.round(precioEquipo / (1 - CC_CONFIG.DESCUENTO_POSNET));
+    const planes = CC_CONFIG.COEFICIENTES_CUOTAS.map(function(c){
+      const total = Math.round(precioContado * c.coeficiente);
+      const cuota = Math.round(total / c.cuotas);
+      return { cuotas: c.cuotas, total: total, cuota: cuota };
+    });
+    return { precioEquipo: precioEquipo, precioContado: precioContado, planes: planes };
+  }
+
+  var _ccUltimoResultado = null;
+
+  function calculadoraCuotasInit(){ cuotasStandaloneNuevaVenta(); }
+
+  function _ccLimpiarNumero(texto){
+    const soloDigitos = String(texto || "").replace(/[^\d]/g, "");
+    return soloDigitos ? parseInt(soloDigitos, 10) : NaN;
+  }
+
+  function cuotasStandaloneOnInput(){
+    var input = document.getElementById("cc_precio");
+    var numero = _ccLimpiarNumero(input.value);
+    input.value = isNaN(numero) ? "" : numero.toLocaleString("es-AR");
+
+    var valido = !isNaN(numero) && numero > 0;
+    input.classList.toggle("error", input.value !== "" && !valido);
+    document.getElementById("cc_msgError").classList.toggle("activo", input.value !== "" && !valido);
+
+    if (!valido) {
+      document.getElementById("cc_resumen").style.display = "none";
+      document.getElementById("cc_bloquePlanes").style.display = "none";
+      document.getElementById("cc_placeholder").style.display = "block";
+      document.getElementById("cc_btnCopiar").disabled = true;
+      _ccUltimoResultado = null;
+      return;
+    }
+
+    _ccUltimoResultado = _ccCalcular(numero);
+    _ccRenderizar(_ccUltimoResultado);
+  }
+
+  function _ccRenderizar(r){
+    document.getElementById("cc_placeholder").style.display = "none";
+    document.getElementById("cc_resumen").style.display = "flex";
+    document.getElementById("cc_bloquePlanes").style.display = "block";
+    document.getElementById("cc_btnCopiar").disabled = false;
+
+    document.getElementById("cc_rEquipo").textContent  = fmtP(r.precioEquipo);
+    document.getElementById("cc_rContado").textContent = fmtP(r.precioContado);
+    document.getElementById("cc_rNeto").textContent    = fmtP(r.precioEquipo);
+
+    document.getElementById("cc_planes").innerHTML = r.planes.map(function(p){
+      return "<div class='cc-plan-card'>" +
+        "<span class='cc-plan-cuotas'>" + p.cuotas + " cuotas</span>" +
+        "<div class='cc-plan-detalle'>" +
+          "<div class='cc-plan-total'>Total: " + fmtP(p.total) + "</div>" +
+          "<div class='cc-plan-cuota'>" + fmtP(p.cuota) + " <small>c/u</small></div>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  function cuotasStandaloneNuevaVenta(){
+    var input = document.getElementById("cc_precio");
+    input.value = "";
+    input.classList.remove("error");
+    document.getElementById("cc_msgError").classList.remove("activo");
+    document.getElementById("cc_resumen").style.display = "none";
+    document.getElementById("cc_bloquePlanes").style.display = "none";
+    document.getElementById("cc_placeholder").style.display = "block";
+    _ccUltimoResultado = null;
+  }
+
+  function _ccArmarTextoWhatsapp(r){
+    var txt = "💳 *Opciones de pago*\n\n";
+    txt += "💰 Precio contado: " + fmtP(r.precioContado) + "\n";
+    txt += "━━━━━━━━━━━━━━━\n";
+    r.planes.forEach(function(p){
+      txt += "• " + p.cuotas + " cuotas de " + fmtP(p.cuota) + " (total " + fmtP(p.total) + ")\n";
+    });
+    txt += "━━━━━━━━━━━━━━━\n";
+    txt += "Cualquier consulta, quedamos a tu disposición. 😊";
+    return txt;
+  }
+
+  function cuotasStandaloneCopiar(){
+    if (!_ccUltimoResultado) return;
+    preciosCopiarTexto(_ccArmarTextoWhatsapp(_ccUltimoResultado), "✅ Precios copiados");
+  }
 
   /** Arma el HTML de una tarjeta de cuota (1 pago vs. N cuotas) — usado tanto por la calculadora standalone como por el modal reutilizable. */
   function _cuotasTarjetaHTML(c){
@@ -54,7 +253,7 @@
 
   // ---------- Calculadora standalone (sidebar 💳 Calculadora Cuotas) ----------
   function cuotasStandaloneCalcular(){
-    var monto = parseFloat(document.getElementById("cc_monto").value) || 0;
+    var monto = valorNumerico(document.getElementById("cc_monto"));
     if (monto <= 0) { mostrarToast("Ingresá un monto mayor a 0.", "error"); return; }
     document.getElementById("cc_resultado").innerHTML = "<div style='text-align:center;color:#889;padding:10px'>Calculando...</div>";
     google.script.run

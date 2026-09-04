@@ -1,4 +1,101 @@
 <div id="view-reparaciones" class="view">
+  <style>
+    /* Mismo lenguaje visual del asistente de Compras (compras.html) —
+       escapado a #view-reparaciones, no toca el resto del ERP. */
+    #view-reparaciones {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #view-reparaciones > .panel {
+      max-width: 640px; margin: 0 auto; padding: 4px 48px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-reparaciones > .panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-reparaciones > .panel > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+    #view-reparaciones .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-reparaciones .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-reparaciones .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-reparaciones .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-reparaciones .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-reparaciones .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-reparaciones .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-reparaciones .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+    #view-reparaciones .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-reparaciones .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-reparaciones .paso-num { display: none; }
+    #view-reparaciones .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+    #view-reparaciones label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-reparaciones .paso > label:first-child,
+    #view-reparaciones .paso > .fila2:first-child label { margin-top: 0; }
+    #view-reparaciones input, #view-reparaciones select, #view-reparaciones textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-reparaciones input::placeholder, #view-reparaciones textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-reparaciones input:focus, #view-reparaciones select:focus, #view-reparaciones textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-reparaciones .req { color: #E11D48; }
+    #view-reparaciones .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-reparaciones .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-reparaciones .box-info { background: #EEECFD; }
+    #view-reparaciones .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+    #view-reparaciones .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-reparaciones .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-reparaciones .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    #view-reparaciones .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-reparaciones .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-reparaciones .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-reparaciones .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-reparaciones .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-reparaciones .gp-wizard-paso-final > .btn {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-reparaciones .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
   <div class="panel">
     <h3>🔧 Registrar Reparación</h3>
 
@@ -39,6 +136,16 @@
           <input type="text" id="r_tel" placeholder="Ej: 2914123456"/>
         </div>
       </div>
+      <div class="fila2">
+        <div>
+          <label>DNI cliente (opcional):</label>
+          <input type="text" id="r_dni" placeholder="Para el ticket de ingreso"/>
+        </div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="r_email" placeholder="Para el ticket de ingreso"/>
+        </div>
+      </div>
     </div>
 
     <div class="paso">
@@ -65,6 +172,16 @@
         <div>
           <label>PIN (opcional):</label>
           <input type="text" id="r_pin" placeholder="Ej: 1234"/>
+        </div>
+      </div>
+      <div class="fila2">
+        <div>
+          <label>Color (opcional):</label>
+          <input type="text" id="r_color" placeholder="Para el ticket de ingreso"/>
+        </div>
+        <div>
+          <label>Batería (opcional):</label>
+          <input type="text" id="r_bateria" placeholder="Ej: 87%"/>
         </div>
       </div>
     </div>
@@ -107,53 +224,71 @@
       <div class="hint" style="margin-top:4px">Diagnóstico: usar cuando la falla es desconocida (no enciende / placa / mojado / falla extraña / reinicios / consumo anormal). No se seleccionan trabajos ni precio — se cotiza luego de revisar el equipo (48 hs hábiles).</div>
 
       <div id="r_presupuestoResultado" style="margin-top:12px"></div>
-    </div>
 
-    <div id="r_presupuestoCliente" style="display:none;margin-top:14px">
-      <div class="box box-info">
-        <label style="margin-top:0">📋 Presupuesto para el cliente</label>
-        <div id="r_presupuestoTexto" style="white-space:pre-wrap;font-size:12.5px;background:#fff;border:1px solid var(--borde);border-radius:6px;padding:10px;margin-top:6px"></div>
-        <div class="fila3" style="margin-top:10px">
-          <button type="button" class="btn" style="margin:0;background:#5D6D7E" onclick="reparacionesCopiarPresupuesto()">📋 Copiar</button>
-          <button type="button" class="btn" style="margin:0;background:#1E8449" onclick="reparacionesWhatsappPresupuesto()">📲 WhatsApp</button>
-          <button type="button" class="btn" style="margin:0;background:#117864" onclick="reparacionesImprimirPresupuesto()">🖨 Imprimir presupuesto</button>
+      <div id="r_presupuestoCliente" style="display:none;margin-top:14px">
+        <div class="box box-info">
+          <label style="margin-top:0">📋 Presupuesto para el cliente</label>
+          <div id="r_presupuestoTexto" style="white-space:pre-wrap;font-size:12.5px;background:#fff;border:1px solid var(--borde);border-radius:6px;padding:10px;margin-top:6px"></div>
+          <div class="fila3" style="margin-top:10px">
+            <button type="button" class="btn" style="margin:0;background:#5D6D7E" onclick="reparacionesCopiarPresupuesto()">📋 Copiar</button>
+            <button type="button" class="btn" style="margin:0;background:#1E8449" onclick="reparacionesWhatsappPresupuesto()">📲 WhatsApp</button>
+            <button type="button" class="btn" style="margin:0;background:#117864" onclick="reparacionesImprimirPresupuesto()">🖨 Imprimir presupuesto</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="paso">
-      <p class="paso-titulo"><span class="paso-num">6</span> Cobro</p>
+      <p class="paso-titulo"><span class="paso-num">6</span> Cobro y observaciones</p>
       <label style="margin-top:0">Precio cobrado ($):</label>
-      <input type="number" id="r_precioCob" value="0" min="0"/>
+      <input type="text" inputmode="numeric" id="r_precioCob" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
 
       <div class="fila2">
         <div>
           <label>Cobrado efectivo ($):</label>
-          <input type="number" id="r_efec" value="0" min="0"/>
+          <input type="text" inputmode="numeric" id="r_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
         </div>
         <div>
           <label>Cobrado transferencia ($):</label>
-          <input type="number" id="r_transf" value="0" min="0"/>
+          <input type="text" inputmode="numeric" id="r_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this)"/>
         </div>
       </div>
+
+      <label>Observaciones:</label>
+      <textarea id="r_obs"></textarea>
+
+      <button type="button" class="btn" onclick="reparacionesEnviar()">✅ Registrar</button>
     </div>
-
-    <label>Observaciones:</label>
-    <textarea id="r_obs"></textarea>
-
-    <button type="button" class="btn" onclick="reparacionesEnviar()">✅ Registrar</button>
     </form>
 
     <div id="r_etiquetaBox" style="display:none;margin-top:14px;padding:10px;background:#F4F6F9;border-radius:8px;text-align:center">
       <span id="r_etiquetaNumero" style="font-size:12.5px"></span><br>
-      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
+      <button class="btn" style="margin:8px 8px 0 0;width:auto;padding:8px 16px" onclick="imprimirEtiquetaReparacion(_ultimaReparacionNumero)">🖨 Imprimir etiqueta</button>
+      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px;background:#117864" onclick="imprimirReciboReparacion(_ultimaReparacionNumero)">🖨 Imprimir ticket de ingreso</button>
+      <button class="btn" style="margin:8px 0 0;width:auto;padding:8px 16px;background:#1E8449" onclick="firmarYEnviarPorWhatsapp('REPARACION', _ultimaReparacionNumero, _ultimaReparacionTel)">📲 WhatsApp</button>
     </div>
   </div>
 </div>
 
 <script>
   document.getElementById("r_fecha").value = new Date().toISOString().split("T")[0];
+
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardReparacion = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#rep_form .paso")),
+    { validar: function(i){
+        if (i === 0 && !document.getElementById("r_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+        if (i === 1 && !document.getElementById("r_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
+        if (i === 2 && !document.getElementById("r_equipo").value.trim()) return { ok:false, msg:"Ingresá el equipo." };
+        if (i === 3 && !document.getElementById("r_falla1").value.trim()) return { ok:false, msg:"Describí la falla principal." };
+        return { ok:true };
+      }
+    }
+  );
+
   var _ultimaReparacionNumero = null;
+  var _ultimaReparacionTel = null;
 
   // Reutilizable desde Reparaciones, Mis Operaciones y el modal Ver Reparación.
   // Pide al backend el HTML ya armado (etiqueta imprimible ~10x5cm, etiquetas.gs)
@@ -171,6 +306,29 @@
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .generarEtiquetaReparacion(numero);
+  }
+
+  /**
+   * Reutilizable desde Reparaciones (recién registrada) y desde Mis
+   * Operaciones (reimpresión). Mismo patrón que imprimirReciboVenta/
+   * imprimirReciboPreventa/imprimirReciboCesion: el click del operador
+   * abre la ventana en el momento, sin ningún hueco antes de pedirle el
+   * HTML al backend. generarReciboReparacion() (recibos.gs) elige sola la
+   * plantilla (con precio o de garantía) según el "Tipo" de la reparación
+   * — acá no hay que distinguir nada.
+   */
+  function imprimirReciboReparacion(numero){
+    if (!numero) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el ticket.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboReparacion(numero);
   }
 
   // ============================================================
@@ -289,7 +447,7 @@
       "<div class='total' style='margin-top:8px'>TOTAL: " + fmtP(res.precioTotal) + "</div>" +
       "<div class='hint' style='margin-top:4px'>Tiempo estimado: " + repDiasHabiles(res.horasEstimadas) + "</div>";
 
-      document.getElementById("r_precioCob").value = res.precioTotal;
+      setInputMoneda(document.getElementById("r_precioCob"), res.precioTotal);
     }
     document.getElementById("r_presupuestoResultado").innerHTML = html;
 
@@ -360,17 +518,22 @@
     document.getElementById("r_tipo").value     = datos["Tipo"] || "Particular";
     document.getElementById("r_cliente").value  = datos["Cliente"] || "";
     document.getElementById("r_tel").value      = datos["Teléfono"] || "";
+    document.getElementById("r_dni").value      = datos["DNI Cliente"] || "";
+    document.getElementById("r_email").value    = datos["Email Cliente"] || "";
     document.getElementById("r_equipo").value   = datos["Equipo"] || "";
     document.getElementById("r_imei").value     = datos["IMEI"] || "";
     document.getElementById("r_pin").value      = datos["PIN"] || "";
+    document.getElementById("r_color").value    = datos["Color"] || "";
+    document.getElementById("r_bateria").value  = datos["Batería"] || "";
     document.getElementById("r_falla1").value   = datos["Falla 1"] || "";
     document.getElementById("r_falla2").value   = datos["Falla 2"] || "";
-    document.getElementById("r_precioCob").value= datos["Precio Cobrado"] || 0;
-    document.getElementById("r_efec").value     = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("r_transf").value   = datos["Cobrado Transferencia"] || 0;
+    setInputMoneda(document.getElementById("r_precioCob"), datos["Precio Cobrado"] || 0);
+    setInputMoneda(document.getElementById("r_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("r_transf"), datos["Cobrado Transferencia"] || 0);
     document.getElementById("r_obs").value      = datos["Observaciones"] || "";
     document.getElementById(datos["Es Diagnóstico"] === "SI" ? "r_tipoIngreso_diagnostico" : "r_tipoIngreso_reparacion").checked = true;
     reparacionesRecalcular();
+    if (_wizardReparacion) _wizardReparacion.ir(0);
   }
 
   function reparacionesEnviar(){
@@ -379,14 +542,18 @@
       fecha: document.getElementById("r_fecha").value,
       cliente: document.getElementById("r_cliente").value.trim(),
       tel: document.getElementById("r_tel").value.trim(),
+      dni: document.getElementById("r_dni").value.trim(),
+      email: document.getElementById("r_email").value.trim(),
       equipo: document.getElementById("r_equipo").value.trim(),
       imei: document.getElementById("r_imei").value.trim(),
       pin: document.getElementById("r_pin").value.trim(),
+      color: document.getElementById("r_color").value.trim(),
+      bateria: document.getElementById("r_bateria").value.trim(),
       falla1: document.getElementById("r_falla1").value.trim(),
       falla2: document.getElementById("r_falla2").value.trim(),
-      precioCob: parseFloat(document.getElementById("r_precioCob").value) || 0,
-      efec: parseFloat(document.getElementById("r_efec").value) || 0,
-      transf: parseFloat(document.getElementById("r_transf").value) || 0,
+      precioCob: valorNumerico(document.getElementById("r_precioCob")),
+      efec: valorNumerico(document.getElementById("r_efec")),
+      transf: valorNumerico(document.getElementById("r_transf")),
       obs: document.getElementById("r_obs").value.trim(),
       operador: document.getElementById("r_operador").value
     };
@@ -424,6 +591,7 @@
       var m = String(msg || "").match(/\bREP-\S+/);
       if (m) {
         _ultimaReparacionNumero = m[0].replace(/[.,;:]+$/, "");
+        _ultimaReparacionTel = d.tel;
         document.getElementById("r_etiquetaNumero").textContent = "Reparación registrada: " + _ultimaReparacionNumero;
         document.getElementById("r_etiquetaBox").style.display = "block";
       }
@@ -442,5 +610,6 @@
     document.getElementById("r_presupuestoResultado").innerHTML = "";
     document.getElementById("r_presupuestoCliente").style.display = "none";
     _selectorModeloReparaciones.setValor("");
+    if (_wizardReparacion) _wizardReparacion.ir(0);
   }
 </script>

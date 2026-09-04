@@ -1,0 +1,445 @@
+<!--
+  Guía de uso del sistema — sección estática dentro del ERP (index.html la
+  incluye como cualquier otra vista, ver <?!= include('guia'); ?> y el
+  nav-btn data-vista="guia"). Mismo contenido que se compartió antes como
+  página aparte, adaptado para vivir dentro de #contenido: estilos
+  escapados bajo #view-guia (en vez de :root/body) para no pisar la
+  paleta ni el layout del resto de la app, y sin topbar propio — el título
+  ya lo pone #tituloVista (index.html).
+-->
+<div id="view-guia" class="view">
+<style>
+  #view-guia {
+    --g-ground-raised: #FFFFFF;
+    --g-ground-sunken: #F6F1E6;
+    --g-line: #E7DEC9;
+    --g-line-strong: #D8CBA9;
+    --g-ink: #262119;
+    --g-ink-soft: #6B6152;
+    --g-ink-faint: #948A76;
+    --g-accent: #D9711A;
+    --g-accent-soft: #FCE7D3;
+    --g-accent-soft-ink: #8A4308;
+    --g-link: #3E6B63;
+    --g-good: #3F7D4F;
+    --g-good-soft: #E3F1E4;
+    --g-warn: #A6721F;
+    --g-warn-soft: #FBEED9;
+    --g-bad: #B5432F;
+    --g-bad-soft: #FBE6E0;
+    --g-code-bg: #F1ECE2;
+    --g-shadow: 0 1px 2px rgba(38,33,25,.06), 0 6px 20px -8px rgba(38,33,25,.15);
+    --g-font-display: 'Manrope', ui-sans-serif, "Segoe UI Semibold", "Helvetica Neue", Arial, sans-serif;
+    --g-font-body: ui-sans-serif, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --g-font-mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+    color: var(--g-ink);
+    font-family: var(--g-font-body);
+    font-size: 15.5px;
+    line-height: 1.55;
+  }
+  #view-guia * { box-sizing: border-box; }
+  #view-guia h1, #view-guia h2, #view-guia h3 { font-family: var(--g-font-display); text-wrap: balance; color: var(--g-ink); }
+  #view-guia p { text-wrap: pretty; }
+  #view-guia a { color: var(--g-link); }
+  #view-guia code, #view-guia .op-code { font-family: var(--g-font-mono); font-variant-numeric: tabular-nums; }
+
+  #view-guia .g-shell { max-width: 900px; margin: 0 auto; }
+
+  /* ---------- Hero ---------- */
+  #view-guia .g-hero { padding: 4px 0 26px; border-bottom: 1px solid var(--g-line); }
+  #view-guia .g-eyebrow {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--g-accent-soft-ink); background: var(--g-accent-soft);
+    padding: 5px 10px; border-radius: 100px; margin-bottom: 14px;
+  }
+  #view-guia .g-hero h1 { font-size: clamp(24px, 3.6vw, 32px); line-height: 1.15; margin: 0 0 10px; font-weight: 800; letter-spacing: -.01em; }
+  #view-guia .g-hero p.g-lead { font-size: 15.5px; color: var(--g-ink-soft); max-width: 64ch; margin: 0 0 18px; }
+  #view-guia .g-rules { display: flex; flex-wrap: wrap; gap: 10px; }
+  #view-guia .g-rule-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--g-ground-raised); border: 1px solid var(--g-line);
+    border-radius: 10px; padding: 9px 13px; font-size: 13px; color: var(--g-ink-soft);
+    box-shadow: var(--g-shadow);
+  }
+  #view-guia .g-rule-chip b { color: var(--g-ink); font-weight: 600; }
+
+  /* ---------- Quick nav ---------- */
+  #view-guia .g-quicknav { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+  #view-guia .g-quicknav a {
+    font-size: 12.5px; font-weight: 600; text-decoration: none; color: var(--g-ink-soft);
+    background: var(--g-ground-sunken); border: 1px solid var(--g-line);
+    padding: 6px 11px; border-radius: 100px;
+  }
+  #view-guia .g-quicknav a:hover { border-color: var(--g-line-strong); color: var(--g-ink); }
+
+  /* ---------- Map ---------- */
+  #view-guia .g-map { padding: 30px 0 6px; }
+  #view-guia .g-map h2 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--g-ink-faint); font-weight: 700; margin: 0 0 14px; }
+  #view-guia .g-map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  #view-guia .g-map-card {
+    display: block; text-decoration: none; color: var(--g-ink);
+    background: var(--g-ground-raised); border: 1px solid var(--g-line); border-radius: 12px;
+    padding: 13px 14px; transition: border-color .15s, transform .15s;
+  }
+  #view-guia .g-map-card:hover { border-color: var(--g-line-strong); transform: translateY(-1px); }
+  #view-guia .g-map-card .g-ic { font-size: 19px; }
+  #view-guia .g-map-card .g-t { font-weight: 700; font-size: 14px; margin: 7px 0 3px; font-family: var(--g-font-display); }
+  #view-guia .g-map-card .g-d { font-size: 12px; color: var(--g-ink-faint); line-height: 1.4; }
+
+  /* ---------- Section ---------- */
+  #view-guia section.g-flow { padding: 44px 0 4px; border-top: 1px solid var(--g-line); scroll-margin-top: 90px; }
+  #view-guia .g-flow-head { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 18px; }
+  #view-guia .g-flow-head .g-ic {
+    flex: none; width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    background: var(--g-ground-sunken); border: 1px solid var(--g-line);
+  }
+  #view-guia .g-flow-head h2 { font-size: 20px; margin: 2px 0 3px; font-weight: 800; }
+  #view-guia .g-flow-head .g-tag { font-size: 12px; color: var(--g-ink-faint); }
+  #view-guia .g-flow-head .g-tag code { background: var(--g-code-bg); padding: 1px 6px; border-radius: 5px; color: var(--g-ink-soft); font-size: 11px; }
+
+  #view-guia .g-steps { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 0; }
+  #view-guia .g-steps li { display: grid; grid-template-columns: 28px 1fr; gap: 13px; padding: 12px 0; border-bottom: 1px dashed var(--g-line); }
+  #view-guia .g-steps li:last-child { border-bottom: none; }
+  #view-guia .g-steps .g-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--g-ground-sunken); border: 1px solid var(--g-line-strong);
+    color: var(--g-ink-soft); font-family: var(--g-font-mono); font-weight: 600; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  #view-guia .g-steps .g-body b { font-weight: 650; }
+  #view-guia .g-steps .g-body p { margin: 4px 0 0; color: var(--g-ink-soft); font-size: 14px; }
+
+  #view-guia .g-callout { display: flex; gap: 10px; align-items: flex-start; border-radius: 11px; padding: 12px 14px; margin: 12px 0; font-size: 13.5px; }
+  #view-guia .g-callout .g-ic { flex: none; font-size: 15px; line-height: 1.4; }
+  #view-guia .g-callout.tip  { background: var(--g-good-soft); color: var(--g-ink); }
+  #view-guia .g-callout.warn { background: var(--g-warn-soft); color: var(--g-ink); }
+  #view-guia .g-callout.bad  { background: var(--g-bad-soft); color: var(--g-ink); }
+  #view-guia .g-callout b { font-weight: 700; }
+
+  #view-guia .g-twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin: 12px 0; }
+  @media (max-width: 620px) { #view-guia .g-twocol { grid-template-columns: 1fr; } }
+  #view-guia .g-minicard { background: var(--g-ground-raised); border: 1px solid var(--g-line); border-radius: 11px; padding: 13px 14px; }
+  #view-guia .g-minicard .g-h { font-weight: 700; font-size: 13px; margin: 0 0 6px; display: flex; align-items: center; gap: 7px; }
+  #view-guia .g-minicard p { margin: 0; font-size: 13px; color: var(--g-ink-soft); }
+
+  #view-guia .g-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 650; padding: 3px 10px; border-radius: 100px; }
+  #view-guia .g-pill.good { background: var(--g-good-soft); color: var(--g-good); }
+  #view-guia .g-pill.warn { background: var(--g-warn-soft); color: var(--g-warn); }
+  #view-guia .g-pill.bad  { background: var(--g-bad-soft); color: var(--g-bad); }
+  #view-guia .g-pill.neutral { background: var(--g-ground-sunken); color: var(--g-ink-soft); border: 1px solid var(--g-line); }
+
+  #view-guia table.g-ref { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 18px; }
+  #view-guia table.g-ref th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--g-ink-faint); padding: 0 10px 8px; font-weight: 700; }
+  #view-guia table.g-ref td { padding: 10px; border-top: 1px solid var(--g-line); vertical-align: top; }
+  #view-guia table.g-ref tr td:first-child, #view-guia table.g-ref th:first-child { padding-left: 0; }
+  #view-guia .g-ref-wrap { overflow-x: auto; }
+
+  /* ---------- FAQ ---------- */
+  #view-guia .g-faq-item { border-top: 1px solid var(--g-line); padding: 14px 0; }
+  #view-guia .g-faq-item summary { cursor: pointer; font-weight: 650; font-size: 14.5px; list-style: none; display: flex; align-items: center; gap: 10px; }
+  #view-guia .g-faq-item summary::-webkit-details-marker { display: none; }
+  #view-guia .g-faq-item summary::before {
+    content: "+"; flex: none; width: 21px; height: 21px; border-radius: 6px;
+    background: var(--g-ground-sunken); border: 1px solid var(--g-line-strong);
+    display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--g-ink-soft);
+  }
+  #view-guia .g-faq-item[open] summary::before { content: "–"; }
+  #view-guia .g-faq-item .g-a { padding: 9px 0 0 31px; color: var(--g-ink-soft); font-size: 14px; }
+  #view-guia .g-faq-item .g-a p { margin: 0 0 8px; }
+  #view-guia .g-faq-item .g-a p:last-child { margin-bottom: 0; }
+
+  #view-guia footer { padding: 40px 0 4px; color: var(--g-ink-faint); font-size: 12px; border-top: 1px solid var(--g-line); margin-top: 34px; }
+  #view-guia ::selection { background: var(--g-accent-soft); color: var(--g-accent-soft-ink); }
+</style>
+
+<div class="g-shell">
+
+  <section class="g-hero">
+    <span class="g-eyebrow">🧭 Para todo el equipo</span>
+    <h1>Cómo se usa el sistema, sin vueltas</h1>
+    <p class="g-lead">
+      Esta guía explica, paso a paso y en criollo, cómo cargar cada operación: comprar un equipo, venderlo,
+      tomar una seña, entregar una reparación, y todo lo demás. No hace falta memorizar nada — quedate acá
+      mientras trabajás y buscá la sección que necesitás.
+    </p>
+    <div class="g-rules">
+      <div class="g-rule-chip">🔢 <span><b>Los números de operación</b> se generan solos (VTA-001, CMP-002...). Nunca los inventes.</span></div>
+      <div class="g-rule-chip">💾 <span><b>Todo queda guardado</b> — si te equivocás, se corrige o se anula, nunca se edita a mano en la planilla.</span></div>
+      <div class="g-rule-chip">👤 <span><b>Elegí siempre tu nombre</b> como Operador antes de cargar algo.</span></div>
+    </div>
+    <div class="g-quicknav">
+      <a href="javascript:void(0)" onclick="guiaIr('g-mapa')">Mapa</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-compras')">Compras</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-ventas')">Ventas</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-preventas')">Preventas</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-reparaciones')">Reparaciones</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-accesorios')">Accesorios</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-operaciones')">Mis Operaciones</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-recibos')">Firma y WhatsApp</a>
+      <a href="javascript:void(0)" onclick="guiaIr('g-dudas')">Dudas frecuentes</a>
+    </div>
+  </section>
+
+  <section class="g-map" id="g-mapa">
+    <h2>Mapa rápido del sistema</h2>
+    <div class="g-map-grid">
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-compras')">
+        <div class="g-ic">🛒</div>
+        <div class="g-t">Compras</div>
+        <div class="g-d">Cargar un equipo que compraste, o accesorios en lote.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-ventas')">
+        <div class="g-ic">💸</div>
+        <div class="g-t">Ventas</div>
+        <div class="g-d">Vender un equipo del stock, con o sin accesorios.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-preventas')">
+        <div class="g-ic">🟡</div>
+        <div class="g-t">Preventas</div>
+        <div class="g-d">El cliente encarga un equipo y deja una seña.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-entregas')">
+        <div class="g-ic">📦</div>
+        <div class="g-t">Entregas</div>
+        <div class="g-d">Entregar una preventa o una reparación ya lista.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-reparaciones')">
+        <div class="g-ic">🔧</div>
+        <div class="g-t">Reparaciones</div>
+        <div class="g-d">Ingresar un equipo a reparar y avisar cuando está listo.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-accesorios')">
+        <div class="g-ic">🎧</div>
+        <div class="g-t">Accesorios</div>
+        <div class="g-d">Fundas, cargadores, cables — compra en lote y venta suelta.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-operaciones')">
+        <div class="g-ic">📋</div>
+        <div class="g-t">Mis Operaciones</div>
+        <div class="g-d">Buscar cualquier operación: ver, reimprimir, corregir o anular.</div>
+      </a>
+      <a class="g-map-card" href="javascript:void(0)" onclick="guiaIr('g-recibos')">
+        <div class="g-ic">✍️</div>
+        <div class="g-t">Firma y WhatsApp</div>
+        <div class="g-d">Cómo mandar el recibo firmado por WhatsApp al cliente.</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ COMPRAS ============ -->
+  <section class="g-flow" id="g-compras">
+    <div class="g-flow-head">
+      <div class="g-ic">🛒</div>
+      <div>
+        <h2>Comprar un equipo</h2>
+        <div class="g-tag">Vista <code>Compras</code> → "Compra equipo / Consignación"</div>
+      </div>
+    </div>
+    <p>Usalo cada vez que le comprás un celular a alguien (o lo recibís en consignación) para venderlo después.</p>
+    <ol class="g-steps">
+      <li><span class="g-num">1</span><div class="g-body"><b>Elegí Operador y Tipo de ingreso.</b><p><span class="g-pill neutral">COMPRA</span> el equipo pasa a ser tuyo, lo pagás ahora. <span class="g-pill neutral">CONSIGNACIÓN</span> sigue siendo del dueño hasta que se venda.</p></div></li>
+      <li><span class="g-num">2</span><div class="g-body"><b>Cargá los datos del proveedor</b> (quien te lo vende) y del equipo: buscá el modelo, IMEI, color y estado físico. Si el modelo no está en la lista, escribilo igual — se carga sin problema.</div></li>
+      <li><span class="g-num">3</span><div class="g-body"><b>Poné el precio y la forma de pago.</b><p>Si el equipo necesita arreglo antes de venderse, tildá "¿Necesita arreglo?" y cargá el costo estimado.</p></div></li>
+      <li><span class="g-num">4</span><div class="g-body"><b>Registrá la compra.</b><p>El sistema le asigna un número (ej. <span class="op-code">CMP-014</span>) y el equipo queda disponible para vender.</p></div></li>
+    </ol>
+    <div class="g-callout tip"><span class="g-ic">💡</span><div>Si esta compra es para cumplir una <b>preventa ya pactada</b>, marcá "¿Es para una preventa?" y elegila de la lista — así quedan vinculadas.</div></div>
+    <div class="g-callout tip"><span class="g-ic">✍️</span><div>Al terminar una compra tipo COMPRA (no consignación), te va a ofrecer imprimir o mandar por WhatsApp la <b>Cesión de titularidad</b> — es el papel que firma quien te vendió el equipo.</div></div>
+  </section>
+
+  <!-- ============ VENTAS ============ -->
+  <section class="g-flow" id="g-ventas">
+    <div class="g-flow-head">
+      <div class="g-ic">💸</div>
+      <div>
+        <h2>Vender un equipo</h2>
+        <div class="g-tag">Vista <code>Ventas</code>, modo "Equipo"</div>
+      </div>
+    </div>
+    <p>Para vender un celular que ya está en stock (cargado antes en Compras).</p>
+    <ol class="g-steps">
+      <li><span class="g-num">1</span><div class="g-body"><b>Elegí el equipo</b> de la lista de stock disponible.</div></li>
+      <li><span class="g-num">2</span><div class="g-body"><b>¿Vende también un accesorio?</b><p>Abrí el paso opcional "¿Vendés accesorios junto con el equipo?" y elegilo del desplegable — <b>no escribas el nombre a mano</b>, siempre elegí del stock real para que después descuente solo. Si no está en la lista, usá la opción "Otro".</p></div></li>
+      <li><span class="g-num">3</span><div class="g-body"><b>Regalo de bienvenida.</b><p>Si el modelo tiene cable/funda configurados, dejá tildado "Entregar regalo(s) de bienvenida" — se entrega solo. Destildalo únicamente si el cliente no lo quiere llevar.</p></div></li>
+      <li><span class="g-num">4</span><div class="g-body"><b>Cargá el precio y cómo se cobra</b> (efectivo / transferencia / cuotas / dólares) — tiene que sumar exactamente el total (celular + accesorios).</div></li>
+      <li><span class="g-num">5</span><div class="g-body"><b>Confirmá.</b><p>Te va a mostrar el número de venta (ej. <span class="op-code">VTA-032</span>), la ganancia, y si el regalo se entregó o no. <b>Leelo entero</b> — ahí avisa si algo no salió (por ejemplo, si no había stock del regalo).</p></div></li>
+    </ol>
+    <div class="g-callout warn"><span class="g-ic">⚠️</span><div>Si el mensaje dice <b>"No hay stock del regalo"</b> o <b>"no tiene familia configurada"</b>, no es un error tuyo — avisale a Martín para revisar el stock de accesorios o la configuración de regalos de ese modelo.</div></div>
+  </section>
+
+  <!-- ============ PREVENTAS ============ -->
+  <section class="g-flow" id="g-preventas">
+    <div class="g-flow-head">
+      <div class="g-ic">🟡</div>
+      <div>
+        <h2>Preventa (el cliente encarga un equipo)</h2>
+        <div class="g-tag">Vista <code>Preventas</code> → "Registrar Preventa"</div>
+      </div>
+    </div>
+    <p>Usalo cuando el cliente quiere un modelo que todavía no tenés y deja una seña para reservarlo.</p>
+    <ol class="g-steps">
+      <li><span class="g-num">1</span><div class="g-body"><b>Elegí el Operador</b> y cargá el modelo que pide el cliente, con sus datos de contacto (el teléfono es importante: ahí llega el recibo por WhatsApp más adelante).</div></li>
+      <li><span class="g-num">2</span><div class="g-body"><b>El plazo de entrega se calcula solo</b> (7 a 10 días hábiles) apenas ponés la fecha — no hace falta tocarlo, salvo que quieras ajustarlo a mano.</div></li>
+      <li><span class="g-num">3</span><div class="g-body"><b>Cargá el precio pactado y la seña</b> que te está dejando ahora (puede ser menor al precio total).</div></li>
+      <li><span class="g-num">4</span><div class="g-body"><b>Registrá.</b><p>Queda con estado <span class="g-pill warn">🟡 Esperando compra</span> hasta que consigas el equipo (Compras → marcala como vinculada a esta preventa).</p></div></li>
+    </ol>
+  </section>
+
+  <!-- ============ ENTREGAS ============ -->
+  <section class="g-flow" id="g-entregas">
+    <div class="g-flow-head">
+      <div class="g-ic">📦</div>
+      <div>
+        <h2>Entregar una preventa</h2>
+        <div class="g-tag">Vista <code>Entregar Preventa</code></div>
+      </div>
+    </div>
+    <p>Cuando ya tenés el equipo que el cliente había encargado y se lo vas a entregar.</p>
+    <ol class="g-steps">
+      <li><span class="g-num">1</span><div class="g-body"><b>Elegí la preventa</b> de la lista — te muestra cuánto ya pagó y cuánto saldo falta.</div></li>
+      <li><span class="g-num">2</span><div class="g-body"><b>Cobrá el saldo</b> (y accesorios, si vende algo más en este momento) por el medio que corresponda.</div></li>
+      <li><span class="g-num">3</span><div class="g-body"><b>Regalo de bienvenida</b> — mismo criterio que en Ventas: dejalo tildado salvo que el cliente no lo quiera.</div></li>
+      <li><span class="g-num">4</span><div class="g-body"><b>Confirmá la entrega.</b><p>Te va a ofrecer imprimir el comprobante o mandarlo por WhatsApp directamente al número de esa preventa.</p></div></li>
+    </ol>
+  </section>
+
+  <!-- ============ REPARACIONES ============ -->
+  <section class="g-flow" id="g-reparaciones">
+    <div class="g-flow-head">
+      <div class="g-ic">🔧</div>
+      <div>
+        <h2>Reparaciones</h2>
+        <div class="g-tag">Vista <code>Registrar Reparación</code> y <code>Entregar Reparación</code></div>
+      </div>
+    </div>
+    <div class="g-twocol">
+      <div class="g-minicard">
+        <div class="g-h">📥 Cuando entra el equipo</div>
+        <p>Cargá cliente, teléfono, equipo y la falla que cuenta el cliente. El sistema te deja imprimir la etiqueta para pegarle al equipo y el ticket de ingreso — mandaselo también por WhatsApp si querés.</p>
+      </div>
+      <div class="g-minicard">
+        <div class="g-h">📤 Cuando está listo</div>
+        <p>Andá a <code>Entregar Reparación</code>, buscala en la lista "🟢 Listas", cobrá lo que corresponda y confirmá — se genera el comprobante de entrega con botón directo de WhatsApp.</p>
+      </div>
+    </div>
+    <div class="g-callout tip"><span class="g-ic">💡</span><div>El estado de una reparación se va actualizando desde <a href="javascript:void(0)" onclick="guiaIr('g-operaciones')">Mis Operaciones</a>: Ingresado → En Proceso → Listo → Retirado.</div></div>
+  </section>
+
+  <!-- ============ ACCESORIOS ============ -->
+  <section class="g-flow" id="g-accesorios">
+    <div class="g-flow-head">
+      <div class="g-ic">🎧</div>
+      <div>
+        <h2>Accesorios (fundas, cargadores, cables...)</h2>
+        <div class="g-tag">Vista <code>Compras</code> (modo Accesorios) y <code>Ventas</code> (modo Accesorios)</div>
+      </div>
+    </div>
+    <p><b>Comprar en lote:</b> si comprás varios modelos de una vez (por ejemplo 10 fundas distintas), usá el panel de "valores por defecto" arriba de las líneas — cargá una vez categoría, marca/calidad, costo y precio, y cada línea nueva ya nace con esos datos. Solo te queda elegir modelo, color y cantidad por línea. Usá <b>"Duplicar línea"</b> para copiar una línea entera y cambiar solo lo que varía.</p>
+    <div class="g-callout warn"><span class="g-ic">🧩</span><div><b>Fundas y vidrios templados son por modelo</b> — el sistema te va a pedir elegir a qué modelo corresponde cada línea. No se puede cargar "100 fundas" genéricas: son 20 de un modelo, 30 de otro, etc.</div></div>
+    <p><b>Vender suelto:</b> desde Ventas, cambiá el modo a "Compra accesorios" (venta suelta, sin celular de por medio), elegí el producto del stock real, cantidad y precio.</p>
+  </section>
+
+  <!-- ============ MIS OPERACIONES ============ -->
+  <section class="g-flow" id="g-operaciones">
+    <div class="g-flow-head">
+      <div class="g-ic">📋</div>
+      <div>
+        <h2>Mis Operaciones</h2>
+        <div class="g-tag">Buscar, reimprimir, corregir o anular cualquier cosa ya cargada</div>
+      </div>
+    </div>
+    <p>Es el buscador general: filtrá por operador, tipo o número, y encontrás cualquier venta, compra, preventa, reparación o gasto ya cargado.</p>
+    <div class="g-ref-wrap">
+      <table class="g-ref">
+        <thead><tr><th>Botón</th><th>Para qué sirve</th></tr></thead>
+        <tbody>
+          <tr><td><span class="g-pill neutral">Ver</span></td><td>Mostrar todos los datos de esa operación.</td></tr>
+          <tr><td><span class="g-pill neutral">✏️ Editar</span></td><td>Corregir un dato mal cargado (precio, cliente, modelo...). Te pide el motivo y queda registrado — no se pierde el historial.</td></tr>
+          <tr><td><span class="g-pill neutral">🖨 Recibo</span></td><td>Reimprimir el recibo en papel.</td></tr>
+          <tr><td><span class="g-pill good">📲</span></td><td>Firmar en pantalla y mandar el recibo por WhatsApp al número cargado en esa operación.</td></tr>
+          <tr><td><span class="g-pill bad">Anular</span></td><td>Deja la operación sin efecto (pide motivo). Se puede deshacer si fue un error.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="g-callout tip"><span class="g-ic">💡</span><div><b>¿Te equivocaste al cargar algo?</b> Usá "✏️ Editar", no anules y vuelvas a cargar todo de cero — así queda el historial prolijo y vinculado.</div></div>
+  </section>
+
+  <!-- ============ FIRMA / WHATSAPP ============ -->
+  <section class="g-flow" id="g-recibos">
+    <div class="g-flow-head">
+      <div class="g-ic">✍️</div>
+      <div>
+        <h2>Firma digital y envío por WhatsApp</h2>
+        <div class="g-tag">Botón "📲 WhatsApp" en cualquier recibo</div>
+      </div>
+    </div>
+    <ol class="g-steps">
+      <li><span class="g-num">1</span><div class="g-body"><b>Apretá "📲 WhatsApp"</b> apenas confirmás la operación (o después, desde Mis Operaciones).</div></li>
+      <li><span class="g-num">2</span><div class="g-body"><b>Pasale el celular o la tablet al cliente</b> para que firme en el recuadro con el dedo. El nombre y DNI se completan solos, no hace falta escribirlos.</div></li>
+      <li><span class="g-num">3</span><div class="g-body"><b>Confirmá la firma.</b><p>El PDF se descarga solo, con la firma ya puesta en el recibo.</p></div></li>
+      <li><span class="g-num">4</span><div class="g-body"><b>Apretá "💬 Abrir WhatsApp".</b><p>Se abre el chat con el número que está cargado en esa operación — solo falta adjuntar el PDF que se acaba de descargar y enviar.</p></div></li>
+    </ol>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section class="g-flow" id="g-dudas">
+    <div class="g-flow-head">
+      <div class="g-ic">❓</div>
+      <div>
+        <h2>Dudas frecuentes</h2>
+        <div class="g-tag">Lo que más se pregunta</div>
+      </div>
+    </div>
+
+    <details class="g-faq-item">
+      <summary>Me equivoqué al cargar una venta, ¿qué hago?</summary>
+      <div class="g-a"><p>Andá a <a href="javascript:void(0)" onclick="guiaIr('g-operaciones')">Mis Operaciones</a>, buscá el número y apretá "✏️ Editar". Vas a poder cambiar cualquier dato — te va a pedir el motivo del cambio.</p></div>
+    </details>
+
+    <details class="g-faq-item">
+      <summary>El sistema dice que "no hay stock del regalo" ¿por qué?</summary>
+      <div class="g-a"><p>Porque no hay cable o funda cargados en el stock de accesorios para ese modelo — no es un error tuyo, la venta se registró igual. Avisale a quien maneja el stock para reponerlo.</p></div>
+    </details>
+
+    <details class="g-faq-item">
+      <summary>¿Por qué no encuentro un accesorio para elegir al vender?</summary>
+      <div class="g-a"><p>Porque todavía no está cargado en <a href="javascript:void(0)" onclick="guiaIr('g-compras')">Compras de Accesorios</a>. Si es algo puntual que no vas a repetir, usá la opción "Otro" del desplegable — no descuenta stock, pero permite cargar la venta igual.</p></div>
+    </details>
+
+    <details class="g-faq-item">
+      <summary>¿Tengo que anotar el número de venta/compra a mano?</summary>
+      <div class="g-a"><p>No. El sistema los genera solo (VTA-001, CMP-002...) apenas confirmás. Guardalo del mensaje de confirmación si lo necesitás para buscarlo después, pero no hace falta anotarlo en ningún lado aparte.</p></div>
+    </details>
+
+    <details class="g-faq-item">
+      <summary>¿Puedo anular algo por error y después arrepentirme?</summary>
+      <div class="g-a"><p>Sí — una anulación se puede restaurar desde Mis Operaciones. Nada se borra para siempre sin querer.</p></div>
+    </details>
+
+    <details class="g-faq-item">
+      <summary>El botón de WhatsApp me abre el chat vacío, sin el contacto</summary>
+      <div class="g-a"><p>Significa que esa operación no tiene un teléfono cargado. Cargalo (o corregilo con "✏️ Editar") y volvé a intentar — el sistema arma el link con el número que esté guardado ahí.</p></div>
+    </details>
+
+  </section>
+
+  <footer>
+    Guía interna de uso — GreatPhones. Ante cualquier duda que no esté acá, consultá directamente con Martín.
+  </footer>
+
+</div>
+</div>
+
+<script>
+  /**
+   * Los links del mapa/quick-nav de la guía saltan con esto en vez de con
+   * href="#..." — dentro del iframe sandbox que usa Apps Script para la Web
+   * App, la navegación por ancla (#fragmento) no siempre mueve el scroll,
+   * así que se hace a mano con scrollIntoView().
+   */
+  function guiaIr(id){
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+</script>
