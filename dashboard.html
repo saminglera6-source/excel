@@ -654,8 +654,10 @@
     var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
     if (!item) return;
     _dpCalNPre = nPre;
-    var partes = (item.fechaHasta || "").split("-");
-    _dpCalMes = partes.length === 3 ? new Date(+partes[0], +partes[1] - 1, 1) : new Date();
+    // Arranca siempre en el mes de HOY (pedido explícito: si estamos en
+    // septiembre, se abre en septiembre) — sin importar en qué mes esté
+    // la fecha actual de esta preventa puntual.
+    _dpCalMes = new Date();
 
     var pop = document.getElementById("dp-cal-popover");
     pop.style.display = "block";
