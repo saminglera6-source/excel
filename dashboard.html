@@ -54,28 +54,59 @@
     #view-dashboard .gp-pre-card-tel a:hover { color: #16A34A; text-decoration: underline; }
 
     /* ---- Calendario mensual embebido (vista "Calendario") ---- */
-    #view-dashboard .gp-pre-cal-mes { max-height: 72vh; min-height: 460px; overflow-y: auto; }
-    #view-dashboard .gp-pre-cal-mes-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 12px; color: #fff; }
-    #view-dashboard .gp-pre-cal-mes-nav button { background: rgba(255,255,255,.12); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; }
-    #view-dashboard .gp-pre-cal-mes-nav button:hover { background: rgba(255,255,255,.22); }
-    #view-dashboard .gp-pre-cal-mes-nav b { font-family: "Manrope", sans-serif; font-size: 15px; min-width: 150px; text-align: center; }
-    #view-dashboard .gp-pre-cal-mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-    #view-dashboard .gp-pre-cal-mes-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,.55); padding-bottom: 4px; }
+    #view-dashboard .gp-pre-cal-mes { max-height: 72vh; min-height: 460px; overflow-y: auto; margin-top: 18px; padding-top: 2px; }
+    #view-dashboard .gp-pre-cal-mes-nav {
+      display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 14px; color: #fff;
+    }
+    #view-dashboard .gp-pre-cal-mes-nav button {
+      background: rgba(255,255,255,.12); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%;
+      cursor: pointer; font-size: 16px; flex-shrink: 0;
+    }
+    #view-dashboard .gp-pre-cal-mes-nav button:hover { background: rgba(255,255,255,.24); }
+    #view-dashboard .gp-pre-cal-mes-nav b { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 17px; letter-spacing: -.2px; min-width: 170px; text-align: center; }
+    #view-dashboard .gp-pre-cal-mes-hoy-btn {
+      border: 1px solid rgba(255,255,255,.25); background: transparent; color: rgba(255,255,255,.85);
+      border-radius: 100px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-cal-mes-hoy-btn:hover { background: rgba(255,255,255,.14); }
+    #view-dashboard .gp-pre-cal-mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+    #view-dashboard .gp-pre-cal-mes-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,.5); padding-bottom: 6px; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-cal-mes-lbl.gp-pre-cal-mes-finde { color: rgba(255,255,255,.32); }
     #view-dashboard .gp-pre-cal-mes-dia {
-      position: relative; aspect-ratio: 1; background: rgba(255,255,255,.06); border-radius: 10px;
-      display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px; cursor: default;
-      transition: background .12s;
+      position: relative; min-height: 88px; background: rgba(255,255,255,.055); border-radius: 12px;
+      display: flex; flex-direction: column; padding: 7px 6px; cursor: default;
+      border: 1px solid transparent; transition: background .12s, border-color .12s, transform .08s;
     }
-    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-vacio { background: transparent; }
-    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con { cursor: pointer; background: rgba(255,255,255,.14); }
-    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:hover { background: rgba(255,255,255,.26); }
-    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc { box-shadow: inset 0 0 0 1.5px #FF8A80; }
-    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy { box-shadow: inset 0 0 0 2px #fff; }
-    #view-dashboard .gp-pre-cal-mes-num { font-size: 11.5px; font-weight: 700; color: rgba(255,255,255,.85); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-finde { background: rgba(255,255,255,.028); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-vacio { background: transparent; visibility: hidden; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con { cursor: pointer; background: rgba(255,255,255,.13); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:hover { background: rgba(255,255,255,.24); transform: translateY(-1px); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:active { transform: scale(.98); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc { border-color: rgba(255,138,128,.55); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy { border-color: #fff; }
+    #view-dashboard .gp-pre-cal-mes-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    #view-dashboard .gp-pre-cal-mes-num { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy .gp-pre-cal-mes-num {
+      background: #fff; color: #312C85; width: 19px; height: 19px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: 800;
+    }
     #view-dashboard .gp-pre-cal-mes-badge {
-      position: absolute; bottom: 5px; right: 5px; background: #fff; color: #312C85; font-size: 10px; font-weight: 800;
-      border-radius: 100px; min-width: 17px; height: 17px; display: flex; align-items: center; justify-content: center; padding: 0 4px;
+      background: rgba(255,255,255,.2); color: #fff; font-size: 9.5px; font-weight: 800;
+      border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 4px;
     }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc .gp-pre-cal-mes-badge { background: #FF8A80; color: #7A1E1E; }
+    #view-dashboard .gp-pre-cal-mes-clientes { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    #view-dashboard .gp-pre-cal-mes-cliente {
+      font-size: 9.5px; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.35;
+    }
+    #view-dashboard .gp-pre-cal-mes-mas { font-size: 9px; color: rgba(255,255,255,.55); font-weight: 700; }
+    #view-dashboard .gp-pre-cal-mes-leyenda {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 16px;
+      font-size: 11px; color: rgba(255,255,255,.6);
+    }
+    #view-dashboard .gp-pre-cal-mes-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+    #view-dashboard .gp-pre-cal-mes-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
     #view-dashboard .gp-pre-fecha-chip {
       display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff;
       border-radius: 100px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer;
@@ -487,8 +518,21 @@
     dashPreCalMesRender();
   }
 
+  /** Nombre corto para las tarjetitas del calendario — primer nombre + inicial del apellido, así entra en el espacio de la celda sin recortar feo. */
+  function _dashPreNombreCorto(cliente){
+    var partes = String(cliente || "").trim().split(/\s+/);
+    if (partes.length <= 1) return partes[0] || "";
+    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
+  }
+
+  function dashPreCalMesIrAHoy(){
+    _dashPreCalMesFecha = new Date();
+    dashPreCalMesRender();
+  }
+
   function dashPreCalMesRender(){
     var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var DIAS_FINDE = [0, 6];
     var anio = _dashPreCalMesFecha.getFullYear(), mes = _dashPreCalMesFecha.getMonth();
     var porDia = {};
     _dashPreventas.forEach(function(p){
@@ -499,30 +543,53 @@
     var hoy = new Date();
     var primerDiaSemana = new Date(anio, mes, 1).getDay();
     var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var MAX_VISIBLES = 2;
 
-    var celdas = ["D","L","M","M","J","V","S"].map(function(l){ return "<div class='gp-pre-cal-mes-lbl'>" + l + "</div>"; });
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l, i){
+      return "<div class='gp-pre-cal-mes-lbl" + (DIAS_FINDE.indexOf(i) >= 0 ? " gp-pre-cal-mes-finde" : "") + "'>" + l + "</div>";
+    });
     for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='gp-pre-cal-mes-dia gp-pre-cal-mes-vacio'></div>");
     for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
       var iso = anio + "-" + String(mes + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
-      var items = porDia[iso] || [];
+      var items = (porDia[iso] || []).slice().sort(function(a, b){ return (a.cliente||"").localeCompare(b.cliente||""); });
       var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
       var vencidas = items.filter(function(x){ return x.severidad === "vencida"; }).length;
-      var clase = "gp-pre-cal-mes-dia" + (esHoy ? " gp-pre-cal-mes-hoy" : "") + (items.length ? " gp-pre-cal-mes-con" : "") + (vencidas ? " gp-pre-cal-mes-venc" : "");
+      var clase = "gp-pre-cal-mes-dia" +
+        (esHoy ? " gp-pre-cal-mes-hoy" : "") +
+        (esFinde ? " gp-pre-cal-mes-finde" : "") +
+        (items.length ? " gp-pre-cal-mes-con" : "") +
+        (vencidas ? " gp-pre-cal-mes-venc" : "");
       var onclick = items.length ? " onclick=\"dashPreCalMesElegirDia('" + iso + "')\"" : "";
-      var titulo = items.length ? " title='" + items.length + " preventa(s): " + items.map(function(x){ return _dashEscAttr(x.cliente); }).join(", ") + "'" : "";
-      celdas.push("<div class='" + clase + "'" + onclick + titulo + ">" +
-        "<span class='gp-pre-cal-mes-num'>" + d + "</span>" +
-        (items.length ? "<span class='gp-pre-cal-mes-badge'>" + items.length + "</span>" : "") +
+
+      var visibles = items.slice(0, MAX_VISIBLES).map(function(x){
+        return "<div class='gp-pre-cal-mes-cliente'>" + _dashEsc(_dashPreNombreCorto(x.cliente)) + "</div>";
+      }).join("");
+      var resto = items.length > MAX_VISIBLES ? "<div class='gp-pre-cal-mes-mas'>+" + (items.length - MAX_VISIBLES) + " más</div>" : "";
+
+      celdas.push("<div class='" + clase + "'" + onclick + ">" +
+        "<div class='gp-pre-cal-mes-top'>" +
+          "<span class='gp-pre-cal-mes-num'>" + d + "</span>" +
+          (items.length ? "<span class='gp-pre-cal-mes-badge'>" + items.length + "</span>" : "") +
+        "</div>" +
+        (items.length ? "<div class='gp-pre-cal-mes-clientes'>" + visibles + resto + "</div>" : "") +
       "</div>");
     }
 
     document.getElementById("gp-pre-cal-mes").innerHTML =
       "<div class='gp-pre-cal-mes-nav'>" +
-        "<button type='button' onclick='dashPreCalMesCambiar(-1)'>‹</button>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(-1)' title='Mes anterior'>‹</button>" +
         "<b>" + MESES[mes] + " " + anio + "</b>" +
-        "<button type='button' onclick='dashPreCalMesCambiar(1)'>›</button>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(1)' title='Mes siguiente'>›</button>" +
+        "<button type='button' class='gp-pre-cal-mes-hoy-btn' onclick='dashPreCalMesIrAHoy()'>Hoy</button>" +
       "</div>" +
-      "<div class='gp-pre-cal-mes-grid'>" + celdas.join("") + "</div>";
+      "<div class='gp-pre-cal-mes-grid'>" + celdas.join("") + "</div>" +
+      "<div class='gp-pre-cal-mes-leyenda'>" +
+        "<span><i style='background:rgba(255,255,255,.13)'></i>Con entregas</span>" +
+        "<span><i style='background:#FF8A80'></i>Con vencidas</span>" +
+        "<span><i style='background:transparent;border:1px solid #fff'></i>Hoy</span>" +
+      "</div>";
   }
 
   function dashPreCalMesElegirDia(iso){
@@ -544,10 +611,6 @@
     var partes = _dashPreFiltroFecha.split("-");
     chip.style.display = "inline-flex";
     chip.textContent = "📅 " + partes[2] + "/" + partes[1] + " ✕";
-  }
-
-  function _dashEscAttr(s){
-    return _dashEsc(s).replace(/'/g, "&#39;");
   }
 
   function _dashEsc(s){
