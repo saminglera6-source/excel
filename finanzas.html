@@ -129,6 +129,41 @@
     #view-finanzas .fp-item.pagado .fp-item-monto { color: var(--gpw-verde); }
     #view-finanzas .fp-item-btns { display: flex; gap: 4px; flex-shrink: 0; }
     #view-finanzas .fp-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 30px 10px; font-size: 13px; }
+
+    /* ---- Calendario combinado: Pagos + Preventas ---- */
+    #view-finanzas .fp-vista-switch { display: flex; gap: 4px; background: var(--gpw-fondo-campo); border-radius: 100px; padding: 3px; }
+    #view-finanzas .fp-vista-btn { border: none; background: transparent; color: var(--gpw-texto-sua); border-radius: 100px; padding: 6px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    #view-finanzas .fp-vista-btn.activo { background: #fff; color: var(--gpw-indigo); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    #view-finanzas .fp-cal-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 12px; }
+    #view-finanzas .fp-cal-nav button { background: var(--gpw-fondo-campo); border: none; color: var(--gpw-texto); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; }
+    #view-finanzas .fp-cal-nav button:hover { background: #E3E5F0; }
+    #view-finanzas .fp-cal-nav b { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 15.5px; min-width: 150px; text-align: center; }
+    #view-finanzas .fp-cal-nav .fp-cal-hoy-btn { width: auto; border-radius: 100px; padding: 0 12px; font-size: 11px; font-weight: 700; }
+    #view-finanzas .fp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    #view-finanzas .fp-cal-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--gpw-texto-sua); padding-bottom: 4px; }
+    #view-finanzas .fp-cal-dia {
+      position: relative; min-height: 76px; background: var(--gpw-fondo-campo); border-radius: 12px;
+      display: flex; flex-direction: column; padding: 6px 6px; border: 1.5px solid transparent; cursor: default;
+    }
+    #view-finanzas .fp-cal-dia.fp-cal-vacio { background: transparent; visibility: hidden; }
+    #view-finanzas .fp-cal-dia.fp-cal-finde { background: #EFF0F6; }
+    #view-finanzas .fp-cal-dia.fp-cal-hoy { border-color: var(--gpw-indigo); }
+    #view-finanzas .fp-cal-dia.fp-cal-con { cursor: pointer; }
+    #view-finanzas .fp-cal-dia.fp-cal-con:hover { background: #E3E5F0; }
+    #view-finanzas .fp-cal-dia.fp-cal-venc { box-shadow: inset 0 0 0 1.5px var(--gpw-rojo); }
+    #view-finanzas .fp-cal-num { font-size: 11.5px; font-weight: 700; color: var(--gpw-texto); }
+    #view-finanzas .fp-cal-dia.fp-cal-hoy .fp-cal-num { background: var(--gpw-indigo); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    #view-finanzas .fp-cal-badges { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+    #view-finanzas .fp-cal-badge { font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1.5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #view-finanzas .fp-cal-badge-pago { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
+    #view-finanzas .fp-cal-badge-pago.pagado { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
+    #view-finanzas .fp-cal-badge-pre { background: #EEF0FF; color: var(--gpw-indigo); }
+    #view-finanzas .fp-cal-leyenda { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 14px; font-size: 11px; color: var(--gpw-texto-sua); }
+    #view-finanzas .fp-cal-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+    #view-finanzas .fp-cal-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+    #view-finanzas .fp-dia-modal-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--gpw-borde); font-size: 13px; }
+    #view-finanzas .fp-dia-modal-item:last-child { border-bottom: none; }
+    #view-finanzas .fp-dia-modal-tipo { font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 100px; margin-right: 6px; }
   </style>
 
   <div class="fin-hero">
@@ -155,20 +190,51 @@
   <div class="fin-panel" id="fin-panel-agenda">
     <div class="fin-panel-head">
       <b>📅 Agenda de Pagos — <span id="fp_titulo_mes">…</span></b>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="fp-vista-switch">
+          <button type="button" class="fp-vista-btn activo" data-v="lista" onclick="fpSetVista('lista')">📋 Lista</button>
+          <button type="button" class="fp-vista-btn" data-v="calendario" onclick="fpSetVista('calendario')">🗓️ Calendario</button>
+        </div>
         <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(-1)">◀</button>
         <button type="button" class="fin-fila-btn" onclick="fpIrHoy()">Hoy</button>
         <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(1)">▶</button>
         <button type="button" class="fin-btn-agregar" onclick="fpAbrirModal()">➕ Agregar pago</button>
       </div>
     </div>
-    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad — es una agenda, no afecta el Estado de Resultados.</div>
+    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad — es una agenda, no afecta el Estado de Resultados. En "Calendario" también aparecen las preventas pendientes de entrega, para ver todo junto.</div>
 
     <div class="fin-kpis" id="fp_kpis" style="margin-bottom:16px">
       <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Cargando…</div></div>
     </div>
 
     <div id="fp_lista"></div>
+
+    <div id="fp_calendario" style="display:none">
+      <div class="fp-cal-nav">
+        <button type="button" onclick="fpCambiarMes(-1)">‹</button>
+        <b id="fp_cal_titulo">…</b>
+        <button type="button" onclick="fpCambiarMes(1)">›</button>
+        <button type="button" class="fp-cal-hoy-btn" onclick="fpIrHoy()">Hoy</button>
+      </div>
+      <div class="fp-cal-grid" id="fp_cal_grid"></div>
+      <div class="fp-cal-leyenda">
+        <span><i style="background:var(--gpw-rojo-cl)"></i>Pago pendiente</span>
+        <span><i style="background:var(--gpw-verde-cl)"></i>Pago ya realizado</span>
+        <span><i style="background:#EEF0FF"></i>Preventa a entregar</span>
+        <span><i style="background:transparent;border:1.5px solid var(--gpw-indigo)"></i>Hoy</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: detalle de un día del calendario ============ -->
+  <div id="fin-modal-dia" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fp_dia_modal_titulo">Día</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body" id="fp_dia_modal_body"></div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cerrar</button>
+      </div>
+    </div>
   </div>
 
   <div class="fin-panel">
@@ -871,6 +937,8 @@
     document.getElementById("fin-modal-costo-variable").style.display = "none";
     document.getElementById("fin-modal-mano-obra").style.display = "none";
     document.getElementById("fin-modal-pago").style.display = "none";
+    var mDia = document.getElementById("fin-modal-dia");
+    if (mDia) mDia.style.display = "none";
   }
 
   // ============================================================
@@ -883,11 +951,33 @@
   var _fpIdEnEdicion = null;
   var _fpCacheAgenda = null;
 
+  var _fpVista = "lista"; // "lista" | "calendario"
+  var _fpPreventasCache = [];
+
   function fpInit(){
     var hoy = new Date();
     _fpAnio = hoy.getFullYear();
     _fpMes = hoy.getMonth() + 1;
     fpCargarAgenda();
+    fpCargarPreventas();
+  }
+
+  function fpSetVista(v){
+    _fpVista = v;
+    document.querySelectorAll("#view-finanzas .fp-vista-btn").forEach(function(b){ b.classList.toggle("activo", b.dataset.v === v); });
+    document.getElementById("fp_lista").style.display = (v === "lista") ? "block" : "none";
+    document.getElementById("fp_calendario").style.display = (v === "calendario") ? "block" : "none";
+    if (v === "calendario") fpCalRender();
+  }
+
+  function fpCargarPreventas(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _fpPreventasCache = (datos || []).filter(function(p){ return p.fechaHasta; });
+        if (_fpVista === "calendario") fpCalRender();
+      })
+      .withFailureHandler(function(){})
+      .obtenerPreventasEntregables();
   }
 
   function fpCambiarMes(delta){
@@ -895,6 +985,7 @@
     if (_fpMes > 12) { _fpMes = 1; _fpAnio++; }
     if (_fpMes < 1) { _fpMes = 12; _fpAnio--; }
     fpCargarAgenda();
+    if (_fpVista === "calendario") fpCalRender();
   }
 
   function fpIrHoy(){
@@ -902,13 +993,14 @@
     _fpAnio = hoy.getFullYear();
     _fpMes = hoy.getMonth() + 1;
     fpCargarAgenda();
+    if (_fpVista === "calendario") fpCalRender();
   }
 
   function fpCargarAgenda(){
     document.getElementById("fp_titulo_mes").textContent = FIN_MESES[_fpMes-1] + " " + _fpAnio;
     document.getElementById("fp_lista").innerHTML = "<div class='fp-vacio'>Cargando…</div>";
     google.script.run
-      .withSuccessHandler(function(r){ _fpCacheAgenda = r; fpRenderAgenda(r); })
+      .withSuccessHandler(function(r){ _fpCacheAgenda = r; fpRenderAgenda(r); if (_fpVista === "calendario") fpCalRender(); })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerAgendaMes(_fpAnio, _fpMes);
   }
@@ -1043,6 +1135,103 @@
         fpCargarAgenda();
       });
     });
+  }
+
+  // ------------------------------------------------------------
+  //  CALENDARIO COMBINADO — Pagos + Preventas pendientes de entrega
+  //  (mismo lenguaje visual que el calendario de preventas del
+  //  Dashboard, adaptado a fondo claro). Los pagos se agrupan desde
+  //  _fpCacheAgenda (ya cargado por fpCargarAgenda) y las preventas
+  //  desde _fpPreventasCache (obtenerPreventasEntregables, la misma
+  //  fuente que usa el Dashboard).
+  // ------------------------------------------------------------
+
+  function fpCalRender(){
+    if (!_fpCacheAgenda) return;
+    var MESES2 = FIN_MESES;
+    var anio = _fpAnio, mes = _fpMes - 1; // 0-based para Date
+    document.getElementById("fp_cal_titulo").textContent = MESES2[mes] + " " + anio;
+
+    var porDiaPagos = {};
+    (_fpCacheAgenda.items || []).forEach(function(it){ (porDiaPagos[it.dia] = porDiaPagos[it.dia] || []).push(it); });
+
+    var porDiaPre = {};
+    _fpPreventasCache.forEach(function(p){
+      var partes = String(p.fechaHasta).split("-");
+      if (Number(partes[0]) === anio && Number(partes[1]) === mes + 1) {
+        var dia = Number(partes[2]);
+        (porDiaPre[dia] = porDiaPre[dia] || []).push(p);
+      }
+    });
+
+    var hoy = new Date();
+    var esMesActual = hoy.getFullYear() === anio && hoy.getMonth() === mes;
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var DIAS_FINDE = [0, 6];
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){ return "<div class='fp-cal-lbl'>" + l + "</div>"; });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='fp-cal-dia fp-cal-vacio'></div>");
+
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var pagosDia = porDiaPagos[d] || [];
+      var preDia = porDiaPre[d] || [];
+      var esHoy = esMesActual && hoy.getDate() === d;
+      var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
+      var hayAlgo = pagosDia.length > 0 || preDia.length > 0;
+      var vencido = esMesActual && d < hoy.getDate() && pagosDia.some(function(p){ return !p.pagado; });
+
+      var badges = "";
+      pagosDia.slice(0, 2).forEach(function(p){
+        badges += "<div class='fp-cal-badge fp-cal-badge-pago" + (p.pagado ? " pagado" : "") + "'>💳 " + _finEsc(p.concepto) + "</div>";
+      });
+      preDia.slice(0, 2).forEach(function(p){
+        badges += "<div class='fp-cal-badge fp-cal-badge-pre'>📦 " + _finEsc(_dashNombreCorto(p.cliente)) + "</div>";
+      });
+      var restantes = (pagosDia.length + preDia.length) - Math.min(pagosDia.length, 2) - Math.min(preDia.length, 2);
+      if (restantes > 0) badges += "<div class='fp-cal-badge' style='background:transparent;color:var(--gpw-texto-sua)'>+" + restantes + " más</div>";
+
+      var clase = "fp-cal-dia" + (esHoy ? " fp-cal-hoy" : "") + (esFinde ? " fp-cal-finde" : "") + (hayAlgo ? " fp-cal-con" : "") + (vencido ? " fp-cal-venc" : "");
+      var onclick = hayAlgo ? " onclick=\"fpAbrirDia(" + d + ")\"" : "";
+
+      celdas.push("<div class='" + clase + "'" + onclick + ">" +
+        "<span class='fp-cal-num'>" + d + "</span>" +
+        (hayAlgo ? "<div class='fp-cal-badges'>" + badges + "</div>" : "") +
+      "</div>");
+    }
+
+    document.getElementById("fp_cal_grid").innerHTML = celdas.join("");
+  }
+
+  function _dashNombreCorto(cliente){
+    var partes = String(cliente || "").trim().split(/\s+/);
+    if (partes.length <= 1) return partes[0] || "";
+    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
+  }
+
+  function fpAbrirDia(dia){
+    var pagosDia = (_fpCacheAgenda.items || []).filter(function(it){ return it.dia === dia; });
+    var mesStr = String(_fpMes).padStart(2, "0"), diaStr = String(dia).padStart(2, "0");
+    var preDia = _fpPreventasCache.filter(function(p){ return p.fechaHasta === (_fpAnio + "-" + mesStr + "-" + diaStr); });
+
+    document.getElementById("fp_dia_modal_titulo").textContent = dia + " de " + FIN_MESES[_fpMes-1];
+    var html = "";
+    pagosDia.forEach(function(it){
+      html += "<div class='fp-dia-modal-item'>" +
+        "<span><span class='fp-dia-modal-tipo' style='background:" + (it.pagado ? "var(--gpw-verde-cl);color:var(--gpw-verde)" : "var(--gpw-rojo-cl);color:var(--gpw-rojo)") + "'>PAGO</span>" + _finEsc(it.concepto) + "</span>" +
+        "<b>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + (it.pagado ? " ✅" : "") + "</b>" +
+      "</div>";
+    });
+    preDia.forEach(function(p){
+      html += "<div class='fp-dia-modal-item'>" +
+        "<span><span class='fp-dia-modal-tipo' style='background:#EEF0FF;color:var(--gpw-indigo)'>PREVENTA</span>" + _finEsc(p.cliente) + " — " + _finEsc(p.modelo) + "</span>" +
+        "<b>" + fmtP(p.saldo) + "</b>" +
+      "</div>";
+    });
+    if (!html) html = "<div class='fin-vacio'>Nada para este día.</div>";
+    document.getElementById("fp_dia_modal_body").innerHTML = html;
+    document.getElementById("fin-modal-dia").style.display = "flex";
   }
 
   // ============================================================
