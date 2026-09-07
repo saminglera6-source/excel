@@ -246,7 +246,14 @@
   </div>
 
   <div class="fin-panel">
-    <div class="fin-panel-head"><b>🧮 Estado de Resultados — <span id="fin_titulo_periodo">…</span></b></div>
+    <div class="fin-panel-head">
+      <b>🧮 Estado de Resultados — <span id="fin_titulo_periodo">…</span></b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span id="fin_ajuste_badge" style="display:none;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:100px;background:var(--gpw-ambar-cl);color:var(--gpw-ambar)">✏️ Con valores editados a mano</span>
+        <button type="button" class="fin-fila-btn" onclick="finAbrirModalConfig()">⚙️ Impuesto</button>
+        <button type="button" class="fin-btn-agregar" onclick="finAbrirModalAjuste()">✏️ Editar este mes</button>
+      </div>
+    </div>
     <table class="fin-tabla" id="fin_estado_resultados">
       <tbody></tbody>
     </table>
@@ -346,6 +353,50 @@
 
     <div style="margin-bottom:6px;font-weight:800;font-size:13px">Plazo del Préstamo × Monto Prestado</div>
     <div id="fs_tabla_prestamo" style="overflow-x:auto"></div>
+  </div>
+
+  <!-- ============ Modal: Configuración (% Impuesto a las Ganancias) ============ -->
+  <div id="fin-modal-config" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>⚙️ Configuración</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>% Impuesto a las Ganancias</label>
+        <input type="number" id="fcfg_impuesto" min="0" max="100" step="0.1" placeholder="0"/>
+        <div class="hint" style="margin-top:8px">Si no pagás Impuesto a las Ganancias, dejalo en 0 — el Estado de Resultados no le va a restar nada al resultado.</div>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarConfig()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Ajuste manual del Estado de Resultados ============ -->
+  <div id="fin-modal-ajuste" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>✏️ Editar <span id="fa_titulo_mes"></span></b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <div class="hint" style="margin-bottom:12px">Dejá un campo vacío para que ese renglón siga saliendo del cálculo automático. Cargá un valor solo en lo que necesites corregir.</div>
+        <label>Ventas</label>
+        <input type="text" inputmode="numeric" id="fa_ventas" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Costo Variable</label>
+        <input type="text" inputmode="numeric" id="fa_costoVariable" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Costos Fijos</label>
+        <input type="text" inputmode="numeric" id="fa_costosFijos" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Amortización</label>
+        <input type="text" inputmode="numeric" id="fa_amortizacion" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Mano de Obra</label>
+        <input type="text" inputmode="numeric" id="fa_manoDeObra" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Gastos Financieros</label>
+        <input type="text" inputmode="numeric" id="fa_gastosFinancieros" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
+        <label>Notas (opcional)</label>
+        <input type="text" id="fa_notas" placeholder="Por qué se corrigió este mes..."/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finRestablecerAjuste()">↩️ Restablecer automático</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarAjuste()">✅ Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- ============ Modal: Pago (Agenda) ============ -->
@@ -520,6 +571,8 @@
     _finModo = modo;
     document.querySelectorAll("#view-finanzas .fin-modo-btn").forEach(function(b){ b.classList.toggle("activo", b.dataset.modo === modo); });
     document.getElementById("fin_mes").style.display = (modo === "mensual") ? "inline-block" : "none";
+    var btnAjuste = document.querySelector("#view-finanzas .fin-btn-agregar[onclick='finAbrirModalAjuste()']");
+    if (btnAjuste) btnAjuste.style.display = (modo === "mensual") ? "inline-block" : "none";
     finCargarResultados();
   }
 
@@ -600,7 +653,12 @@
       _finKpiHtml("Unidades vendidas", r.unidadesVendidas);
   }
 
+  var _finResultadoActual = null; // último resultado renderizado — usado por el modal de ajuste manual
+
   function finRenderEstadoResultados(r){
+    _finResultadoActual = r;
+    var badge = document.getElementById("fin_ajuste_badge");
+    if (badge) badge.style.display = r.tieneAjusteManual ? "inline-block" : "none";
     var filas = [
       ["Ventas", r.ventas, false],
       ["Costo Variable", -r.costoVariable, false],
@@ -937,8 +995,101 @@
     document.getElementById("fin-modal-costo-variable").style.display = "none";
     document.getElementById("fin-modal-mano-obra").style.display = "none";
     document.getElementById("fin-modal-pago").style.display = "none";
+    document.getElementById("fin-modal-config").style.display = "none";
+    document.getElementById("fin-modal-ajuste").style.display = "none";
     var mDia = document.getElementById("fin-modal-dia");
     if (mDia) mDia.style.display = "none";
+  }
+
+  // ------------------------------------------------------------
+  //  CONFIGURACIÓN — % Impuesto a las Ganancias
+  // ------------------------------------------------------------
+  function finAbrirModalConfig(){
+    google.script.run
+      .withSuccessHandler(function(cfg){
+        document.getElementById("fcfg_impuesto").value = cfg.impuestoGananciasPct;
+        document.getElementById("fin-modal-config").style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerConfigFinanzas();
+  }
+
+  function finGuardarConfig(){
+    var d = { impuestoGananciasPct: document.getElementById("fcfg_impuesto").value };
+    llamarBackend("guardarConfigFinanzas", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarResultados();
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  AJUSTE MANUAL del Estado de Resultados — se puede pisar
+  //  cualquier renglón de un mes puntual, campo por campo.
+  // ------------------------------------------------------------
+  function finAbrirModalAjuste(){
+    var anio = Number(document.getElementById("fin_anio").value);
+    var mes = Number(document.getElementById("fin_mes").value);
+    document.getElementById("fa_titulo_mes").textContent = FIN_MESES[mes-1] + " " + anio;
+    ["fa_ventas","fa_costoVariable","fa_costosFijos","fa_amortizacion","fa_manoDeObra","fa_gastosFinancieros"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("fa_notas").value = "";
+    google.script.run
+      .withSuccessHandler(function(aj){
+        if (aj.ventas !== undefined) setInputMoneda(document.getElementById("fa_ventas"), aj.ventas);
+        if (aj.costoVariable !== undefined) setInputMoneda(document.getElementById("fa_costoVariable"), aj.costoVariable);
+        if (aj.costosFijos !== undefined) setInputMoneda(document.getElementById("fa_costosFijos"), aj.costosFijos);
+        if (aj.amortizacion !== undefined) setInputMoneda(document.getElementById("fa_amortizacion"), aj.amortizacion);
+        if (aj.manoDeObra !== undefined) setInputMoneda(document.getElementById("fa_manoDeObra"), aj.manoDeObra);
+        if (aj.gastosFinancieros !== undefined) setInputMoneda(document.getElementById("fa_gastosFinancieros"), aj.gastosFinancieros);
+        document.getElementById("fa_notas").value = aj.notas || "";
+        document.getElementById("fin-modal-ajuste").style.display = "flex";
+      })
+      .withFailureHandler(function(){ document.getElementById("fin-modal-ajuste").style.display = "flex"; })
+      .obtenerAjusteManual(anio, mes);
+  }
+
+  function _faValorOVacio(id){
+    var el = document.getElementById(id);
+    return el.value.trim() === "" ? "" : valorNumerico(el);
+  }
+
+  function finGuardarAjuste(){
+    var d = {
+      anio: Number(document.getElementById("fin_anio").value),
+      mes: Number(document.getElementById("fin_mes").value),
+      ventas: _faValorOVacio("fa_ventas"),
+      costoVariable: _faValorOVacio("fa_costoVariable"),
+      costosFijos: _faValorOVacio("fa_costosFijos"),
+      amortizacion: _faValorOVacio("fa_amortizacion"),
+      manoDeObra: _faValorOVacio("fa_manoDeObra"),
+      gastosFinancieros: _faValorOVacio("fa_gastosFinancieros"),
+      notas: document.getElementById("fa_notas").value.trim()
+    };
+    llamarBackend("guardarAjusteManual", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarResultados();
+      finCargarEvolucion();
+    });
+  }
+
+  function finRestablecerAjuste(){
+    var anio = Number(document.getElementById("fin_anio").value);
+    var mes = Number(document.getElementById("fin_mes").value);
+    confirmarAccion("¿Restablecer " + FIN_MESES[mes-1] + " " + anio + " al cálculo automático? Se van a perder los valores editados a mano.").then(function(ok){
+      if (!ok) return;
+      google.script.run
+        .withSuccessHandler(function(msg){
+          mostrarToast(msg, "exito");
+          finCerrarModales();
+          finCargarResultados();
+          finCargarEvolucion();
+        })
+        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+        .eliminarAjusteManual(anio, mes);
+    });
   }
 
   // ============================================================

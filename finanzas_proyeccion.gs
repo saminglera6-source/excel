@@ -140,7 +140,7 @@ function calcularFlujoDeFondos(params) {
 
     const utilidadBruta = ventas - costoVariable;
     const resultadoAntesImp = utilidadBruta - costosFijos - amortizacion - manoDeObra - cuotaPrestamo;
-    const impuesto = resultadoAntesImp > 0 ? resultadoAntesImp * FIN_IMPUESTO_GANANCIAS : 0;
+    const impuesto = resultadoAntesImp > 0 ? resultadoAntesImp * _finImpuestoGananciasFraccion_() : 0;
     const resultadoNeto = resultadoAntesImp - impuesto;
     const flujoNeto = resultadoNeto + amortizacion;
 

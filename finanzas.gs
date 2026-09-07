@@ -22,10 +22,63 @@
 //  costo que realmente regía ese mes, no el valor actual.
 // ============================================================
 
-const FIN_HOJA_COSTOS_FIJOS   = "FINANZAS_COSTOS_FIJOS";
-const FIN_HOJA_COSTO_VARIABLE = "FINANZAS_COSTO_VARIABLE";
-const FIN_HOJA_MANO_DE_OBRA   = "FINANZAS_MANO_DE_OBRA";
-const FIN_IMPUESTO_GANANCIAS  = 0.30; // Impuesto a las Ganancias, mismo % que ya usaba el Excel del dueño
+const FIN_HOJA_COSTOS_FIJOS     = "FINANZAS_COSTOS_FIJOS";
+const FIN_HOJA_COSTO_VARIABLE   = "FINANZAS_COSTO_VARIABLE";
+const FIN_HOJA_MANO_DE_OBRA     = "FINANZAS_MANO_DE_OBRA";
+const FIN_HOJA_CONFIG           = "FINANZAS_CONFIG";
+const FIN_HOJA_AJUSTES_MANUALES = "FINANZAS_AJUSTES_MANUALES";
+
+// ------------------------------------------------------------
+//  Configuración editable (% Impuesto a las Ganancias, etc.)
+//  Reemplaza la constante fija que había antes — el negocio no
+//  siempre paga el 30%, así que queda como un valor editable desde
+//  la web en vez de hardcodeado en el código.
+// ------------------------------------------------------------
+
+function _finAsegurarHojaConfig_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return _finAsegurarHoja_(ss, FIN_HOJA_CONFIG, ["Clave", "Valor"]);
+}
+
+function _finLeerConfig_(clave, valorPorDefecto) {
+  const sheet = _finAsegurarHojaConfig_();
+  const last = sheet.getLastRow();
+  if (last <= 1) return valorPorDefecto;
+  const filas = sheet.getRange(2, 1, last - 1, 2).getValues();
+  for (let i = 0; i < filas.length; i++) {
+    if (String(filas[i][0]) === clave) return filas[i][1];
+  }
+  return valorPorDefecto;
+}
+
+function _finGuardarConfig_(clave, valor) {
+  const sheet = _finAsegurarHojaConfig_();
+  const last = sheet.getLastRow();
+  if (last > 1) {
+    const filas = sheet.getRange(2, 1, last - 1, 1).getValues();
+    for (let i = 0; i < filas.length; i++) {
+      if (String(filas[i][0]) === clave) { sheet.getRange(i + 2, 2).setValue(valor); return; }
+    }
+  }
+  sheet.getRange(sheet.getLastRow() + 1, 1, 1, 2).setValues([[clave, valor]]);
+}
+
+/** % de Impuesto a las Ganancias que se aplica en el Estado de Resultados — editable, arranca en 0 porque el negocio hoy no lo paga. */
+function _finImpuestoGananciasFraccion_() {
+  const pct = Number(_finLeerConfig_("impuestoGananciasPct", 0)) || 0;
+  return pct / 100;
+}
+
+function obtenerConfigFinanzas() {
+  return { impuestoGananciasPct: Number(_finLeerConfig_("impuestoGananciasPct", 0)) || 0 };
+}
+
+function guardarConfigFinanzas(d) {
+  const pct = Number(d.impuestoGananciasPct);
+  if (isNaN(pct) || pct < 0 || pct > 100) throw new Error("❌ El % de impuesto tiene que estar entre 0 y 100.");
+  _finGuardarConfig_("impuestoGananciasPct", pct);
+  return "✅ Configuración guardada.";
+}
 
 // ------------------------------------------------------------
 //  Setup de hojas (se crean solas la primera vez que hacen falta)
@@ -332,6 +385,83 @@ function _finVentasDelMes_(anio, mes1based) {
  * valor actual) — así un mes de enero sigue mostrando el alquiler de
  * enero aunque hoy ya haya cambiado.
  */
+// ------------------------------------------------------------
+//  Ajustes manuales del Estado de Resultados por mes
+//
+//  Muchas veces lo que se calcula automático (a partir de Ventas /
+//  Venta Accesorios / los 3 paneles de costos) no queda del todo bien
+//  cargado — así que cualquier línea del Estado de Resultados de un
+//  mes puntual se puede pisar a mano. Lo que no se pisa sigue
+//  saliendo del cálculo automático como siempre. "Restablecer
+//  automático" borra el ajuste y ese mes vuelve a calcularse solo.
+// ------------------------------------------------------------
+
+const FIN_CAMPOS_AJUSTABLES = ["ventas", "costoVariable", "costosFijos", "amortizacion", "manoDeObra", "gastosFinancieros"];
+
+function _finAsegurarHojaAjustes_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  return _finAsegurarHoja_(ss, FIN_HOJA_AJUSTES_MANUALES, [
+    "Año", "Mes", "Ventas", "Costo Variable", "Costos Fijos", "Amortización", "Mano de Obra", "Gastos Financieros", "Notas"
+  ]);
+}
+
+function _finBuscarFilaAjuste_(sheet, anio, mes1based) {
+  const last = sheet.getLastRow();
+  if (last <= 1) return -1;
+  const filas = sheet.getRange(2, 1, last - 1, 2).getValues();
+  for (let i = 0; i < filas.length; i++) {
+    if (Number(filas[i][0]) === Number(anio) && Number(filas[i][1]) === Number(mes1based)) return i + 2;
+  }
+  return -1;
+}
+
+/** Devuelve { ventas, costoVariable, ... } solo con los campos que tienen ajuste cargado (los demás quedan sin la clave), o null si no hay ajuste para ese mes. */
+function _finObtenerAjusteManual_(anio, mes1based) {
+  const sheet = _finAsegurarHojaAjustes_();
+  const fila = _finBuscarFilaAjuste_(sheet, anio, mes1based);
+  if (fila === -1) return null;
+  const valores = sheet.getRange(fila, 3, 1, 6).getValues()[0]; // Ventas..Gastos Financieros
+  const notas = sheet.getRange(fila, 9).getValue();
+  const ajuste = { notas: notas || "" };
+  let hayAlgo = false;
+  FIN_CAMPOS_AJUSTABLES.forEach((campo, i) => {
+    if (valores[i] !== "" && valores[i] !== null && !isNaN(Number(valores[i]))) {
+      ajuste[campo] = Number(valores[i]);
+      hayAlgo = true;
+    }
+  });
+  return hayAlgo || notas ? ajuste : null;
+}
+
+function obtenerAjusteManual(anio, mes1based) {
+  return _finObtenerAjusteManual_(anio, mes1based) || {};
+}
+
+function guardarAjusteManual(d) {
+  const anio = Number(d.anio), mes1based = Number(d.mes);
+  const sheet = _finAsegurarHojaAjustes_();
+  const fila = _finBuscarFilaAjuste_(sheet, anio, mes1based);
+  const valores = FIN_CAMPOS_AJUSTABLES.map(campo => {
+    const v = d[campo];
+    return (v === "" || v === null || v === undefined) ? "" : Number(v);
+  });
+  const filaCompleta = [anio, mes1based].concat(valores).concat([d.notas || ""]);
+  if (fila === -1) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, 1, filaCompleta.length).setValues([filaCompleta]);
+  } else {
+    sheet.getRange(fila, 1, 1, filaCompleta.length).setValues([filaCompleta]);
+  }
+  return "✅ Ajuste guardado para " + mes1based + "/" + anio + ".";
+}
+
+function eliminarAjusteManual(anio, mes1based) {
+  const sheet = _finAsegurarHojaAjustes_();
+  const fila = _finBuscarFilaAjuste_(sheet, anio, mes1based);
+  if (fila === -1) return "✅ Ese mes ya estaba en automático.";
+  sheet.deleteRow(fila);
+  return "✅ Restablecido a cálculo automático.";
+}
+
 function calcularEstadoResultados(anio, mes1based) {
   const cotizacion = obtenerCotizacionUSD();
   const ventas = _finVentasDelMes_(anio, mes1based);
@@ -377,31 +507,55 @@ function calcularEstadoResultados(anio, mes1based) {
   // que rearmar el Estado de Resultados el día que exista.
   const gastosFinancieros = 0;
 
-  const resultadoAntesImpuestos = utilidadBruta - costosFijos - amortizacion - gastosFinancieros;
-  const impuesto = resultadoAntesImpuestos > 0 ? resultadoAntesImpuestos * FIN_IMPUESTO_GANANCIAS : 0;
+  // Valores calculados automático, antes de aplicar ningún ajuste manual.
+  let ventasFinal = ventas.ingresos;
+  let costoVariableFinal = costoVariableTotal;
+  let costosFijosFinal = costosFijos;
+  let amortizacionFinal = amortizacion;
+  let manoDeObraFinal = manoDeObra;
+  let gastosFinancierosFinal = gastosFinancieros;
+
+  // Ajuste manual: lo que a veces no se registra bien automático se
+  // puede pisar a mano por mes — solo se pisan los campos que tienen
+  // un valor cargado, el resto sigue saliendo del cálculo de arriba.
+  const ajuste = _finObtenerAjusteManual_(anio, mes1based) || {};
+  const camposAjustados = {};
+  if (ajuste.ventas !== undefined) { ventasFinal = ajuste.ventas; camposAjustados.ventas = true; }
+  if (ajuste.costoVariable !== undefined) { costoVariableFinal = ajuste.costoVariable; camposAjustados.costoVariable = true; }
+  if (ajuste.costosFijos !== undefined) { costosFijosFinal = ajuste.costosFijos; camposAjustados.costosFijos = true; }
+  if (ajuste.amortizacion !== undefined) { amortizacionFinal = ajuste.amortizacion; camposAjustados.amortizacion = true; }
+  if (ajuste.manoDeObra !== undefined) { manoDeObraFinal = ajuste.manoDeObra; camposAjustados.manoDeObra = true; }
+  if (ajuste.gastosFinancieros !== undefined) { gastosFinancierosFinal = ajuste.gastosFinancieros; camposAjustados.gastosFinancieros = true; }
+
+  const utilidadBrutaFinal = ventasFinal - costoVariableFinal;
+  const resultadoAntesImpuestos = utilidadBrutaFinal - costosFijosFinal - amortizacionFinal - manoDeObraFinal - gastosFinancierosFinal;
+  const impuesto = resultadoAntesImpuestos > 0 ? resultadoAntesImpuestos * _finImpuestoGananciasFraccion_() : 0;
   const resultadoNeto = resultadoAntesImpuestos - impuesto;
 
-  const margenPorUnidad = ventas.unidadesEquipos > 0 ? (utilidadBruta / ventas.unidadesEquipos) : 0;
-  const costosFijosTotalesParaPE = costosFijos + amortizacion + manoDeObra;
+  const margenPorUnidad = ventas.unidadesEquipos > 0 ? (utilidadBrutaFinal / ventas.unidadesEquipos) : 0;
+  const costosFijosTotalesParaPE = costosFijosFinal + amortizacionFinal + manoDeObraFinal;
   const puntoEquilibrioUnidades = margenPorUnidad > 0 ? Math.ceil(costosFijosTotalesParaPE / margenPorUnidad) : null;
 
   return {
     anio, mes: mes1based,
-    ventas: ventas.ingresos,
+    ventas: ventasFinal,
     unidadesVendidas: ventas.unidadesEquipos,
-    costoVariable: costoVariableTotal,
-    utilidadBruta,
-    costosFijos,
-    amortizacion,
-    manoDeObra,
-    gastosFinancieros,
+    costoVariable: costoVariableFinal,
+    utilidadBruta: utilidadBrutaFinal,
+    costosFijos: costosFijosFinal,
+    amortizacion: amortizacionFinal,
+    manoDeObra: manoDeObraFinal,
+    gastosFinancieros: gastosFinancierosFinal,
     resultadoAntesImpuestos,
     impuesto,
     resultadoNeto,
-    margenPct: ventas.ingresos > 0 ? (resultadoNeto / ventas.ingresos) : 0,
+    margenPct: ventasFinal > 0 ? (resultadoNeto / ventasFinal) : 0,
     margenPorUnidad,
     puntoEquilibrioUnidades,
-    cotizacionUsada: cotizacion.venta
+    cotizacionUsada: cotizacion.venta,
+    tieneAjusteManual: Object.keys(camposAjustados).length > 0 || !!ajuste.notas,
+    camposAjustados: camposAjustados,
+    notasAjuste: ajuste.notas || ""
   };
 }
 
