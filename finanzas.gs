@@ -33,10 +33,25 @@ const FIN_IMPUESTO_GANANCIAS  = 0.30; // Impuesto a las Ganancias, mismo % que y
 
 function _finAsegurarHoja_(ss, nombre, headers) {
   let sheet = ss.getSheetByName(nombre);
-  if (!sheet) {
-    sheet = ss.insertSheet(nombre);
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
-    sheet.setFrozenRows(1);
+  if (sheet) return sheet;
+
+  // El panel de Finanzas dispara varias llamadas en paralelo al cargar
+  // (google.script.run no espera a que termine una para lanzar la
+  // siguiente), así que la primera vez que una hoja todavía no existe,
+  // dos llamadas pueden llegar acá casi al mismo tiempo y las dos ven
+  // "no existe" antes de que ninguna la haya creado — sin este lock,
+  // la segunda revienta con "Ya existe una hoja con el nombre...".
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    sheet = ss.getSheetByName(nombre); // puede haberla creado la llamada que tenía el lock antes
+    if (!sheet) {
+      sheet = ss.insertSheet(nombre);
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold");
+      sheet.setFrozenRows(1);
+    }
+  } finally {
+    lock.releaseLock();
   }
   return sheet;
 }
