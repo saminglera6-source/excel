@@ -124,6 +124,7 @@
     #view-finanzas .fp-cal-badge { font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1.5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #view-finanzas .fp-cal-badge-pago { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
     #view-finanzas .fp-cal-badge-pago.pagado { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
+    #view-finanzas .fp-cal-badge-pre { background: var(--gpw-ambar-cl); color: var(--gpw-ambar); }
     #view-finanzas .fp-cal-leyenda { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 14px; font-size: 11px; color: var(--gpw-texto-sua); }
     #view-finanzas .fp-cal-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
     #view-finanzas .fp-cal-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
@@ -146,7 +147,7 @@
         <button type="button" class="fin-btn-agregar" onclick="fpAbrirModal()">➕ Agregar pago</button>
       </div>
     </div>
-    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad.</div>
+    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad. En "Calendario" también se ven las preventas a entregar cada día (con su saldo), para tener a la vista todo el movimiento de plata del día — lo que se paga y lo que se cobra.</div>
 
     <div class="fin-kpis" id="fp_kpis" style="margin-bottom:16px">
       <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Cargando…</div></div>
@@ -165,6 +166,7 @@
       <div class="fp-cal-leyenda">
         <span><i style="background:var(--gpw-rojo-cl)"></i>Pago pendiente</span>
         <span><i style="background:var(--gpw-verde-cl)"></i>Pago ya realizado</span>
+        <span><i style="background:var(--gpw-ambar-cl)"></i>Preventa a entregar (saldo a cobrar)</span>
         <span><i style="background:transparent;border:1.5px solid var(--gpw-indigo)"></i>Hoy</span>
       </div>
     </div>
@@ -646,12 +648,25 @@
   var _fpIdEnEdicion = null;
   var _fpCacheAgenda = null;
   var _fpVista = "lista"; // "lista" | "calendario"
+  var _fpPreventasCache = [];
 
   function fpInit(){
     var hoy = new Date();
     _fpAnio = hoy.getFullYear();
     _fpMes = hoy.getMonth() + 1;
     fpCargarAgenda();
+    fpCargarPreventas();
+  }
+
+  /** Preventas pendientes de entrega (misma fuente que usa el Dashboard) — se muestran en el calendario junto con los pagos para ver todo el movimiento de plata del día. */
+  function fpCargarPreventas(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _fpPreventasCache = (datos || []).filter(function(p){ return p.fechaHasta; });
+        if (_fpVista === "calendario") fpCalRender();
+      })
+      .withFailureHandler(function(){})
+      .obtenerPreventasEntregables();
   }
 
   function fpSetVista(v){
@@ -818,8 +833,16 @@
   }
 
   // ------------------------------------------------------------
-  //  CALENDARIO DE PAGOS
+  //  CALENDARIO DE PAGOS + PREVENTAS — para ver todo el movimiento
+  //  de plata del día: lo que hay que pagar (Agenda de Pagos) y lo
+  //  que hay que entregar/cobrar (preventas pendientes).
   // ------------------------------------------------------------
+
+  function _fpNombreCorto(cliente){
+    var partes = String(cliente || "").trim().split(/\s+/);
+    if (partes.length <= 1) return partes[0] || "";
+    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
+  }
 
   function fpCalRender(){
     if (!_fpCacheAgenda) return;
@@ -828,6 +851,15 @@
 
     var porDiaPagos = {};
     (_fpCacheAgenda.items || []).forEach(function(it){ (porDiaPagos[it.dia] = porDiaPagos[it.dia] || []).push(it); });
+
+    var porDiaPre = {};
+    _fpPreventasCache.forEach(function(p){
+      var partes = String(p.fechaHasta).split("-");
+      if (Number(partes[0]) === anio && Number(partes[1]) === mes + 1) {
+        var dia = Number(partes[2]);
+        (porDiaPre[dia] = porDiaPre[dia] || []).push(p);
+      }
+    });
 
     var hoy = new Date();
     var esMesActual = hoy.getFullYear() === anio && hoy.getMonth() === mes;
@@ -841,16 +873,20 @@
     for (var d = 1; d <= diasEnMes; d++) {
       var fechaDia = new Date(anio, mes, d);
       var pagosDia = porDiaPagos[d] || [];
+      var preDia = porDiaPre[d] || [];
       var esHoy = esMesActual && hoy.getDate() === d;
       var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
-      var hayAlgo = pagosDia.length > 0;
+      var hayAlgo = pagosDia.length > 0 || preDia.length > 0;
       var vencido = esMesActual && d < hoy.getDate() && pagosDia.some(function(p){ return !p.pagado; });
 
       var badges = "";
-      pagosDia.slice(0, 3).forEach(function(p){
+      pagosDia.slice(0, 2).forEach(function(p){
         badges += "<div class='fp-cal-badge fp-cal-badge-pago" + (p.pagado ? " pagado" : "") + "'>💳 " + _finEsc(p.concepto) + "</div>";
       });
-      var restantes = pagosDia.length - Math.min(pagosDia.length, 3);
+      preDia.slice(0, 2).forEach(function(p){
+        badges += "<div class='fp-cal-badge fp-cal-badge-pre'>📦 " + _finEsc(_fpNombreCorto(p.cliente)) + "</div>";
+      });
+      var restantes = (pagosDia.length + preDia.length) - Math.min(pagosDia.length, 2) - Math.min(preDia.length, 2);
       if (restantes > 0) badges += "<div class='fp-cal-badge' style='background:transparent;color:var(--gpw-texto-sua)'>+" + restantes + " más</div>";
 
       var clase = "fp-cal-dia" + (esHoy ? " fp-cal-hoy" : "") + (esFinde ? " fp-cal-finde" : "") + (hayAlgo ? " fp-cal-con" : "") + (vencido ? " fp-cal-venc" : "");
@@ -867,12 +903,21 @@
 
   function fpAbrirDia(dia){
     var pagosDia = (_fpCacheAgenda.items || []).filter(function(it){ return it.dia === dia; });
+    var mesStr = String(_fpMes).padStart(2, "0"), diaStr = String(dia).padStart(2, "0");
+    var preDia = _fpPreventasCache.filter(function(p){ return p.fechaHasta === (_fpAnio + "-" + mesStr + "-" + diaStr); });
+
     document.getElementById("fp_dia_modal_titulo").textContent = dia + " de " + FIN_MESES[_fpMes-1];
     var html = "";
     pagosDia.forEach(function(it){
       html += "<div class='fp-dia-modal-item'>" +
         "<span><span class='fp-dia-modal-tipo' style='background:" + (it.pagado ? "var(--gpw-verde-cl);color:var(--gpw-verde)" : "var(--gpw-rojo-cl);color:var(--gpw-rojo)") + "'>PAGO</span>" + _finEsc(it.concepto) + "</span>" +
         "<b>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + (it.pagado ? " ✅" : "") + "</b>" +
+      "</div>";
+    });
+    preDia.forEach(function(p){
+      html += "<div class='fp-dia-modal-item'>" +
+        "<span><span class='fp-dia-modal-tipo' style='background:var(--gpw-ambar-cl);color:var(--gpw-ambar)'>PREVENTA</span>" + _finEsc(p.cliente) + " — " + _finEsc(p.modelo) + "</span>" +
+        "<b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b>" +
       "</div>";
     });
     if (!html) html = "<div class='fin-vacio'>Nada para este día.</div>";
