@@ -8,32 +8,10 @@
       --gpw-ambar: #D97706; --gpw-ambar-cl: #FEF3E2;
       font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    #view-finanzas .fin-hero {
-      background: linear-gradient(155deg, #1E1B4B, #312C85 55%, #4F46E5);
-      border-radius: 24px; padding: 22px 24px; margin-bottom: 20px; color: #fff;
-      box-shadow: 0 20px 50px rgba(49,44,133,.35);
-    }
-    #view-finanzas .fin-hero-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-    #view-finanzas .fin-hero-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -.4px; }
-    #view-finanzas .fin-hero-sub { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 3px; }
-    #view-finanzas .fin-periodo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    #view-finanzas .fin-periodo select, #view-finanzas .fin-periodo button {
-      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); color: #fff;
-      border-radius: 100px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
-    }
-    #view-finanzas .fin-periodo select option { color: #191B2E; }
-    #view-finanzas .fin-modo-switch { display: flex; gap: 4px; background: rgba(255,255,255,.1); border-radius: 100px; padding: 3px; }
-    #view-finanzas .fin-modo-btn { border: none; background: transparent; color: rgba(255,255,255,.75); border-radius: 100px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
-    #view-finanzas .fin-modo-btn.activo { background: #fff; color: #312C85; }
-
     #view-finanzas .fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
     #view-finanzas .fin-kpi { background: rgba(255,255,255,.09); border-radius: 14px; padding: 12px 14px; }
     #view-finanzas .fin-kpi .lbl { font-size: 10.5px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .3px; }
     #view-finanzas .fin-kpi .val { font-family: "Manrope", sans-serif; font-size: 19px; font-weight: 800; margin-top: 3px; }
-    #view-finanzas .fin-kpi .var { font-size: 10.5px; margin-top: 3px; font-weight: 700; }
-    #view-finanzas .fin-kpi .var.pos { color: #86EFAC; }
-    #view-finanzas .fin-kpi .var.neg { color: #FF8A80; }
-    #view-finanzas .fin-kpi.destacado { background: rgba(255,255,255,.18); }
 
     #view-finanzas .fin-panel { background: #fff; border-radius: 20px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
     #view-finanzas .fin-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
@@ -43,12 +21,6 @@
       border-radius: 100px; padding: 8px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
     }
     #view-finanzas .fin-btn-agregar:hover { filter: brightness(1.08); }
-
-    #view-finanzas .fin-desglose { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
-    #view-finanzas .fin-desglose-item { flex: 1 1 140px; }
-    #view-finanzas .fin-desglose-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--gpw-texto-sua); margin-bottom: 4px; }
-    #view-finanzas .fin-desglose-barra { height: 8px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; }
-    #view-finanzas .fin-desglose-fill { height: 100%; border-radius: 100px; }
 
     #view-finanzas .fin-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
     #view-finanzas .fin-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; color: var(--gpw-texto-sua); padding: 6px 10px; border-bottom: 1.5px solid var(--gpw-borde); }
@@ -65,12 +37,7 @@
     #view-finanzas .fin-fila-btn.baja:hover { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
     #view-finanzas .fin-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 24px 10px; font-size: 13px; }
 
-    #view-finanzas .fin-chart { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 10px 4px 0; overflow-x: auto; }
-    #view-finanzas .fin-chart-col { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
-    #view-finanzas .fin-chart-bar { width: 20px; border-radius: 5px 5px 0 0; min-height: 2px; }
-    #view-finanzas .fin-chart-lbl { font-size: 9.5px; color: var(--gpw-texto-sua); white-space: nowrap; }
-
-    /* ---- Modal genérico de alta/edición (costos fijos / variables / mano de obra) ---- */
+    /* ---- Modal genérico de alta/edición (costos fijos / variables / mano de obra / pagos) ---- */
     #view-finanzas .fin-modal-overlay {
       position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 200;
       display: none; align-items: center; justify-content: center; padding: 20px;
@@ -130,7 +97,7 @@
     #view-finanzas .fp-item-btns { display: flex; gap: 4px; flex-shrink: 0; }
     #view-finanzas .fp-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 30px 10px; font-size: 13px; }
 
-    /* ---- Calendario combinado: Pagos + Preventas ---- */
+    /* ---- Calendario de Pagos ---- */
     #view-finanzas .fp-vista-switch { display: flex; gap: 4px; background: var(--gpw-fondo-campo); border-radius: 100px; padding: 3px; }
     #view-finanzas .fp-vista-btn { border: none; background: transparent; color: var(--gpw-texto-sua); border-radius: 100px; padding: 6px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }
     #view-finanzas .fp-vista-btn.activo { background: #fff; color: var(--gpw-indigo); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
@@ -157,7 +124,6 @@
     #view-finanzas .fp-cal-badge { font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1.5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #view-finanzas .fp-cal-badge-pago { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
     #view-finanzas .fp-cal-badge-pago.pagado { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
-    #view-finanzas .fp-cal-badge-pre { background: #EEF0FF; color: var(--gpw-indigo); }
     #view-finanzas .fp-cal-leyenda { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 14px; font-size: 11px; color: var(--gpw-texto-sua); }
     #view-finanzas .fp-cal-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
     #view-finanzas .fp-cal-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
@@ -180,7 +146,7 @@
         <button type="button" class="fin-btn-agregar" onclick="fpAbrirModal()">➕ Agregar pago</button>
       </div>
     </div>
-    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad — es una agenda, no afecta el Estado de Resultados. En "Calendario" también aparecen las preventas pendientes de entrega, para ver todo junto.</div>
+    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad.</div>
 
     <div class="fin-kpis" id="fp_kpis" style="margin-bottom:16px">
       <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Cargando…</div></div>
@@ -199,30 +165,8 @@
       <div class="fp-cal-leyenda">
         <span><i style="background:var(--gpw-rojo-cl)"></i>Pago pendiente</span>
         <span><i style="background:var(--gpw-verde-cl)"></i>Pago ya realizado</span>
-        <span><i style="background:#EEF0FF"></i>Preventa a entregar</span>
         <span><i style="background:transparent;border:1.5px solid var(--gpw-indigo)"></i>Hoy</span>
       </div>
-    </div>
-  </div>
-
-  <div class="fin-hero">
-    <div class="fin-hero-top">
-      <div>
-        <div class="fin-hero-title">💹 Gestión Financiera y Rentabilidad</div>
-        <div class="fin-hero-sub">Cruza las ventas reales del ERP con tus costos — ¿estoy ganando plata, y cuánto?</div>
-      </div>
-      <div class="fin-periodo">
-        <div class="fin-modo-switch">
-          <button type="button" class="fin-modo-btn activo" data-modo="mensual" onclick="finSetModo('mensual')">Mensual</button>
-          <button type="button" class="fin-modo-btn" data-modo="anual" onclick="finSetModo('anual')">Acumulado anual</button>
-        </div>
-        <select id="fin_mes" onchange="finCargarResultados()"></select>
-        <select id="fin_anio" onchange="finCargarResultados()"></select>
-        <button type="button" onclick="window.print()">🖨️ Exportar / Imprimir</button>
-      </div>
-    </div>
-    <div class="fin-kpis" id="fin_kpis">
-      <div class="fin-kpi"><div class="lbl">Cargando…</div></div>
     </div>
   </div>
 
@@ -238,35 +182,11 @@
   </div>
 
   <div class="fin-panel">
-    <div class="fin-panel-head"><b>📊 Evolución — últimos 12 meses</b></div>
-    <div class="hint" style="margin-bottom:4px">Ventas totales por mes</div>
-    <div class="fin-chart" id="fin_chart_ventas"></div>
-    <div class="hint" style="margin:14px 0 4px">Resultado neto por mes (verde = ganancia, rojo = pérdida)</div>
-    <div class="fin-chart" id="fin_chart_resultado"></div>
-  </div>
-
-  <div class="fin-panel">
-    <div class="fin-panel-head">
-      <b>🧮 Estado de Resultados — <span id="fin_titulo_periodo">…</span></b>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span id="fin_ajuste_badge" style="display:none;font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:100px;background:var(--gpw-ambar-cl);color:var(--gpw-ambar)">✏️ Con valores editados a mano</span>
-        <button type="button" class="fin-fila-btn" onclick="finAbrirModalConfig()">⚙️ Impuesto</button>
-        <button type="button" class="fin-btn-agregar" onclick="finAbrirModalAjuste()">✏️ Editar este mes</button>
-      </div>
-    </div>
-    <table class="fin-tabla" id="fin_estado_resultados">
-      <tbody></tbody>
-    </table>
-    <div class="fin-panel-head" style="margin-top:18px;margin-bottom:8px"><b style="font-size:13px">¿De dónde salen los costos?</b></div>
-    <div class="fin-desglose" id="fin_desglose"></div>
-  </div>
-
-  <div class="fin-panel">
     <div class="fin-panel-head">
       <b>🏢 Costos Fijos Mensuales</b>
       <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoFijo()">➕ Agregar</button>
     </div>
-    <div class="hint" style="margin-bottom:10px">Servicios, administrativos e inversión en bienes de capital (se amortiza sola, mes a mes, según su vida útil).</div>
+    <div class="hint" style="margin-bottom:10px">Servicios, administrativos e inversión en bienes de capital.</div>
     <table class="fin-tabla">
       <thead><tr><th>Categoría</th><th>Concepto</th><th class="num">Monto</th><th></th></tr></thead>
       <tbody id="fin_tbody_costos_fijos"></tbody>
@@ -278,7 +198,7 @@
       <b>📦 Costo Variable por Equipo</b>
       <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoVariable()">➕ Agregar</button>
     </div>
-    <div class="hint" style="margin-bottom:10px">El costo del iPhone en sí ya sale solo de cada Venta real — acá solo cargás lo que se suma por unidad vendida: accesorios de regalo, logística, etc.</div>
+    <div class="hint" style="margin-bottom:10px">Lo que se suma por unidad vendida: accesorios de regalo, logística, etc.</div>
     <table class="fin-tabla">
       <thead><tr><th>Concepto</th><th>Descripción</th><th class="num">Costo unitario</th><th></th></tr></thead>
       <tbody id="fin_tbody_costo_variable"></tbody>
@@ -294,109 +214,6 @@
       <thead><tr><th>Rol / Persona</th><th class="num">Cant. × Turnos</th><th class="num">Salario</th><th class="num">Costo total</th><th></th></tr></thead>
       <tbody id="fin_tbody_mano_obra"></tbody>
     </table>
-  </div>
-
-  <div class="fin-panel">
-    <div class="fin-panel-head">
-      <b>💰 Flujo de Fondos y Escenarios</b>
-    </div>
-    <div class="hint" style="margin-bottom:10px">Proyección a futuro tomando como base el promedio real de los últimos 3 meses. El préstamo es una simulación — no afecta el Estado de Resultados real hasta que exista uno de verdad.</div>
-
-    <div class="fin-modo-switch" style="background:var(--gpw-fondo-campo);display:inline-flex;margin-bottom:14px">
-      <button type="button" class="fin-modo-btn fin-esc-btn activo" data-esc="base" onclick="finSetEscenario('base')" style="color:#4B4D63">Base</button>
-      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="pesimista" onclick="finSetEscenario('pesimista')" style="color:#4B4D63">Pesimista</button>
-      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="optimista" onclick="finSetEscenario('optimista')" style="color:#4B4D63">Optimista</button>
-      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="financiado" onclick="finSetEscenario('financiado')" style="color:#4B4D63">Financiado</button>
-    </div>
-
-    <div class="fin-fila2" style="margin-bottom:10px">
-      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Meses a proyectar</label><input type="number" id="ff_meses" min="1" max="60" value="12" onchange="finRecalcularFlujo()"/></div>
-      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Tasa de descuento anual (%)</label><input type="number" id="ff_tasa_desc" value="60" onchange="finRecalcularFlujo()"/></div>
-    </div>
-    <div class="fin-fila2" style="margin-bottom:10px">
-      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Crecimiento mensual de ventas (%)</label><input type="number" id="ff_crec_ventas" value="0" onchange="finRecalcularFlujo()"/></div>
-      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Crecimiento mensual de costos (%)</label><input type="number" id="ff_crec_costos" value="0" onchange="finRecalcularFlujo()"/></div>
-    </div>
-    <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Inversión inicial ($)</label><input type="text" inputmode="numeric" id="ff_inversion" placeholder="$0" oninput="formatearInputMoneda(this)" onchange="finRecalcularFlujo()"/></div>
-
-    <div id="ff_bloque_prestamo" style="display:none;margin-top:10px;padding:12px;background:var(--gpw-fondo-campo);border-radius:14px">
-      <div class="fin-fila2">
-        <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Monto del préstamo ($)</label><input type="text" inputmode="numeric" id="ff_prest_monto" placeholder="$0" oninput="formatearInputMoneda(this)" onchange="finRecalcularFlujo()"/></div>
-        <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Tasa anual (%)</label><input type="number" id="ff_prest_tasa" value="60" onchange="finRecalcularFlujo()"/></div>
-      </div>
-      <div style="margin-top:10px"><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Plazo (años)</label><input type="number" id="ff_prest_plazo" min="1" max="10" value="3" onchange="finRecalcularFlujo()"/></div>
-    </div>
-
-    <div class="fin-kpis" id="ff_kpis" style="margin-top:16px">
-      <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Calculando…</div></div>
-    </div>
-
-    <div class="hint" style="margin:16px 0 4px">Flujo neto acumulado por mes</div>
-    <div class="fin-chart" id="ff_chart"></div>
-
-    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
-      <input type="text" id="ff_nombre_supuesto" placeholder="Nombre para guardar este supuesto..." style="flex:1;min-width:200px;padding:9px 12px;border-radius:11px;border:1.5px solid var(--gpw-borde);background:var(--gpw-fondo-campo);font-size:13px"/>
-      <button type="button" class="fin-btn-agregar" onclick="finGuardarSupuesto()">💾 Guardar supuesto</button>
-    </div>
-    <div id="ff_lista_supuestos" style="margin-top:10px"></div>
-  </div>
-
-  <div class="fin-panel">
-    <div class="fin-panel-head"><b>🌡️ Análisis de Sensibilidad</b></div>
-    <div class="hint" style="margin-bottom:10px">TIR anual (%) del escenario actual, variando ±40% dos variables a la vez. Verde = mejor que la base, rojo = peor.</div>
-
-    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Costos Fijos × Costo Variable</div>
-    <div id="fs_tabla_costos" style="overflow-x:auto;margin-bottom:18px"></div>
-
-    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Precio Promedio × Cantidad Vendida</div>
-    <div id="fs_tabla_precio" style="overflow-x:auto;margin-bottom:18px"></div>
-
-    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Plazo del Préstamo × Monto Prestado</div>
-    <div id="fs_tabla_prestamo" style="overflow-x:auto"></div>
-  </div>
-
-  <!-- ============ Modal: Configuración (% Impuesto a las Ganancias) ============ -->
-  <div id="fin-modal-config" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
-    <div class="fin-modal">
-      <div class="fin-modal-header"><b>⚙️ Configuración</b><button type="button" onclick="finCerrarModales()">✕</button></div>
-      <div class="fin-modal-body">
-        <label>% Impuesto a las Ganancias</label>
-        <input type="number" id="fcfg_impuesto" min="0" max="100" step="0.1" placeholder="0"/>
-        <div class="hint" style="margin-top:8px">Si no pagás Impuesto a las Ganancias, dejalo en 0 — el Estado de Resultados no le va a restar nada al resultado.</div>
-      </div>
-      <div class="fin-modal-footer">
-        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
-        <button type="button" class="fin-btn-guardar" onclick="finGuardarConfig()">✅ Guardar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ Modal: Ajuste manual del Estado de Resultados ============ -->
-  <div id="fin-modal-ajuste" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
-    <div class="fin-modal">
-      <div class="fin-modal-header"><b>✏️ Editar <span id="fa_titulo_mes"></span></b><button type="button" onclick="finCerrarModales()">✕</button></div>
-      <div class="fin-modal-body">
-        <div class="hint" style="margin-bottom:12px">Dejá un campo vacío para que ese renglón siga saliendo del cálculo automático. Cargá un valor solo en lo que necesites corregir.</div>
-        <label>Ventas</label>
-        <input type="text" inputmode="numeric" id="fa_ventas" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Costo Variable</label>
-        <input type="text" inputmode="numeric" id="fa_costoVariable" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Costos Fijos</label>
-        <input type="text" inputmode="numeric" id="fa_costosFijos" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Amortización</label>
-        <input type="text" inputmode="numeric" id="fa_amortizacion" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Mano de Obra</label>
-        <input type="text" inputmode="numeric" id="fa_manoDeObra" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Gastos Financieros</label>
-        <input type="text" inputmode="numeric" id="fa_gastosFinancieros" placeholder="Automático" oninput="formatearInputMoneda(this)"/>
-        <label>Notas (opcional)</label>
-        <input type="text" id="fa_notas" placeholder="Por qué se corrigió este mes..."/>
-      </div>
-      <div class="fin-modal-footer">
-        <button type="button" class="fin-btn-cancelar" onclick="finRestablecerAjuste()">↩️ Restablecer automático</button>
-        <button type="button" class="fin-btn-guardar" onclick="finGuardarAjuste()">✅ Guardar</button>
-      </div>
-    </div>
   </div>
 
   <!-- ============ Modal: Pago (Agenda) ============ -->
@@ -529,14 +346,13 @@
 
 <script>
   // ============================================================
-  //  GESTIÓN FINANCIERA — Fase 1 (Costos + Estado de Resultados +
-  //  Dashboard). Todo lo que es "venta" viene de finanzas.gs, que a su
-  //  vez lee en vivo de las hojas Ventas / Venta Accesorios — acá nunca
-  //  se carga una venta a mano. Los 3 paneles editables (Costos Fijos,
-  //  Costo Variable, Mano de Obra) son CRUD simples contra finanzas.gs.
+  //  FINANZAS — Costos, Deudas y Cosas a Pagar. No hay nada de
+  //  ventas/rentabilidad acá — es puramente para organizar lo que el
+  //  local tiene que pagar: la Agenda de Pagos día a día, y los 3
+  //  paneles de costos (Fijos, Variable por equipo, Mano de Obra),
+  //  todo editable/agregable/eliminable con total libertad.
   // ============================================================
 
-  var _finModo = "mensual"; // "mensual" | "anual"
   var _finIdEnEdicionCF = null; // id del costo fijo en edición (null = alta nueva)
   var _finIdEnEdicionCV = null;
   var _finIdEnEdicionMO = null;
@@ -547,181 +363,13 @@
   const FIN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
   function finInit(){
-    var hoy = new Date();
-    var selMes = document.getElementById("fin_mes");
-    var selAnio = document.getElementById("fin_anio");
-    selMes.innerHTML = FIN_MESES.map(function(m, i){ return "<option value='" + (i+1) + "'>" + m + "</option>"; }).join("");
-    selMes.value = hoy.getMonth() + 1;
-    var anioActual = hoy.getFullYear();
-    var opcionesAnio = [];
-    for (var a = anioActual - 2; a <= anioActual; a++) opcionesAnio.push("<option value='" + a + "'>" + a + "</option>");
-    selAnio.innerHTML = opcionesAnio.join("");
-    selAnio.value = anioActual;
-
-    finCargarResultados();
     finCargarCostosFijos();
     finCargarCostoVariable();
     finCargarManoDeObra();
-    finCargarEvolucion();
-    finInitFlujo();
     fpInit();
   }
 
-  function finSetModo(modo){
-    _finModo = modo;
-    document.querySelectorAll("#view-finanzas .fin-modo-btn").forEach(function(b){ b.classList.toggle("activo", b.dataset.modo === modo); });
-    document.getElementById("fin_mes").style.display = (modo === "mensual") ? "inline-block" : "none";
-    var btnAjuste = document.querySelector("#view-finanzas .fin-btn-agregar[onclick='finAbrirModalAjuste()']");
-    if (btnAjuste) btnAjuste.style.display = (modo === "mensual") ? "inline-block" : "none";
-    finCargarResultados();
-  }
-
-  function fmtPct(n){
-    if (n == null || isNaN(n)) return "—";
-    var pct = (n * 100).toFixed(1);
-    return (n >= 0 ? "+" : "") + pct + "%";
-  }
-
-  function finCargarResultados(){
-    var anio = Number(document.getElementById("fin_anio").value);
-    var mes = Number(document.getElementById("fin_mes").value);
-    document.getElementById("fin_kpis").innerHTML = "<div class='fin-kpi'><div class='lbl'>Calculando…</div></div>";
-
-    if (_finModo === "mensual") {
-      document.getElementById("fin_titulo_periodo").textContent = FIN_MESES[mes-1] + " " + anio;
-      google.script.run
-        .withSuccessHandler(function(r){ finRenderKpisMensual(r, anio, mes); finRenderEstadoResultados(r); })
-        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-        .calcularEstadoResultados(anio, mes);
-    } else {
-      document.getElementById("fin_titulo_periodo").textContent = "Acumulado " + anio + " (hasta " + FIN_MESES[mes-1] + ")";
-      google.script.run
-        .withSuccessHandler(function(r){ finRenderKpisAnual(r); finRenderEstadoResultados(r); })
-        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-        .calcularEstadoResultadosAcumulado(anio, mes);
-    }
-  }
-
-  function _finKpiHtml(lbl, val, varPct, destacado){
-    var varHtml = "";
-    if (varPct !== undefined) {
-      varHtml = varPct == null ? "<div class='var'>Sin dato del mes anterior</div>" :
-        "<div class='var " + (varPct >= 0 ? "pos" : "neg") + "'>" + fmtPct(varPct) + " vs. mes anterior</div>";
-    }
-    return "<div class='fin-kpi" + (destacado ? " destacado" : "") + "'>" +
-      "<div class='lbl'>" + lbl + "</div><div class='val'>" + val + "</div>" + varHtml +
-    "</div>";
-  }
-
-  function finRenderKpisMensual(r, anio, mes){
-    google.script.run
-      .withSuccessHandler(function(resumen){
-        var varVentas = null, varResultado = null;
-        var hoy = new Date();
-        if (anio === hoy.getFullYear() && mes === (hoy.getMonth()+1)) {
-          varVentas = resumen.variacionVentas;
-          varResultado = resumen.variacionResultadoNeto;
-        }
-        document.getElementById("fin_kpis").innerHTML =
-          _finKpiHtml("Ventas", fmtP(r.ventas), varVentas) +
-          _finKpiHtml("Costo total", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
-          _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
-          _finKpiHtml("Resultado neto", fmtP(r.resultadoNeto), varResultado, true) +
-          _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
-          _finKpiHtml("Punto de equilibrio", r.puntoEquilibrioUnidades == null ? "—" : r.puntoEquilibrioUnidades + " equipos");
-      })
-      .withFailureHandler(function(){
-        // Si falla el resumen comparativo, igual mostramos los KPIs sin variación.
-        document.getElementById("fin_kpis").innerHTML =
-          _finKpiHtml("Ventas", fmtP(r.ventas)) +
-          _finKpiHtml("Costo total", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
-          _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
-          _finKpiHtml("Resultado neto", fmtP(r.resultadoNeto), undefined, true) +
-          _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
-          _finKpiHtml("Punto de equilibrio", r.puntoEquilibrioUnidades == null ? "—" : r.puntoEquilibrioUnidades + " equipos");
-      })
-      .obtenerResumenFinanzasDashboard();
-  }
-
-  function finRenderKpisAnual(r){
-    document.getElementById("fin_kpis").innerHTML =
-      _finKpiHtml("Ventas acumuladas", fmtP(r.ventas)) +
-      _finKpiHtml("Costo total acumulado", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
-      _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
-      _finKpiHtml("Resultado neto acumulado", fmtP(r.resultadoNeto), undefined, true) +
-      _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
-      _finKpiHtml("Unidades vendidas", r.unidadesVendidas);
-  }
-
-  var _finResultadoActual = null; // último resultado renderizado — usado por el modal de ajuste manual
-
-  function finRenderEstadoResultados(r){
-    _finResultadoActual = r;
-    var badge = document.getElementById("fin_ajuste_badge");
-    if (badge) badge.style.display = r.tieneAjusteManual ? "inline-block" : "none";
-    var filas = [
-      ["Ventas", r.ventas, false],
-      ["Costo Variable", -r.costoVariable, false],
-      ["Utilidad Bruta", r.utilidadBruta, true],
-      ["Costos Fijos", -r.costosFijos, false],
-      ["Amortización", -r.amortizacion, false],
-      ["Mano de Obra", -r.manoDeObra, false],
-      ["Gastos Financieros", -r.gastosFinancieros, false],
-      ["Resultado antes de Impuestos", r.resultadoAntesImpuestos, true],
-      ["Impuesto a las Ganancias (30%)", -r.impuesto, false],
-      ["Resultado Neto", r.resultadoNeto, true]
-    ];
-    document.querySelector("#fin_estado_resultados tbody").innerHTML = filas.map(function(f){
-      var negativo = f[1] < 0;
-      var estilo = f[2] ? "font-weight:800;background:#F7F7FB" : "";
-      var color = f[2] ? (f[1] >= 0 ? "color:#0F9D58" : "color:#DC2626") : "";
-      return "<tr style='" + estilo + "'>" +
-        "<td style='" + (f[2]?"font-weight:800":"") + "'>" + f[0] + "</td>" +
-        "<td class='num' style='" + color + (f[2]?";font-weight:800":"") + "'>" + (negativo ? "(" + fmtP(Math.abs(f[1])) + ")" : fmtP(f[1])) + "</td>" +
-      "</tr>";
-    }).join("");
-
-    var totalCostos = r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra;
-    var partes = [
-      { lbl: "Variable", val: r.costoVariable, color: "#4F46E5" },
-      { lbl: "Fijo", val: r.costosFijos + r.amortizacion, color: "#D97706" },
-      { lbl: "Mano de obra", val: r.manoDeObra, color: "#0F9D58" }
-    ];
-    document.getElementById("fin_desglose").innerHTML = partes.map(function(p){
-      var pct = totalCostos > 0 ? (p.val / totalCostos * 100) : 0;
-      return "<div class='fin-desglose-item'>" +
-        "<div class='fin-desglose-lbl'><span>" + p.lbl + "</span><span>" + pct.toFixed(0) + "%</span></div>" +
-        "<div class='fin-desglose-barra'><div class='fin-desglose-fill' style='width:" + pct + "%;background:" + p.color + "'></div></div>" +
-      "</div>";
-    }).join("");
-  }
-
-  function finCargarEvolucion(){
-    google.script.run
-      .withSuccessHandler(function(datos){
-        var maxVentas = Math.max.apply(null, datos.map(function(d){ return d.ventas; }).concat([1]));
-        var maxResultadoAbs = Math.max.apply(null, datos.map(function(d){ return Math.abs(d.resultadoNeto); }).concat([1]));
-
-        document.getElementById("fin_chart_ventas").innerHTML = datos.map(function(d){
-          var alturaPct = Math.max(2, (d.ventas / maxVentas) * 100);
-          return "<div class='fin-chart-col'>" +
-            "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:linear-gradient(180deg,#7C6FF0,#4F46E5)' title='" + fmtP(d.ventas) + "'></div>" +
-            "<div class='fin-chart-lbl'>" + FIN_MESES[d.mes-1].slice(0,3) + "</div>" +
-          "</div>";
-        }).join("");
-
-        document.getElementById("fin_chart_resultado").innerHTML = datos.map(function(d){
-          var alturaPct = Math.max(2, (Math.abs(d.resultadoNeto) / maxResultadoAbs) * 100);
-          var color = d.resultadoNeto >= 0 ? "#0F9D58" : "#DC2626";
-          return "<div class='fin-chart-col'>" +
-            "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:" + color + "' title='" + fmtP(d.resultadoNeto) + "'></div>" +
-            "<div class='fin-chart-lbl'>" + FIN_MESES[d.mes-1].slice(0,3) + "</div>" +
-          "</div>";
-        }).join("");
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerEvolucionMensual(12);
-  }
+  function _finEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
   // ------------------------------------------------------------
   //  COSTOS FIJOS
@@ -753,8 +401,6 @@
       "</tr>";
     }).join("");
   }
-
-  function _finEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
   function finToggleCamposInversion(){
     document.getElementById("fcf_bloque_inversion").style.display = (document.getElementById("fcf_categoria").value === "Inversión") ? "block" : "none";
@@ -808,8 +454,6 @@
       mostrarToast(msg, "exito");
       finCerrarModales();
       finCargarCostosFijos();
-      finCargarResultados();
-      finCargarEvolucion();
     });
   }
 
@@ -819,7 +463,6 @@
       llamarBackend("darDeBajaCostoFijo", id, function(msg){
         mostrarToast(msg, "exito");
         finCargarCostosFijos();
-        finCargarResultados();
       });
     });
   }
@@ -888,8 +531,6 @@
       mostrarToast(msg, "exito");
       finCerrarModales();
       finCargarCostoVariable();
-      finCargarResultados();
-      finCargarEvolucion();
     });
   }
 
@@ -899,7 +540,6 @@
       llamarBackend("darDeBajaCostoVariable", id, function(msg){
         mostrarToast(msg, "exito");
         finCargarCostoVariable();
-        finCargarResultados();
       });
     });
   }
@@ -974,8 +614,6 @@
       mostrarToast(msg, "exito");
       finCerrarModales();
       finCargarManoDeObra();
-      finCargarResultados();
-      finCargarEvolucion();
     });
   }
 
@@ -985,7 +623,6 @@
       llamarBackend("darDeBajaManoDeObra", id, function(msg){
         mostrarToast(msg, "exito");
         finCargarManoDeObra();
-        finCargarResultados();
       });
     });
   }
@@ -995,101 +632,8 @@
     document.getElementById("fin-modal-costo-variable").style.display = "none";
     document.getElementById("fin-modal-mano-obra").style.display = "none";
     document.getElementById("fin-modal-pago").style.display = "none";
-    document.getElementById("fin-modal-config").style.display = "none";
-    document.getElementById("fin-modal-ajuste").style.display = "none";
     var mDia = document.getElementById("fin-modal-dia");
     if (mDia) mDia.style.display = "none";
-  }
-
-  // ------------------------------------------------------------
-  //  CONFIGURACIÓN — % Impuesto a las Ganancias
-  // ------------------------------------------------------------
-  function finAbrirModalConfig(){
-    google.script.run
-      .withSuccessHandler(function(cfg){
-        document.getElementById("fcfg_impuesto").value = cfg.impuestoGananciasPct;
-        document.getElementById("fin-modal-config").style.display = "flex";
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerConfigFinanzas();
-  }
-
-  function finGuardarConfig(){
-    var d = { impuestoGananciasPct: document.getElementById("fcfg_impuesto").value };
-    llamarBackend("guardarConfigFinanzas", d, function(msg){
-      mostrarToast(msg, "exito");
-      finCerrarModales();
-      finCargarResultados();
-    });
-  }
-
-  // ------------------------------------------------------------
-  //  AJUSTE MANUAL del Estado de Resultados — se puede pisar
-  //  cualquier renglón de un mes puntual, campo por campo.
-  // ------------------------------------------------------------
-  function finAbrirModalAjuste(){
-    var anio = Number(document.getElementById("fin_anio").value);
-    var mes = Number(document.getElementById("fin_mes").value);
-    document.getElementById("fa_titulo_mes").textContent = FIN_MESES[mes-1] + " " + anio;
-    ["fa_ventas","fa_costoVariable","fa_costosFijos","fa_amortizacion","fa_manoDeObra","fa_gastosFinancieros"].forEach(function(id){
-      document.getElementById(id).value = "";
-    });
-    document.getElementById("fa_notas").value = "";
-    google.script.run
-      .withSuccessHandler(function(aj){
-        if (aj.ventas !== undefined) setInputMoneda(document.getElementById("fa_ventas"), aj.ventas);
-        if (aj.costoVariable !== undefined) setInputMoneda(document.getElementById("fa_costoVariable"), aj.costoVariable);
-        if (aj.costosFijos !== undefined) setInputMoneda(document.getElementById("fa_costosFijos"), aj.costosFijos);
-        if (aj.amortizacion !== undefined) setInputMoneda(document.getElementById("fa_amortizacion"), aj.amortizacion);
-        if (aj.manoDeObra !== undefined) setInputMoneda(document.getElementById("fa_manoDeObra"), aj.manoDeObra);
-        if (aj.gastosFinancieros !== undefined) setInputMoneda(document.getElementById("fa_gastosFinancieros"), aj.gastosFinancieros);
-        document.getElementById("fa_notas").value = aj.notas || "";
-        document.getElementById("fin-modal-ajuste").style.display = "flex";
-      })
-      .withFailureHandler(function(){ document.getElementById("fin-modal-ajuste").style.display = "flex"; })
-      .obtenerAjusteManual(anio, mes);
-  }
-
-  function _faValorOVacio(id){
-    var el = document.getElementById(id);
-    return el.value.trim() === "" ? "" : valorNumerico(el);
-  }
-
-  function finGuardarAjuste(){
-    var d = {
-      anio: Number(document.getElementById("fin_anio").value),
-      mes: Number(document.getElementById("fin_mes").value),
-      ventas: _faValorOVacio("fa_ventas"),
-      costoVariable: _faValorOVacio("fa_costoVariable"),
-      costosFijos: _faValorOVacio("fa_costosFijos"),
-      amortizacion: _faValorOVacio("fa_amortizacion"),
-      manoDeObra: _faValorOVacio("fa_manoDeObra"),
-      gastosFinancieros: _faValorOVacio("fa_gastosFinancieros"),
-      notas: document.getElementById("fa_notas").value.trim()
-    };
-    llamarBackend("guardarAjusteManual", d, function(msg){
-      mostrarToast(msg, "exito");
-      finCerrarModales();
-      finCargarResultados();
-      finCargarEvolucion();
-    });
-  }
-
-  function finRestablecerAjuste(){
-    var anio = Number(document.getElementById("fin_anio").value);
-    var mes = Number(document.getElementById("fin_mes").value);
-    confirmarAccion("¿Restablecer " + FIN_MESES[mes-1] + " " + anio + " al cálculo automático? Se van a perder los valores editados a mano.").then(function(ok){
-      if (!ok) return;
-      google.script.run
-        .withSuccessHandler(function(msg){
-          mostrarToast(msg, "exito");
-          finCerrarModales();
-          finCargarResultados();
-          finCargarEvolucion();
-        })
-        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-        .eliminarAjusteManual(anio, mes);
-    });
   }
 
   // ============================================================
@@ -1101,16 +645,13 @@
   var _fpAnio, _fpMes; // mes que se está mirando en la agenda
   var _fpIdEnEdicion = null;
   var _fpCacheAgenda = null;
-
   var _fpVista = "lista"; // "lista" | "calendario"
-  var _fpPreventasCache = [];
 
   function fpInit(){
     var hoy = new Date();
     _fpAnio = hoy.getFullYear();
     _fpMes = hoy.getMonth() + 1;
     fpCargarAgenda();
-    fpCargarPreventas();
   }
 
   function fpSetVista(v){
@@ -1121,22 +662,11 @@
     if (v === "calendario") fpCalRender();
   }
 
-  function fpCargarPreventas(){
-    google.script.run
-      .withSuccessHandler(function(datos){
-        _fpPreventasCache = (datos || []).filter(function(p){ return p.fechaHasta; });
-        if (_fpVista === "calendario") fpCalRender();
-      })
-      .withFailureHandler(function(){})
-      .obtenerPreventasEntregables();
-  }
-
   function fpCambiarMes(delta){
     _fpMes += delta;
     if (_fpMes > 12) { _fpMes = 1; _fpAnio++; }
     if (_fpMes < 1) { _fpMes = 12; _fpAnio--; }
     fpCargarAgenda();
-    if (_fpVista === "calendario") fpCalRender();
   }
 
   function fpIrHoy(){
@@ -1144,7 +674,6 @@
     _fpAnio = hoy.getFullYear();
     _fpMes = hoy.getMonth() + 1;
     fpCargarAgenda();
-    if (_fpVista === "calendario") fpCalRender();
   }
 
   function fpCargarAgenda(){
@@ -1289,31 +818,16 @@
   }
 
   // ------------------------------------------------------------
-  //  CALENDARIO COMBINADO — Pagos + Preventas pendientes de entrega
-  //  (mismo lenguaje visual que el calendario de preventas del
-  //  Dashboard, adaptado a fondo claro). Los pagos se agrupan desde
-  //  _fpCacheAgenda (ya cargado por fpCargarAgenda) y las preventas
-  //  desde _fpPreventasCache (obtenerPreventasEntregables, la misma
-  //  fuente que usa el Dashboard).
+  //  CALENDARIO DE PAGOS
   // ------------------------------------------------------------
 
   function fpCalRender(){
     if (!_fpCacheAgenda) return;
-    var MESES2 = FIN_MESES;
     var anio = _fpAnio, mes = _fpMes - 1; // 0-based para Date
-    document.getElementById("fp_cal_titulo").textContent = MESES2[mes] + " " + anio;
+    document.getElementById("fp_cal_titulo").textContent = FIN_MESES[mes] + " " + anio;
 
     var porDiaPagos = {};
     (_fpCacheAgenda.items || []).forEach(function(it){ (porDiaPagos[it.dia] = porDiaPagos[it.dia] || []).push(it); });
-
-    var porDiaPre = {};
-    _fpPreventasCache.forEach(function(p){
-      var partes = String(p.fechaHasta).split("-");
-      if (Number(partes[0]) === anio && Number(partes[1]) === mes + 1) {
-        var dia = Number(partes[2]);
-        (porDiaPre[dia] = porDiaPre[dia] || []).push(p);
-      }
-    });
 
     var hoy = new Date();
     var esMesActual = hoy.getFullYear() === anio && hoy.getMonth() === mes;
@@ -1327,20 +841,16 @@
     for (var d = 1; d <= diasEnMes; d++) {
       var fechaDia = new Date(anio, mes, d);
       var pagosDia = porDiaPagos[d] || [];
-      var preDia = porDiaPre[d] || [];
       var esHoy = esMesActual && hoy.getDate() === d;
       var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
-      var hayAlgo = pagosDia.length > 0 || preDia.length > 0;
+      var hayAlgo = pagosDia.length > 0;
       var vencido = esMesActual && d < hoy.getDate() && pagosDia.some(function(p){ return !p.pagado; });
 
       var badges = "";
-      pagosDia.slice(0, 2).forEach(function(p){
+      pagosDia.slice(0, 3).forEach(function(p){
         badges += "<div class='fp-cal-badge fp-cal-badge-pago" + (p.pagado ? " pagado" : "") + "'>💳 " + _finEsc(p.concepto) + "</div>";
       });
-      preDia.slice(0, 2).forEach(function(p){
-        badges += "<div class='fp-cal-badge fp-cal-badge-pre'>📦 " + _finEsc(_dashNombreCorto(p.cliente)) + "</div>";
-      });
-      var restantes = (pagosDia.length + preDia.length) - Math.min(pagosDia.length, 2) - Math.min(preDia.length, 2);
+      var restantes = pagosDia.length - Math.min(pagosDia.length, 3);
       if (restantes > 0) badges += "<div class='fp-cal-badge' style='background:transparent;color:var(--gpw-texto-sua)'>+" + restantes + " más</div>";
 
       var clase = "fp-cal-dia" + (esHoy ? " fp-cal-hoy" : "") + (esFinde ? " fp-cal-finde" : "") + (hayAlgo ? " fp-cal-con" : "") + (vencido ? " fp-cal-venc" : "");
@@ -1355,17 +865,8 @@
     document.getElementById("fp_cal_grid").innerHTML = celdas.join("");
   }
 
-  function _dashNombreCorto(cliente){
-    var partes = String(cliente || "").trim().split(/\s+/);
-    if (partes.length <= 1) return partes[0] || "";
-    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
-  }
-
   function fpAbrirDia(dia){
     var pagosDia = (_fpCacheAgenda.items || []).filter(function(it){ return it.dia === dia; });
-    var mesStr = String(_fpMes).padStart(2, "0"), diaStr = String(dia).padStart(2, "0");
-    var preDia = _fpPreventasCache.filter(function(p){ return p.fechaHasta === (_fpAnio + "-" + mesStr + "-" + diaStr); });
-
     document.getElementById("fp_dia_modal_titulo").textContent = dia + " de " + FIN_MESES[_fpMes-1];
     var html = "";
     pagosDia.forEach(function(it){
@@ -1374,209 +875,8 @@
         "<b>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + (it.pagado ? " ✅" : "") + "</b>" +
       "</div>";
     });
-    preDia.forEach(function(p){
-      html += "<div class='fp-dia-modal-item'>" +
-        "<span><span class='fp-dia-modal-tipo' style='background:#EEF0FF;color:var(--gpw-indigo)'>PREVENTA</span>" + _finEsc(p.cliente) + " — " + _finEsc(p.modelo) + "</span>" +
-        "<b>" + fmtP(p.saldo) + "</b>" +
-      "</div>";
-    });
     if (!html) html = "<div class='fin-vacio'>Nada para este día.</div>";
     document.getElementById("fp_dia_modal_body").innerHTML = html;
     document.getElementById("fin-modal-dia").style.display = "flex";
-  }
-
-  // ============================================================
-  //  FASE 2 — FLUJO DE FONDOS, ESCENARIOS Y SENSIBILIDAD
-  // ============================================================
-
-  var _finEscenario = "base"; // base | pesimista | optimista | financiado
-  var _finUltimoFlujo = null;
-
-  var FIN_PRESETS_ESCENARIO = {
-    base:       { crecVentas: 0,  crecCostos: 0 },
-    pesimista:  { crecVentas: -3, crecCostos: 2 },
-    optimista:  { crecVentas: 5,  crecCostos: 1 },
-    financiado: { crecVentas: 0,  crecCostos: 0 }
-  };
-
-  function finSetEscenario(esc){
-    _finEscenario = esc;
-    document.querySelectorAll("#view-finanzas .fin-esc-btn").forEach(function(b){
-      var activo = b.dataset.esc === esc;
-      b.classList.toggle("activo", activo);
-      b.style.background = activo ? "#fff" : "transparent";
-      b.style.color = activo ? "#312C85" : "#4B4D63";
-    });
-    document.getElementById("ff_bloque_prestamo").style.display = (esc === "financiado") ? "block" : "none";
-    var preset = FIN_PRESETS_ESCENARIO[esc];
-    document.getElementById("ff_crec_ventas").value = preset.crecVentas;
-    document.getElementById("ff_crec_costos").value = preset.crecCostos;
-    finRecalcularFlujo();
-  }
-
-  function finInitFlujo(){
-    document.getElementById("ff_inversion").value = "";
-    finRecalcularFlujo();
-    finCargarSupuestos();
-  }
-
-  function _finLeerParamsFlujo(){
-    var financiado = null;
-    if (_finEscenario === "financiado") {
-      financiado = {
-        monto: valorNumerico(document.getElementById("ff_prest_monto")),
-        tasaAnual: Number(document.getElementById("ff_prest_tasa").value) || 0,
-        plazoAnios: Number(document.getElementById("ff_prest_plazo").value) || 1
-      };
-    }
-    return {
-      mesesProyeccion: Number(document.getElementById("ff_meses").value) || 12,
-      tasaDescuentoAnual: Number(document.getElementById("ff_tasa_desc").value) || 0,
-      crecVentasMensualPct: Number(document.getElementById("ff_crec_ventas").value) || 0,
-      crecCostosMensualPct: Number(document.getElementById("ff_crec_costos").value) || 0,
-      inversionInicial: valorNumerico(document.getElementById("ff_inversion")),
-      financiado: financiado
-    };
-  }
-
-  function finRecalcularFlujo(){
-    var params = _finLeerParamsFlujo();
-    document.getElementById("ff_kpis").innerHTML = "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Calculando…</div></div>";
-    google.script.run
-      .withSuccessHandler(function(r){
-        _finUltimoFlujo = r;
-        finRenderFlujo(r);
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .calcularFlujoDeFondos(params);
-  }
-
-  function finRenderFlujo(r){
-    var tirTxt = r.tirAnual == null ? "No converge" : (r.tirAnual*100).toFixed(1) + "%";
-    var kpiHtml =
-      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>VAN</div><div class='val' style='color:" + (r.van>=0?"#0F9D58":"#DC2626") + "'>" + fmtP(r.van) + "</div></div>" +
-      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>TIR anual</div><div class='val' style='color:var(--gpw-texto)'>" + tirTxt + "</div></div>" +
-      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Inversión neta</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.inversionNeta) + "</div></div>";
-    if (r.cuotaPrestamo > 0) {
-      kpiHtml += "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Cuota mensual</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.cuotaPrestamo) + "</div></div>";
-    }
-    document.getElementById("ff_kpis").innerHTML = kpiHtml;
-
-    var datos = r.detalle.filter(function(d){ return d.mes > 0; });
-    var maxAbs = Math.max.apply(null, datos.map(function(d){ return Math.abs(d.flujoAcumulado); }).concat([1]));
-    document.getElementById("ff_chart").innerHTML = datos.map(function(d){
-      var alturaPct = Math.max(2, (Math.abs(d.flujoAcumulado) / maxAbs) * 100);
-      var color = d.flujoAcumulado >= 0 ? "#0F9D58" : "#DC2626";
-      return "<div class='fin-chart-col'>" +
-        "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:" + color + "' title='Mes " + d.mes + ": " + fmtP(d.flujoAcumulado) + "'></div>" +
-        "<div class='fin-chart-lbl'>M" + d.mes + "</div>" +
-      "</div>";
-    }).join("");
-
-    finCargarSensibilidad();
-  }
-
-  function finGuardarSupuesto(){
-    var nombre = document.getElementById("ff_nombre_supuesto").value.trim();
-    if (!nombre) { mostrarToast("❌ Poné un nombre para el supuesto.", "error"); return; }
-    var d = { nombre: nombre, parametros: Object.assign({ escenario: _finEscenario }, _finLeerParamsFlujo()) };
-    llamarBackend("guardarEscenario", d, function(msg){
-      mostrarToast(msg, "exito");
-      document.getElementById("ff_nombre_supuesto").value = "";
-      finCargarSupuestos();
-    });
-  }
-
-  function finCargarSupuestos(){
-    google.script.run
-      .withSuccessHandler(function(lista){
-        var cont = document.getElementById("ff_lista_supuestos");
-        if (!lista || lista.length === 0) { cont.innerHTML = ""; return; }
-        cont.innerHTML = lista.map(function(e){
-          return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--gpw-fondo-campo);border-radius:11px;margin-bottom:6px;font-size:13px'>" +
-            "<span><b>" + _finEsc(e["Nombre"]) + "</b> <span class='hint'>" + _finEsc(e["Fecha Guardado"]) + "</span></span>" +
-            "<span><button type='button' class='fin-fila-btn' onclick='finCargarSupuesto(" + e["ID"] + ")'>📥 Cargar</button> " +
-            "<button type='button' class='fin-fila-btn baja' onclick='finEliminarSupuesto(" + e["ID"] + ")'>🗑️</button></span>" +
-          "</div>";
-        }).join("");
-        window._finSupuestosCache = lista;
-      })
-      .withFailureHandler(function(){})
-      .obtenerEscenariosGuardados();
-  }
-
-  function finCargarSupuesto(id){
-    var lista = window._finSupuestosCache || [];
-    var e = lista.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
-    if (!e) return;
-    var p = e["Parámetros"] || {};
-    finSetEscenario(p.escenario || "base");
-    document.getElementById("ff_meses").value = p.mesesProyeccion || 12;
-    document.getElementById("ff_tasa_desc").value = p.tasaDescuentoAnual || 60;
-    document.getElementById("ff_crec_ventas").value = p.crecVentasMensualPct || 0;
-    document.getElementById("ff_crec_costos").value = p.crecCostosMensualPct || 0;
-    setInputMoneda(document.getElementById("ff_inversion"), p.inversionInicial || 0);
-    if (p.financiado) {
-      setInputMoneda(document.getElementById("ff_prest_monto"), p.financiado.monto || 0);
-      document.getElementById("ff_prest_tasa").value = p.financiado.tasaAnual || 60;
-      document.getElementById("ff_prest_plazo").value = p.financiado.plazoAnios || 3;
-    }
-    finRecalcularFlujo();
-    mostrarToast("✅ Supuesto cargado.", "exito");
-  }
-
-  function finEliminarSupuesto(id){
-    confirmarAccion("¿Eliminar este supuesto guardado?").then(function(ok){
-      if (!ok) return;
-      llamarBackend("eliminarEscenario", id, function(msg){
-        mostrarToast(msg, "exito");
-        finCargarSupuestos();
-      });
-    });
-  }
-
-  // ------------------------------------------------------------
-  //  SENSIBILIDAD
-  // ------------------------------------------------------------
-  function finCargarSensibilidad(){
-    var params = _finLeerParamsFlujo();
-    finCargarUnaSensibilidad("costos", params, "fs_tabla_costos");
-    finCargarUnaSensibilidad("precio_cantidad", params, "fs_tabla_precio");
-    finCargarUnaSensibilidad("prestamo", params, "fs_tabla_prestamo");
-  }
-
-  function finCargarUnaSensibilidad(tipo, params, contId){
-    google.script.run
-      .withSuccessHandler(function(r){ finRenderSensibilidad(r, contId); })
-      .withFailureHandler(function(e){ document.getElementById(contId).innerHTML = "<div class='hint'>❌ " + e.message + "</div>"; })
-      .calcularSensibilidad(tipo, params);
-  }
-
-  function _fsColor(tir){
-    if (tir == null) return "#F4F5FA";
-    var pct = tir * 100;
-    if (pct >= 30) return "#B8EFCF";
-    if (pct >= 10) return "#DFF6E8";
-    if (pct >= 0) return "#FEF3E2";
-    return "#FDEBEC";
-  }
-
-  function finRenderSensibilidad(r, contId){
-    var filaMedia = Math.floor(r.filas.length/2), colMedia = Math.floor(r.columnas.length/2);
-    var html = "<table class='fin-tabla' style='min-width:560px'><thead><tr><th>" + r.etiquetaFila + " \\ " + r.etiquetaColumna + "</th>";
-    r.columnas.forEach(function(c, j){
-      html += "<th class='num'>" + (j === colMedia ? "<b>" : "") + Math.round(c).toLocaleString("es-AR") + (j === colMedia ? "</b>" : "") + "</th>";
-    });
-    html += "</tr></thead><tbody>";
-    r.filas.forEach(function(f, i){
-      html += "<tr><td>" + (i === filaMedia ? "<b>" : "") + Math.round(f).toLocaleString("es-AR") + (i === filaMedia ? "</b>" : "") + "</td>";
-      r.tir[i].forEach(function(tir, j){
-        var destacado = (i === filaMedia && j === colMedia);
-        html += "<td class='num' style='background:" + _fsColor(tir) + (destacado?";font-weight:800":"") + "'>" + (tir == null ? "—" : (tir*100).toFixed(0) + "%") + "</td>";
-      });
-      html += "</tr>";
-    });
-    html += "</tbody></table>";
-    document.getElementById(contId).innerHTML = html;
   }
 </script>
