@@ -109,7 +109,7 @@
     #view-finanzas .fp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
     #view-finanzas .fp-cal-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--gpw-texto-sua); padding-bottom: 4px; }
     #view-finanzas .fp-cal-dia {
-      position: relative; min-height: 76px; background: var(--gpw-fondo-campo); border-radius: 12px;
+      position: relative; min-height: 92px; background: var(--gpw-fondo-campo); border-radius: 12px;
       display: flex; flex-direction: column; padding: 6px 6px; border: 1.5px solid transparent; cursor: default;
     }
     #view-finanzas .fp-cal-dia.fp-cal-vacio { background: transparent; visibility: hidden; }
@@ -121,6 +121,10 @@
     #view-finanzas .fp-cal-num { font-size: 11.5px; font-weight: 700; color: var(--gpw-texto); }
     #view-finanzas .fp-cal-dia.fp-cal-hoy .fp-cal-num { background: var(--gpw-indigo); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
     #view-finanzas .fp-cal-badges { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+    #view-finanzas .fp-cal-totales { margin-top: auto; padding-top: 3px; display: flex; flex-direction: column; gap: 1px; }
+    #view-finanzas .fp-cal-total-pago { font-size: 9.5px; font-weight: 800; color: var(--gpw-rojo); }
+    #view-finanzas .fp-cal-total-pago.pagado { color: var(--gpw-verde); }
+    #view-finanzas .fp-cal-total-pre { font-size: 9.5px; font-weight: 800; color: var(--gpw-ambar); }
     #view-finanzas .fp-cal-badge { font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1.5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #view-finanzas .fp-cal-badge-pago { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
     #view-finanzas .fp-cal-badge-pago.pagado { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
@@ -838,6 +842,14 @@
   //  que hay que entregar/cobrar (preventas pendientes).
   // ------------------------------------------------------------
 
+  /** "$1,2M" / "$850K" en vez del número completo — para que el monto entre en el espacio chico de una celda del calendario. */
+  function fpFmtCompacto(n){
+    n = Number(n) || 0;
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1).replace(".0", "").replace(".", ",") + "M";
+    if (n >= 1000) return "$" + Math.round(n / 1000) + "K";
+    return fmtP(n);
+  }
+
   function _fpNombreCorto(cliente){
     var partes = String(cliente || "").trim().split(/\s+/);
     if (partes.length <= 1) return partes[0] || "";
@@ -889,12 +901,20 @@
       var restantes = (pagosDia.length + preDia.length) - Math.min(pagosDia.length, 2) - Math.min(preDia.length, 2);
       if (restantes > 0) badges += "<div class='fp-cal-badge' style='background:transparent;color:var(--gpw-texto-sua)'>+" + restantes + " más</div>";
 
+      var totalPagos = pagosDia.reduce(function(s, p){ return s + (Number(p.monto) || 0); }, 0);
+      var totalPagosPendientes = pagosDia.filter(function(p){ return !p.pagado; }).reduce(function(s, p){ return s + (Number(p.monto) || 0); }, 0);
+      var totalPre = preDia.reduce(function(s, p){ return s + (Number(p.saldo) || 0); }, 0);
+      var totales = "";
+      if (totalPagos > 0) totales += "<div class='fp-cal-total-pago" + (totalPagosPendientes === 0 ? " pagado" : "") + "'>💳 " + fpFmtCompacto(totalPagosPendientes > 0 ? totalPagosPendientes : totalPagos) + "</div>";
+      if (totalPre > 0) totales += "<div class='fp-cal-total-pre'>📦 " + fpFmtCompacto(totalPre) + "</div>";
+
       var clase = "fp-cal-dia" + (esHoy ? " fp-cal-hoy" : "") + (esFinde ? " fp-cal-finde" : "") + (hayAlgo ? " fp-cal-con" : "") + (vencido ? " fp-cal-venc" : "");
       var onclick = hayAlgo ? " onclick=\"fpAbrirDia(" + d + ")\"" : "";
 
       celdas.push("<div class='" + clase + "'" + onclick + ">" +
         "<span class='fp-cal-num'>" + d + "</span>" +
         (hayAlgo ? "<div class='fp-cal-badges'>" + badges + "</div>" : "") +
+        (totales ? "<div class='fp-cal-totales'>" + totales + "</div>" : "") +
       "</div>");
     }
 
