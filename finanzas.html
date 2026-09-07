@@ -98,6 +98,37 @@
     #view-finanzas .fin-modal-footer button { flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
     #view-finanzas .fin-btn-cancelar { background: var(--gpw-fondo-campo); color: #4B4D63; }
     #view-finanzas .fin-btn-guardar { background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; }
+
+    /* ---- Agenda de Pagos ---- */
+    #view-finanzas .fp-dia-grupo { margin-bottom: 14px; }
+    #view-finanzas .fp-dia-titulo {
+      display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--gpw-texto-sua);
+      text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; padding-left: 2px;
+    }
+    #view-finanzas .fp-dia-titulo.hoy { color: var(--gpw-indigo); }
+    #view-finanzas .fp-dia-num {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--gpw-fondo-campo); color: var(--gpw-texto);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+    }
+    #view-finanzas .fp-dia-titulo.hoy .fp-dia-num { background: var(--gpw-indigo); color: #fff; }
+    #view-finanzas .fp-item {
+      display: flex; align-items: center; gap: 12px; background: #fff; border: 1.5px solid var(--gpw-borde);
+      border-radius: 14px; padding: 11px 14px; margin-bottom: 7px;
+    }
+    #view-finanzas .fp-item.pagado { background: var(--gpw-verde-cl); border-color: transparent; }
+    #view-finanzas .fp-item.vencido { border-color: var(--gpw-rojo); }
+    #view-finanzas .fp-check {
+      width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--gpw-borde); background: #fff;
+      cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: transparent;
+    }
+    #view-finanzas .fp-item.pagado .fp-check { background: var(--gpw-verde); border-color: var(--gpw-verde); color: #fff; }
+    #view-finanzas .fp-item-info { flex: 1; min-width: 0; }
+    #view-finanzas .fp-item-concepto { font-weight: 700; font-size: 13.5px; color: var(--gpw-texto); }
+    #view-finanzas .fp-item-sub { font-size: 11.5px; color: var(--gpw-texto-sua); margin-top: 1px; }
+    #view-finanzas .fp-item-monto { font-weight: 800; font-size: 14px; color: var(--gpw-texto); white-space: nowrap; }
+    #view-finanzas .fp-item.pagado .fp-item-monto { color: var(--gpw-verde); }
+    #view-finanzas .fp-item-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    #view-finanzas .fp-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 30px 10px; font-size: 13px; }
   </style>
 
   <div class="fin-hero">
@@ -119,6 +150,25 @@
     <div class="fin-kpis" id="fin_kpis">
       <div class="fin-kpi"><div class="lbl">Cargando…</div></div>
     </div>
+  </div>
+
+  <div class="fin-panel" id="fin-panel-agenda">
+    <div class="fin-panel-head">
+      <b>📅 Agenda de Pagos — <span id="fp_titulo_mes">…</span></b>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(-1)">◀</button>
+        <button type="button" class="fin-fila-btn" onclick="fpIrHoy()">Hoy</button>
+        <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(1)">▶</button>
+        <button type="button" class="fin-btn-agregar" onclick="fpAbrirModal()">➕ Agregar pago</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad — es una agenda, no afecta el Estado de Resultados.</div>
+
+    <div class="fin-kpis" id="fp_kpis" style="margin-bottom:16px">
+      <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Cargando…</div></div>
+    </div>
+
+    <div id="fp_lista"></div>
   </div>
 
   <div class="fin-panel">
@@ -230,6 +280,50 @@
 
     <div style="margin-bottom:6px;font-weight:800;font-size:13px">Plazo del Préstamo × Monto Prestado</div>
     <div id="fs_tabla_prestamo" style="overflow-x:auto"></div>
+  </div>
+
+  <!-- ============ Modal: Pago (Agenda) ============ -->
+  <div id="fin-modal-pago" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fp_titulo">Nuevo pago</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Concepto</label>
+        <input type="text" id="fp_concepto" placeholder="Ej: Alquiler, Internet, Cuota proveedor..."/>
+        <label>Categoría</label>
+        <select id="fp_categoria">
+          <option value="Alquiler">Alquiler</option>
+          <option value="Servicios">Servicios</option>
+          <option value="Impuestos">Impuestos</option>
+          <option value="Proveedores">Proveedores</option>
+          <option value="Sueldos">Sueldos</option>
+          <option value="Préstamo / Cuota">Préstamo / Cuota</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <div class="fin-fila2">
+          <div><label>Monto</label><input type="text" inputmode="numeric" id="fp_monto" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fp_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Frecuencia</label>
+        <select id="fp_frecuencia" onchange="fpToggleFrecuencia()">
+          <option value="Mensual">Mensual (se repite todos los meses)</option>
+          <option value="Único">Único (una sola vez)</option>
+        </select>
+        <div id="fp_bloque_mensual">
+          <label>Día de pago (1 a 31)</label>
+          <input type="number" id="fp_dia_pago" min="1" max="31" value="10"/>
+        </div>
+        <div id="fp_bloque_unico" style="display:none">
+          <label>Fecha de pago</label>
+          <input type="date" id="fp_fecha_unico"/>
+        </div>
+        <label>Notas (opcional)</label>
+        <input type="text" id="fp_notas" placeholder="Datos de la cuenta, referencia, etc."/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="fpGuardarPago()">✅ Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- ============ Modal: Costo Fijo ============ -->
@@ -353,6 +447,7 @@
     finCargarManoDeObra();
     finCargarEvolucion();
     finInitFlujo();
+    fpInit();
   }
 
   function finSetModo(modo){
@@ -775,6 +870,179 @@
     document.getElementById("fin-modal-costo-fijo").style.display = "none";
     document.getElementById("fin-modal-costo-variable").style.display = "none";
     document.getElementById("fin-modal-mano-obra").style.display = "none";
+    document.getElementById("fin-modal-pago").style.display = "none";
+  }
+
+  // ============================================================
+  //  AGENDA DE PAGOS — libertad total para agregar/editar/pausar/
+  //  eliminar. Es una agenda, no un histórico contable: se edita
+  //  y se borra directo, como un Excel.
+  // ============================================================
+
+  var _fpAnio, _fpMes; // mes que se está mirando en la agenda
+  var _fpIdEnEdicion = null;
+  var _fpCacheAgenda = null;
+
+  function fpInit(){
+    var hoy = new Date();
+    _fpAnio = hoy.getFullYear();
+    _fpMes = hoy.getMonth() + 1;
+    fpCargarAgenda();
+  }
+
+  function fpCambiarMes(delta){
+    _fpMes += delta;
+    if (_fpMes > 12) { _fpMes = 1; _fpAnio++; }
+    if (_fpMes < 1) { _fpMes = 12; _fpAnio--; }
+    fpCargarAgenda();
+  }
+
+  function fpIrHoy(){
+    var hoy = new Date();
+    _fpAnio = hoy.getFullYear();
+    _fpMes = hoy.getMonth() + 1;
+    fpCargarAgenda();
+  }
+
+  function fpCargarAgenda(){
+    document.getElementById("fp_titulo_mes").textContent = FIN_MESES[_fpMes-1] + " " + _fpAnio;
+    document.getElementById("fp_lista").innerHTML = "<div class='fp-vacio'>Cargando…</div>";
+    google.script.run
+      .withSuccessHandler(function(r){ _fpCacheAgenda = r; fpRenderAgenda(r); })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerAgendaMes(_fpAnio, _fpMes);
+  }
+
+  function fpRenderAgenda(r){
+    document.getElementById("fp_kpis").innerHTML =
+      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Total del mes</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.totalMes) + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-verde-cl)'><div class='lbl' style='color:var(--gpw-verde)'>Ya pagado</div><div class='val' style='color:var(--gpw-verde)'>" + fmtP(r.totalPagado) + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-rojo-cl)'><div class='lbl' style='color:var(--gpw-rojo)'>Falta pagar</div><div class='val' style='color:var(--gpw-rojo)'>" + fmtP(r.totalPendiente) + "</div></div>";
+
+    var cont = document.getElementById("fp_lista");
+    if (!r.items || r.items.length === 0) {
+      cont.innerHTML = "<div class='fp-vacio'>No hay pagos cargados para este mes. Tocá \"➕ Agregar pago\" para empezar la agenda.</div>";
+      return;
+    }
+
+    var porDia = {};
+    r.items.forEach(function(it){ (porDia[it.dia] = porDia[it.dia] || []).push(it); });
+    var dias = Object.keys(porDia).map(Number).sort(function(a,b){ return a-b; });
+
+    cont.innerHTML = dias.map(function(dia){
+      var esHoy = (r.diaHoy === dia);
+      var vencido = (r.diaHoy != null && dia < r.diaHoy);
+      var itemsHtml = porDia[dia].map(function(it){
+        var vencidoNoPagado = vencido && !it.pagado;
+        return "<div class='fp-item " + (it.pagado ? "pagado" : "") + (vencidoNoPagado ? " vencido" : "") + "'>" +
+          "<button type='button' class='fp-check' onclick='fpToggle(" + it.idPago + "," + (it.idRealizado || "null") + "," + it.monto + ",\"" + it.moneda + "\")' title='" + (it.pagado ? "Marcado como pagado — tocá para desmarcar" : "Marcar como pagado") + "'>✓</button>" +
+          "<div class='fp-item-info'>" +
+            "<div class='fp-item-concepto'>" + _finEsc(it.concepto) + "</div>" +
+            "<div class='fp-item-sub'>" + _finEsc(it.categoria) + " · " + (it.frecuencia === "Mensual" ? "se repite todos los meses" : "pago único") + (vencidoNoPagado ? " · <b style='color:var(--gpw-rojo)'>vencido</b>" : "") + (it.notas ? " · " + _finEsc(it.notas) : "") + "</div>" +
+          "</div>" +
+          "<div class='fp-item-monto'>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + "</div>" +
+          "<div class='fp-item-btns'>" +
+            "<button type='button' class='fin-fila-btn' onclick='fpEditar(" + it.idPago + ")'>✏️</button>" +
+            "<button type='button' class='fin-fila-btn' onclick='fpPausar(" + it.idPago + ")' title='Pausar (dejar de mostrar en la agenda)'>⏸️</button>" +
+            "<button type='button' class='fin-fila-btn baja' onclick='fpEliminar(" + it.idPago + ")'>🗑️</button>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+      return "<div class='fp-dia-grupo'>" +
+        "<div class='fp-dia-titulo" + (esHoy ? " hoy" : "") + "'><span class='fp-dia-num'>" + dia + "</span>" + (esHoy ? "HOY" : "DÍA " + dia) + "</div>" +
+        itemsHtml +
+      "</div>";
+    }).join("");
+  }
+
+  function fpToggle(idPago, idRealizado, monto, moneda){
+    if (idRealizado) {
+      llamarBackend("desmarcarPagoRealizado", idRealizado, function(){ fpCargarAgenda(); });
+    } else {
+      llamarBackend("marcarPagoRealizado", { idPago: idPago, anio: _fpAnio, mes: _fpMes, montoPagado: monto, moneda: moneda }, function(){ fpCargarAgenda(); });
+    }
+  }
+
+  function fpToggleFrecuencia(){
+    var mensual = document.getElementById("fp_frecuencia").value === "Mensual";
+    document.getElementById("fp_bloque_mensual").style.display = mensual ? "block" : "none";
+    document.getElementById("fp_bloque_unico").style.display = mensual ? "none" : "block";
+  }
+
+  function fpAbrirModal(){
+    _fpIdEnEdicion = null;
+    document.getElementById("fp_titulo").textContent = "Nuevo pago";
+    document.getElementById("fp_concepto").value = "";
+    document.getElementById("fp_categoria").value = "Otro";
+    document.getElementById("fp_monto").value = "";
+    document.getElementById("fp_moneda").value = "ARS";
+    document.getElementById("fp_frecuencia").value = "Mensual";
+    document.getElementById("fp_dia_pago").value = 10;
+    document.getElementById("fp_fecha_unico").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fp_notas").value = "";
+    fpToggleFrecuencia();
+    document.getElementById("fin-modal-pago").style.display = "flex";
+  }
+
+  function fpEditar(idPago){
+    google.script.run
+      .withSuccessHandler(function(lista){
+        var p = lista.filter(function(x){ return Number(x["ID"]) === Number(idPago); })[0];
+        if (!p) return;
+        _fpIdEnEdicion = idPago;
+        document.getElementById("fp_titulo").textContent = "Editar pago";
+        document.getElementById("fp_concepto").value = p["Concepto"];
+        document.getElementById("fp_categoria").value = p["Categoría"] || "Otro";
+        setInputMoneda(document.getElementById("fp_monto"), p["Monto"]);
+        document.getElementById("fp_moneda").value = p["Moneda"] || "ARS";
+        document.getElementById("fp_frecuencia").value = p["Frecuencia"];
+        document.getElementById("fp_dia_pago").value = p["Día de Pago"] || 10;
+        document.getElementById("fp_fecha_unico").value = p["Fecha Único"] ? new Date(p["Fecha Único"]).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+        document.getElementById("fp_notas").value = p["Notas"] || "";
+        fpToggleFrecuencia();
+        document.getElementById("fin-modal-pago").style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPagos();
+  }
+
+  function fpGuardarPago(){
+    var d = {
+      id: _fpIdEnEdicion,
+      concepto: document.getElementById("fp_concepto").value.trim(),
+      categoria: document.getElementById("fp_categoria").value,
+      monto: valorNumerico(document.getElementById("fp_monto")),
+      moneda: document.getElementById("fp_moneda").value,
+      frecuencia: document.getElementById("fp_frecuencia").value,
+      diaPago: document.getElementById("fp_dia_pago").value,
+      fechaUnico: document.getElementById("fp_fecha_unico").value,
+      notas: document.getElementById("fp_notas").value.trim()
+    };
+    llamarBackend("guardarPago", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      fpCargarAgenda();
+    });
+  }
+
+  function fpPausar(idPago){
+    confirmarAccion("¿Pausar este pago? Vas a poder reactivarlo cuando quieras desde la hoja FINANZAS_PAGOS.").then(function(ok){
+      if (!ok) return;
+      llamarBackend("pausarPago", idPago, function(msg){
+        mostrarToast(msg, "exito");
+        fpCargarAgenda();
+      });
+    });
+  }
+
+  function fpEliminar(idPago){
+    confirmarAccion("¿Eliminar este pago de la agenda para siempre?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("eliminarPago", idPago, function(msg){
+        mostrarToast(msg, "exito");
+        fpCargarAgenda();
+      });
+    });
   }
 
   // ============================================================
