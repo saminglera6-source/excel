@@ -166,27 +166,6 @@
     #view-finanzas .fp-dia-modal-tipo { font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 100px; margin-right: 6px; }
   </style>
 
-  <div class="fin-hero">
-    <div class="fin-hero-top">
-      <div>
-        <div class="fin-hero-title">💹 Gestión Financiera y Rentabilidad</div>
-        <div class="fin-hero-sub">Cruza las ventas reales del ERP con tus costos — ¿estoy ganando plata, y cuánto?</div>
-      </div>
-      <div class="fin-periodo">
-        <div class="fin-modo-switch">
-          <button type="button" class="fin-modo-btn activo" data-modo="mensual" onclick="finSetModo('mensual')">Mensual</button>
-          <button type="button" class="fin-modo-btn" data-modo="anual" onclick="finSetModo('anual')">Acumulado anual</button>
-        </div>
-        <select id="fin_mes" onchange="finCargarResultados()"></select>
-        <select id="fin_anio" onchange="finCargarResultados()"></select>
-        <button type="button" onclick="window.print()">🖨️ Exportar / Imprimir</button>
-      </div>
-    </div>
-    <div class="fin-kpis" id="fin_kpis">
-      <div class="fin-kpi"><div class="lbl">Cargando…</div></div>
-    </div>
-  </div>
-
   <div class="fin-panel" id="fin-panel-agenda">
     <div class="fin-panel-head">
       <b>📅 Agenda de Pagos — <span id="fp_titulo_mes">…</span></b>
@@ -223,6 +202,27 @@
         <span><i style="background:#EEF0FF"></i>Preventa a entregar</span>
         <span><i style="background:transparent;border:1.5px solid var(--gpw-indigo)"></i>Hoy</span>
       </div>
+    </div>
+  </div>
+
+  <div class="fin-hero">
+    <div class="fin-hero-top">
+      <div>
+        <div class="fin-hero-title">💹 Gestión Financiera y Rentabilidad</div>
+        <div class="fin-hero-sub">Cruza las ventas reales del ERP con tus costos — ¿estoy ganando plata, y cuánto?</div>
+      </div>
+      <div class="fin-periodo">
+        <div class="fin-modo-switch">
+          <button type="button" class="fin-modo-btn activo" data-modo="mensual" onclick="finSetModo('mensual')">Mensual</button>
+          <button type="button" class="fin-modo-btn" data-modo="anual" onclick="finSetModo('anual')">Acumulado anual</button>
+        </div>
+        <select id="fin_mes" onchange="finCargarResultados()"></select>
+        <select id="fin_anio" onchange="finCargarResultados()"></select>
+        <button type="button" onclick="window.print()">🖨️ Exportar / Imprimir</button>
+      </div>
+    </div>
+    <div class="fin-kpis" id="fin_kpis">
+      <div class="fin-kpi"><div class="lbl">Cargando…</div></div>
     </div>
   </div>
 
