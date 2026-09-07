@@ -173,6 +173,65 @@
     </table>
   </div>
 
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>💰 Flujo de Fondos y Escenarios</b>
+    </div>
+    <div class="hint" style="margin-bottom:10px">Proyección a futuro tomando como base el promedio real de los últimos 3 meses. El préstamo es una simulación — no afecta el Estado de Resultados real hasta que exista uno de verdad.</div>
+
+    <div class="fin-modo-switch" style="background:var(--gpw-fondo-campo);display:inline-flex;margin-bottom:14px">
+      <button type="button" class="fin-modo-btn fin-esc-btn activo" data-esc="base" onclick="finSetEscenario('base')" style="color:#4B4D63">Base</button>
+      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="pesimista" onclick="finSetEscenario('pesimista')" style="color:#4B4D63">Pesimista</button>
+      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="optimista" onclick="finSetEscenario('optimista')" style="color:#4B4D63">Optimista</button>
+      <button type="button" class="fin-modo-btn fin-esc-btn" data-esc="financiado" onclick="finSetEscenario('financiado')" style="color:#4B4D63">Financiado</button>
+    </div>
+
+    <div class="fin-fila2" style="margin-bottom:10px">
+      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Meses a proyectar</label><input type="number" id="ff_meses" min="1" max="60" value="12" onchange="finRecalcularFlujo()"/></div>
+      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Tasa de descuento anual (%)</label><input type="number" id="ff_tasa_desc" value="60" onchange="finRecalcularFlujo()"/></div>
+    </div>
+    <div class="fin-fila2" style="margin-bottom:10px">
+      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Crecimiento mensual de ventas (%)</label><input type="number" id="ff_crec_ventas" value="0" onchange="finRecalcularFlujo()"/></div>
+      <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Crecimiento mensual de costos (%)</label><input type="number" id="ff_crec_costos" value="0" onchange="finRecalcularFlujo()"/></div>
+    </div>
+    <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Inversión inicial ($)</label><input type="text" inputmode="numeric" id="ff_inversion" placeholder="$0" oninput="formatearInputMoneda(this)" onchange="finRecalcularFlujo()"/></div>
+
+    <div id="ff_bloque_prestamo" style="display:none;margin-top:10px;padding:12px;background:var(--gpw-fondo-campo);border-radius:14px">
+      <div class="fin-fila2">
+        <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Monto del préstamo ($)</label><input type="text" inputmode="numeric" id="ff_prest_monto" placeholder="$0" oninput="formatearInputMoneda(this)" onchange="finRecalcularFlujo()"/></div>
+        <div><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Tasa anual (%)</label><input type="number" id="ff_prest_tasa" value="60" onchange="finRecalcularFlujo()"/></div>
+      </div>
+      <div style="margin-top:10px"><label style="display:block;font-size:12px;font-weight:700;color:var(--gpw-texto-sua);margin-bottom:4px">Plazo (años)</label><input type="number" id="ff_prest_plazo" min="1" max="10" value="3" onchange="finRecalcularFlujo()"/></div>
+    </div>
+
+    <div class="fin-kpis" id="ff_kpis" style="margin-top:16px">
+      <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Calculando…</div></div>
+    </div>
+
+    <div class="hint" style="margin:16px 0 4px">Flujo neto acumulado por mes</div>
+    <div class="fin-chart" id="ff_chart"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="ff_nombre_supuesto" placeholder="Nombre para guardar este supuesto..." style="flex:1;min-width:200px;padding:9px 12px;border-radius:11px;border:1.5px solid var(--gpw-borde);background:var(--gpw-fondo-campo);font-size:13px"/>
+      <button type="button" class="fin-btn-agregar" onclick="finGuardarSupuesto()">💾 Guardar supuesto</button>
+    </div>
+    <div id="ff_lista_supuestos" style="margin-top:10px"></div>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head"><b>🌡️ Análisis de Sensibilidad</b></div>
+    <div class="hint" style="margin-bottom:10px">TIR anual (%) del escenario actual, variando ±40% dos variables a la vez. Verde = mejor que la base, rojo = peor.</div>
+
+    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Costos Fijos × Costo Variable</div>
+    <div id="fs_tabla_costos" style="overflow-x:auto;margin-bottom:18px"></div>
+
+    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Precio Promedio × Cantidad Vendida</div>
+    <div id="fs_tabla_precio" style="overflow-x:auto;margin-bottom:18px"></div>
+
+    <div style="margin-bottom:6px;font-weight:800;font-size:13px">Plazo del Préstamo × Monto Prestado</div>
+    <div id="fs_tabla_prestamo" style="overflow-x:auto"></div>
+  </div>
+
   <!-- ============ Modal: Costo Fijo ============ -->
   <div id="fin-modal-costo-fijo" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
     <div class="fin-modal">
@@ -293,6 +352,7 @@
     finCargarCostoVariable();
     finCargarManoDeObra();
     finCargarEvolucion();
+    finInitFlujo();
   }
 
   function finSetModo(modo){
@@ -715,5 +775,200 @@
     document.getElementById("fin-modal-costo-fijo").style.display = "none";
     document.getElementById("fin-modal-costo-variable").style.display = "none";
     document.getElementById("fin-modal-mano-obra").style.display = "none";
+  }
+
+  // ============================================================
+  //  FASE 2 — FLUJO DE FONDOS, ESCENARIOS Y SENSIBILIDAD
+  // ============================================================
+
+  var _finEscenario = "base"; // base | pesimista | optimista | financiado
+  var _finUltimoFlujo = null;
+
+  var FIN_PRESETS_ESCENARIO = {
+    base:       { crecVentas: 0,  crecCostos: 0 },
+    pesimista:  { crecVentas: -3, crecCostos: 2 },
+    optimista:  { crecVentas: 5,  crecCostos: 1 },
+    financiado: { crecVentas: 0,  crecCostos: 0 }
+  };
+
+  function finSetEscenario(esc){
+    _finEscenario = esc;
+    document.querySelectorAll("#view-finanzas .fin-esc-btn").forEach(function(b){
+      var activo = b.dataset.esc === esc;
+      b.classList.toggle("activo", activo);
+      b.style.background = activo ? "#fff" : "transparent";
+      b.style.color = activo ? "#312C85" : "#4B4D63";
+    });
+    document.getElementById("ff_bloque_prestamo").style.display = (esc === "financiado") ? "block" : "none";
+    var preset = FIN_PRESETS_ESCENARIO[esc];
+    document.getElementById("ff_crec_ventas").value = preset.crecVentas;
+    document.getElementById("ff_crec_costos").value = preset.crecCostos;
+    finRecalcularFlujo();
+  }
+
+  function finInitFlujo(){
+    document.getElementById("ff_inversion").value = "";
+    finRecalcularFlujo();
+    finCargarSupuestos();
+  }
+
+  function _finLeerParamsFlujo(){
+    var financiado = null;
+    if (_finEscenario === "financiado") {
+      financiado = {
+        monto: valorNumerico(document.getElementById("ff_prest_monto")),
+        tasaAnual: Number(document.getElementById("ff_prest_tasa").value) || 0,
+        plazoAnios: Number(document.getElementById("ff_prest_plazo").value) || 1
+      };
+    }
+    return {
+      mesesProyeccion: Number(document.getElementById("ff_meses").value) || 12,
+      tasaDescuentoAnual: Number(document.getElementById("ff_tasa_desc").value) || 0,
+      crecVentasMensualPct: Number(document.getElementById("ff_crec_ventas").value) || 0,
+      crecCostosMensualPct: Number(document.getElementById("ff_crec_costos").value) || 0,
+      inversionInicial: valorNumerico(document.getElementById("ff_inversion")),
+      financiado: financiado
+    };
+  }
+
+  function finRecalcularFlujo(){
+    var params = _finLeerParamsFlujo();
+    document.getElementById("ff_kpis").innerHTML = "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Calculando…</div></div>";
+    google.script.run
+      .withSuccessHandler(function(r){
+        _finUltimoFlujo = r;
+        finRenderFlujo(r);
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .calcularFlujoDeFondos(params);
+  }
+
+  function finRenderFlujo(r){
+    var tirTxt = r.tirAnual == null ? "No converge" : (r.tirAnual*100).toFixed(1) + "%";
+    var kpiHtml =
+      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>VAN</div><div class='val' style='color:" + (r.van>=0?"#0F9D58":"#DC2626") + "'>" + fmtP(r.van) + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>TIR anual</div><div class='val' style='color:var(--gpw-texto)'>" + tirTxt + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Inversión neta</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.inversionNeta) + "</div></div>";
+    if (r.cuotaPrestamo > 0) {
+      kpiHtml += "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Cuota mensual</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.cuotaPrestamo) + "</div></div>";
+    }
+    document.getElementById("ff_kpis").innerHTML = kpiHtml;
+
+    var datos = r.detalle.filter(function(d){ return d.mes > 0; });
+    var maxAbs = Math.max.apply(null, datos.map(function(d){ return Math.abs(d.flujoAcumulado); }).concat([1]));
+    document.getElementById("ff_chart").innerHTML = datos.map(function(d){
+      var alturaPct = Math.max(2, (Math.abs(d.flujoAcumulado) / maxAbs) * 100);
+      var color = d.flujoAcumulado >= 0 ? "#0F9D58" : "#DC2626";
+      return "<div class='fin-chart-col'>" +
+        "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:" + color + "' title='Mes " + d.mes + ": " + fmtP(d.flujoAcumulado) + "'></div>" +
+        "<div class='fin-chart-lbl'>M" + d.mes + "</div>" +
+      "</div>";
+    }).join("");
+
+    finCargarSensibilidad();
+  }
+
+  function finGuardarSupuesto(){
+    var nombre = document.getElementById("ff_nombre_supuesto").value.trim();
+    if (!nombre) { mostrarToast("❌ Poné un nombre para el supuesto.", "error"); return; }
+    var d = { nombre: nombre, parametros: Object.assign({ escenario: _finEscenario }, _finLeerParamsFlujo()) };
+    llamarBackend("guardarEscenario", d, function(msg){
+      mostrarToast(msg, "exito");
+      document.getElementById("ff_nombre_supuesto").value = "";
+      finCargarSupuestos();
+    });
+  }
+
+  function finCargarSupuestos(){
+    google.script.run
+      .withSuccessHandler(function(lista){
+        var cont = document.getElementById("ff_lista_supuestos");
+        if (!lista || lista.length === 0) { cont.innerHTML = ""; return; }
+        cont.innerHTML = lista.map(function(e){
+          return "<div style='display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--gpw-fondo-campo);border-radius:11px;margin-bottom:6px;font-size:13px'>" +
+            "<span><b>" + _finEsc(e["Nombre"]) + "</b> <span class='hint'>" + _finEsc(e["Fecha Guardado"]) + "</span></span>" +
+            "<span><button type='button' class='fin-fila-btn' onclick='finCargarSupuesto(" + e["ID"] + ")'>📥 Cargar</button> " +
+            "<button type='button' class='fin-fila-btn baja' onclick='finEliminarSupuesto(" + e["ID"] + ")'>🗑️</button></span>" +
+          "</div>";
+        }).join("");
+        window._finSupuestosCache = lista;
+      })
+      .withFailureHandler(function(){})
+      .obtenerEscenariosGuardados();
+  }
+
+  function finCargarSupuesto(id){
+    var lista = window._finSupuestosCache || [];
+    var e = lista.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!e) return;
+    var p = e["Parámetros"] || {};
+    finSetEscenario(p.escenario || "base");
+    document.getElementById("ff_meses").value = p.mesesProyeccion || 12;
+    document.getElementById("ff_tasa_desc").value = p.tasaDescuentoAnual || 60;
+    document.getElementById("ff_crec_ventas").value = p.crecVentasMensualPct || 0;
+    document.getElementById("ff_crec_costos").value = p.crecCostosMensualPct || 0;
+    setInputMoneda(document.getElementById("ff_inversion"), p.inversionInicial || 0);
+    if (p.financiado) {
+      setInputMoneda(document.getElementById("ff_prest_monto"), p.financiado.monto || 0);
+      document.getElementById("ff_prest_tasa").value = p.financiado.tasaAnual || 60;
+      document.getElementById("ff_prest_plazo").value = p.financiado.plazoAnios || 3;
+    }
+    finRecalcularFlujo();
+    mostrarToast("✅ Supuesto cargado.", "exito");
+  }
+
+  function finEliminarSupuesto(id){
+    confirmarAccion("¿Eliminar este supuesto guardado?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("eliminarEscenario", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarSupuestos();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  SENSIBILIDAD
+  // ------------------------------------------------------------
+  function finCargarSensibilidad(){
+    var params = _finLeerParamsFlujo();
+    finCargarUnaSensibilidad("costos", params, "fs_tabla_costos");
+    finCargarUnaSensibilidad("precio_cantidad", params, "fs_tabla_precio");
+    finCargarUnaSensibilidad("prestamo", params, "fs_tabla_prestamo");
+  }
+
+  function finCargarUnaSensibilidad(tipo, params, contId){
+    google.script.run
+      .withSuccessHandler(function(r){ finRenderSensibilidad(r, contId); })
+      .withFailureHandler(function(e){ document.getElementById(contId).innerHTML = "<div class='hint'>❌ " + e.message + "</div>"; })
+      .calcularSensibilidad(tipo, params);
+  }
+
+  function _fsColor(tir){
+    if (tir == null) return "#F4F5FA";
+    var pct = tir * 100;
+    if (pct >= 30) return "#B8EFCF";
+    if (pct >= 10) return "#DFF6E8";
+    if (pct >= 0) return "#FEF3E2";
+    return "#FDEBEC";
+  }
+
+  function finRenderSensibilidad(r, contId){
+    var filaMedia = Math.floor(r.filas.length/2), colMedia = Math.floor(r.columnas.length/2);
+    var html = "<table class='fin-tabla' style='min-width:560px'><thead><tr><th>" + r.etiquetaFila + " \\ " + r.etiquetaColumna + "</th>";
+    r.columnas.forEach(function(c, j){
+      html += "<th class='num'>" + (j === colMedia ? "<b>" : "") + Math.round(c).toLocaleString("es-AR") + (j === colMedia ? "</b>" : "") + "</th>";
+    });
+    html += "</tr></thead><tbody>";
+    r.filas.forEach(function(f, i){
+      html += "<tr><td>" + (i === filaMedia ? "<b>" : "") + Math.round(f).toLocaleString("es-AR") + (i === filaMedia ? "</b>" : "") + "</td>";
+      r.tir[i].forEach(function(tir, j){
+        var destacado = (i === filaMedia && j === colMedia);
+        html += "<td class='num' style='background:" + _fsColor(tir) + (destacado?";font-weight:800":"") + "'>" + (tir == null ? "—" : (tir*100).toFixed(0) + "%") + "</td>";
+      });
+      html += "</tr>";
+    });
+    html += "</tbody></table>";
+    document.getElementById(contId).innerHTML = html;
   }
 </script>
