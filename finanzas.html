@@ -1,0 +1,719 @@
+<div id="view-finanzas" class="view">
+  <style>
+    /* Mismo lenguaje visual que Compras/Ventas/Dashboard (indigo/violeta) — escapado a #view-finanzas. */
+    #view-finanzas {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0;
+      --gpw-verde: #0F9D58; --gpw-verde-cl: #E7F8EF; --gpw-rojo: #DC2626; --gpw-rojo-cl: #FDEBEC;
+      --gpw-ambar: #D97706; --gpw-ambar-cl: #FEF3E2;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #view-finanzas .fin-hero {
+      background: linear-gradient(155deg, #1E1B4B, #312C85 55%, #4F46E5);
+      border-radius: 24px; padding: 22px 24px; margin-bottom: 20px; color: #fff;
+      box-shadow: 0 20px 50px rgba(49,44,133,.35);
+    }
+    #view-finanzas .fin-hero-top { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+    #view-finanzas .fin-hero-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 21px; letter-spacing: -.4px; }
+    #view-finanzas .fin-hero-sub { font-size: 12px; color: rgba(255,255,255,.65); margin-top: 3px; }
+    #view-finanzas .fin-periodo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    #view-finanzas .fin-periodo select, #view-finanzas .fin-periodo button {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18); color: #fff;
+      border-radius: 100px; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    #view-finanzas .fin-periodo select option { color: #191B2E; }
+    #view-finanzas .fin-modo-switch { display: flex; gap: 4px; background: rgba(255,255,255,.1); border-radius: 100px; padding: 3px; }
+    #view-finanzas .fin-modo-btn { border: none; background: transparent; color: rgba(255,255,255,.75); border-radius: 100px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    #view-finanzas .fin-modo-btn.activo { background: #fff; color: #312C85; }
+
+    #view-finanzas .fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    #view-finanzas .fin-kpi { background: rgba(255,255,255,.09); border-radius: 14px; padding: 12px 14px; }
+    #view-finanzas .fin-kpi .lbl { font-size: 10.5px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .3px; }
+    #view-finanzas .fin-kpi .val { font-family: "Manrope", sans-serif; font-size: 19px; font-weight: 800; margin-top: 3px; }
+    #view-finanzas .fin-kpi .var { font-size: 10.5px; margin-top: 3px; font-weight: 700; }
+    #view-finanzas .fin-kpi .var.pos { color: #86EFAC; }
+    #view-finanzas .fin-kpi .var.neg { color: #FF8A80; }
+    #view-finanzas .fin-kpi.destacado { background: rgba(255,255,255,.18); }
+
+    #view-finanzas .fin-panel { background: #fff; border-radius: 20px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    #view-finanzas .fin-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    #view-finanzas .fin-panel-head b { font-family: "Manrope", sans-serif; font-size: 15.5px; color: var(--gpw-texto); }
+    #view-finanzas .fin-btn-agregar {
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; border: none;
+      border-radius: 100px; padding: 8px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    }
+    #view-finanzas .fin-btn-agregar:hover { filter: brightness(1.08); }
+
+    #view-finanzas .fin-desglose { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+    #view-finanzas .fin-desglose-item { flex: 1 1 140px; }
+    #view-finanzas .fin-desglose-lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--gpw-texto-sua); margin-bottom: 4px; }
+    #view-finanzas .fin-desglose-barra { height: 8px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; }
+    #view-finanzas .fin-desglose-fill { height: 100%; border-radius: 100px; }
+
+    #view-finanzas .fin-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+    #view-finanzas .fin-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; color: var(--gpw-texto-sua); padding: 6px 10px; border-bottom: 1.5px solid var(--gpw-borde); }
+    #view-finanzas .fin-tabla td { padding: 9px 10px; border-bottom: 1px solid var(--gpw-borde); vertical-align: middle; }
+    #view-finanzas .fin-tabla tr:last-child td { border-bottom: none; }
+    #view-finanzas .fin-tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+    #view-finanzas .fin-cat-pill { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; }
+    #view-finanzas .fin-cat-servicios { background: #EEF0FF; color: var(--gpw-indigo); }
+    #view-finanzas .fin-cat-administrativos { background: var(--gpw-ambar-cl); color: var(--gpw-ambar); }
+    #view-finanzas .fin-cat-inversión { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
+    #view-finanzas .fin-fila-btns { display: flex; gap: 6px; justify-content: flex-end; }
+    #view-finanzas .fin-fila-btn { border: none; background: var(--gpw-fondo-campo); border-radius: 8px; padding: 5px 9px; font-size: 11px; cursor: pointer; color: var(--gpw-texto-sua); }
+    #view-finanzas .fin-fila-btn:hover { background: #E3E5F0; color: var(--gpw-texto); }
+    #view-finanzas .fin-fila-btn.baja:hover { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
+    #view-finanzas .fin-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 24px 10px; font-size: 13px; }
+
+    #view-finanzas .fin-chart { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 10px 4px 0; overflow-x: auto; }
+    #view-finanzas .fin-chart-col { flex: 1 0 34px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+    #view-finanzas .fin-chart-bar { width: 20px; border-radius: 5px 5px 0 0; min-height: 2px; }
+    #view-finanzas .fin-chart-lbl { font-size: 9.5px; color: var(--gpw-texto-sua); white-space: nowrap; }
+
+    /* ---- Modal genérico de alta/edición (costos fijos / variables / mano de obra) ---- */
+    #view-finanzas .fin-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    #view-finanzas .fin-modal {
+      background: #fff; border-radius: 22px; width: 100%; max-width: 440px; max-height: 88vh;
+      display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+    }
+    #view-finanzas .fin-modal-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; flex-shrink: 0;
+    }
+    #view-finanzas .fin-modal-header b { font-family: "Manrope", sans-serif; font-size: 15px; }
+    #view-finanzas .fin-modal-header button { background: rgba(255,255,255,.18); border: none; color: #fff; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 12px; }
+    #view-finanzas .fin-modal-body { padding: 16px 20px; overflow-y: auto; }
+    #view-finanzas .fin-modal-body label { display: block; font-size: 12px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 12px; margin-bottom: 4px; }
+    #view-finanzas .fin-modal-body label:first-child { margin-top: 0; }
+    #view-finanzas .fin-modal-body input, #view-finanzas .fin-modal-body select, #view-finanzas .fin-modal-body textarea {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid var(--gpw-borde);
+      background: var(--gpw-fondo-campo); font-size: 14px; font-family: inherit; color: var(--gpw-texto);
+    }
+    #view-finanzas .fin-modal-body input:focus, #view-finanzas .fin-modal-body select:focus { outline: none; border-color: var(--gpw-indigo); background: #fff; }
+    #view-finanzas .fin-fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #view-finanzas .fin-modal-footer { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+    #view-finanzas .fin-modal-footer button { flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
+    #view-finanzas .fin-btn-cancelar { background: var(--gpw-fondo-campo); color: #4B4D63; }
+    #view-finanzas .fin-btn-guardar { background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; }
+  </style>
+
+  <div class="fin-hero">
+    <div class="fin-hero-top">
+      <div>
+        <div class="fin-hero-title">💹 Gestión Financiera y Rentabilidad</div>
+        <div class="fin-hero-sub">Cruza las ventas reales del ERP con tus costos — ¿estoy ganando plata, y cuánto?</div>
+      </div>
+      <div class="fin-periodo">
+        <div class="fin-modo-switch">
+          <button type="button" class="fin-modo-btn activo" data-modo="mensual" onclick="finSetModo('mensual')">Mensual</button>
+          <button type="button" class="fin-modo-btn" data-modo="anual" onclick="finSetModo('anual')">Acumulado anual</button>
+        </div>
+        <select id="fin_mes" onchange="finCargarResultados()"></select>
+        <select id="fin_anio" onchange="finCargarResultados()"></select>
+        <button type="button" onclick="window.print()">🖨️ Exportar / Imprimir</button>
+      </div>
+    </div>
+    <div class="fin-kpis" id="fin_kpis">
+      <div class="fin-kpi"><div class="lbl">Cargando…</div></div>
+    </div>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head"><b>📊 Evolución — últimos 12 meses</b></div>
+    <div class="hint" style="margin-bottom:4px">Ventas totales por mes</div>
+    <div class="fin-chart" id="fin_chart_ventas"></div>
+    <div class="hint" style="margin:14px 0 4px">Resultado neto por mes (verde = ganancia, rojo = pérdida)</div>
+    <div class="fin-chart" id="fin_chart_resultado"></div>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head"><b>🧮 Estado de Resultados — <span id="fin_titulo_periodo">…</span></b></div>
+    <table class="fin-tabla" id="fin_estado_resultados">
+      <tbody></tbody>
+    </table>
+    <div class="fin-panel-head" style="margin-top:18px;margin-bottom:8px"><b style="font-size:13px">¿De dónde salen los costos?</b></div>
+    <div class="fin-desglose" id="fin_desglose"></div>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>🏢 Costos Fijos Mensuales</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoFijo()">➕ Agregar</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">Servicios, administrativos e inversión en bienes de capital (se amortiza sola, mes a mes, según su vida útil).</div>
+    <table class="fin-tabla">
+      <thead><tr><th>Categoría</th><th>Concepto</th><th class="num">Monto</th><th></th></tr></thead>
+      <tbody id="fin_tbody_costos_fijos"></tbody>
+    </table>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>📦 Costo Variable por Equipo</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoVariable()">➕ Agregar</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">El costo del iPhone en sí ya sale solo de cada Venta real — acá solo cargás lo que se suma por unidad vendida: accesorios de regalo, logística, etc.</div>
+    <table class="fin-tabla">
+      <thead><tr><th>Concepto</th><th>Descripción</th><th class="num">Costo unitario</th><th></th></tr></thead>
+      <tbody id="fin_tbody_costo_variable"></tbody>
+    </table>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>👥 Mano de Obra</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalManoDeObra()">➕ Agregar</button>
+    </div>
+    <table class="fin-tabla">
+      <thead><tr><th>Rol / Persona</th><th class="num">Cant. × Turnos</th><th class="num">Salario</th><th class="num">Costo total</th><th></th></tr></thead>
+      <tbody id="fin_tbody_mano_obra"></tbody>
+    </table>
+  </div>
+
+  <!-- ============ Modal: Costo Fijo ============ -->
+  <div id="fin-modal-costo-fijo" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fin_cf_titulo">Nuevo costo fijo</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Categoría</label>
+        <select id="fcf_categoria" onchange="finToggleCamposInversion()">
+          <option value="Servicios">Servicios</option>
+          <option value="Administrativos">Administrativos</option>
+          <option value="Inversión">Inversión (bien de capital amortizable)</option>
+        </select>
+        <label>Concepto</label>
+        <input type="text" id="fcf_concepto" placeholder="Ej: Alquiler, Luz, Contador..."/>
+        <label>Descripción (opcional)</label>
+        <input type="text" id="fcf_descripcion"/>
+        <div class="fin-fila2">
+          <div><label>Monto</label><input type="text" inputmode="numeric" id="fcf_monto" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fcf_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <div id="fcf_bloque_inversion" style="display:none">
+          <div class="fin-fila2">
+            <div><label>Cantidad</label><input type="number" id="fcf_cantidad" min="1" value="1"/></div>
+            <div><label>Vida útil (años)</label><input type="number" id="fcf_vida_util" min="1" value="5"/></div>
+          </div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fcf_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarCostoFijo()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Costo Variable ============ -->
+  <div id="fin-modal-costo-variable" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>Costo variable por unidad</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Concepto</label>
+        <input type="text" id="fcv_concepto" placeholder="Ej: Funda de regalo, Cable, Viáticos..."/>
+        <label>Descripción (opcional)</label>
+        <input type="text" id="fcv_descripcion"/>
+        <div class="fin-fila2">
+          <div><label>Costo unitario</label><input type="text" inputmode="numeric" id="fcv_costo" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fcv_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fcv_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarCostoVariable()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Mano de Obra ============ -->
+  <div id="fin-modal-mano-obra" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>Mano de obra</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Rol / Persona</label>
+        <input type="text" id="fmo_rol" placeholder="Ej: Vendedor 1, Técnico, Martin..."/>
+        <div class="fin-fila2">
+          <div><label>Cantidad</label><input type="number" id="fmo_cantidad" min="1" value="1"/></div>
+          <div><label>Turnos</label><input type="number" id="fmo_turnos" min="1" value="1"/></div>
+        </div>
+        <div class="fin-fila2">
+          <div><label>Salario</label><input type="text" inputmode="numeric" id="fmo_salario" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fmo_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fmo_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarManoDeObra()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  GESTIÓN FINANCIERA — Fase 1 (Costos + Estado de Resultados +
+  //  Dashboard). Todo lo que es "venta" viene de finanzas.gs, que a su
+  //  vez lee en vivo de las hojas Ventas / Venta Accesorios — acá nunca
+  //  se carga una venta a mano. Los 3 paneles editables (Costos Fijos,
+  //  Costo Variable, Mano de Obra) son CRUD simples contra finanzas.gs.
+  // ============================================================
+
+  var _finModo = "mensual"; // "mensual" | "anual"
+  var _finIdEnEdicionCF = null; // id del costo fijo en edición (null = alta nueva)
+  var _finIdEnEdicionCV = null;
+  var _finIdEnEdicionMO = null;
+  var _finCostosFijosCache = [];
+  var _finCostoVariableCache = [];
+  var _finManoObraCache = [];
+
+  const FIN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  function finInit(){
+    var hoy = new Date();
+    var selMes = document.getElementById("fin_mes");
+    var selAnio = document.getElementById("fin_anio");
+    selMes.innerHTML = FIN_MESES.map(function(m, i){ return "<option value='" + (i+1) + "'>" + m + "</option>"; }).join("");
+    selMes.value = hoy.getMonth() + 1;
+    var anioActual = hoy.getFullYear();
+    var opcionesAnio = [];
+    for (var a = anioActual - 2; a <= anioActual; a++) opcionesAnio.push("<option value='" + a + "'>" + a + "</option>");
+    selAnio.innerHTML = opcionesAnio.join("");
+    selAnio.value = anioActual;
+
+    finCargarResultados();
+    finCargarCostosFijos();
+    finCargarCostoVariable();
+    finCargarManoDeObra();
+    finCargarEvolucion();
+  }
+
+  function finSetModo(modo){
+    _finModo = modo;
+    document.querySelectorAll("#view-finanzas .fin-modo-btn").forEach(function(b){ b.classList.toggle("activo", b.dataset.modo === modo); });
+    document.getElementById("fin_mes").style.display = (modo === "mensual") ? "inline-block" : "none";
+    finCargarResultados();
+  }
+
+  function fmtPct(n){
+    if (n == null || isNaN(n)) return "—";
+    var pct = (n * 100).toFixed(1);
+    return (n >= 0 ? "+" : "") + pct + "%";
+  }
+
+  function finCargarResultados(){
+    var anio = Number(document.getElementById("fin_anio").value);
+    var mes = Number(document.getElementById("fin_mes").value);
+    document.getElementById("fin_kpis").innerHTML = "<div class='fin-kpi'><div class='lbl'>Calculando…</div></div>";
+
+    if (_finModo === "mensual") {
+      document.getElementById("fin_titulo_periodo").textContent = FIN_MESES[mes-1] + " " + anio;
+      google.script.run
+        .withSuccessHandler(function(r){ finRenderKpisMensual(r, anio, mes); finRenderEstadoResultados(r); })
+        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+        .calcularEstadoResultados(anio, mes);
+    } else {
+      document.getElementById("fin_titulo_periodo").textContent = "Acumulado " + anio + " (hasta " + FIN_MESES[mes-1] + ")";
+      google.script.run
+        .withSuccessHandler(function(r){ finRenderKpisAnual(r); finRenderEstadoResultados(r); })
+        .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+        .calcularEstadoResultadosAcumulado(anio, mes);
+    }
+  }
+
+  function _finKpiHtml(lbl, val, varPct, destacado){
+    var varHtml = "";
+    if (varPct !== undefined) {
+      varHtml = varPct == null ? "<div class='var'>Sin dato del mes anterior</div>" :
+        "<div class='var " + (varPct >= 0 ? "pos" : "neg") + "'>" + fmtPct(varPct) + " vs. mes anterior</div>";
+    }
+    return "<div class='fin-kpi" + (destacado ? " destacado" : "") + "'>" +
+      "<div class='lbl'>" + lbl + "</div><div class='val'>" + val + "</div>" + varHtml +
+    "</div>";
+  }
+
+  function finRenderKpisMensual(r, anio, mes){
+    google.script.run
+      .withSuccessHandler(function(resumen){
+        var varVentas = null, varResultado = null;
+        var hoy = new Date();
+        if (anio === hoy.getFullYear() && mes === (hoy.getMonth()+1)) {
+          varVentas = resumen.variacionVentas;
+          varResultado = resumen.variacionResultadoNeto;
+        }
+        document.getElementById("fin_kpis").innerHTML =
+          _finKpiHtml("Ventas", fmtP(r.ventas), varVentas) +
+          _finKpiHtml("Costo total", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
+          _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
+          _finKpiHtml("Resultado neto", fmtP(r.resultadoNeto), varResultado, true) +
+          _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
+          _finKpiHtml("Punto de equilibrio", r.puntoEquilibrioUnidades == null ? "—" : r.puntoEquilibrioUnidades + " equipos");
+      })
+      .withFailureHandler(function(){
+        // Si falla el resumen comparativo, igual mostramos los KPIs sin variación.
+        document.getElementById("fin_kpis").innerHTML =
+          _finKpiHtml("Ventas", fmtP(r.ventas)) +
+          _finKpiHtml("Costo total", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
+          _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
+          _finKpiHtml("Resultado neto", fmtP(r.resultadoNeto), undefined, true) +
+          _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
+          _finKpiHtml("Punto de equilibrio", r.puntoEquilibrioUnidades == null ? "—" : r.puntoEquilibrioUnidades + " equipos");
+      })
+      .obtenerResumenFinanzasDashboard();
+  }
+
+  function finRenderKpisAnual(r){
+    document.getElementById("fin_kpis").innerHTML =
+      _finKpiHtml("Ventas acumuladas", fmtP(r.ventas)) +
+      _finKpiHtml("Costo total acumulado", fmtP(r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra)) +
+      _finKpiHtml("Utilidad bruta", fmtP(r.utilidadBruta)) +
+      _finKpiHtml("Resultado neto acumulado", fmtP(r.resultadoNeto), undefined, true) +
+      _finKpiHtml("Margen neto", (r.margenPct*100).toFixed(1) + "%") +
+      _finKpiHtml("Unidades vendidas", r.unidadesVendidas);
+  }
+
+  function finRenderEstadoResultados(r){
+    var filas = [
+      ["Ventas", r.ventas, false],
+      ["Costo Variable", -r.costoVariable, false],
+      ["Utilidad Bruta", r.utilidadBruta, true],
+      ["Costos Fijos", -r.costosFijos, false],
+      ["Amortización", -r.amortizacion, false],
+      ["Mano de Obra", -r.manoDeObra, false],
+      ["Gastos Financieros", -r.gastosFinancieros, false],
+      ["Resultado antes de Impuestos", r.resultadoAntesImpuestos, true],
+      ["Impuesto a las Ganancias (30%)", -r.impuesto, false],
+      ["Resultado Neto", r.resultadoNeto, true]
+    ];
+    document.querySelector("#fin_estado_resultados tbody").innerHTML = filas.map(function(f){
+      var negativo = f[1] < 0;
+      var estilo = f[2] ? "font-weight:800;background:#F7F7FB" : "";
+      var color = f[2] ? (f[1] >= 0 ? "color:#0F9D58" : "color:#DC2626") : "";
+      return "<tr style='" + estilo + "'>" +
+        "<td style='" + (f[2]?"font-weight:800":"") + "'>" + f[0] + "</td>" +
+        "<td class='num' style='" + color + (f[2]?";font-weight:800":"") + "'>" + (negativo ? "(" + fmtP(Math.abs(f[1])) + ")" : fmtP(f[1])) + "</td>" +
+      "</tr>";
+    }).join("");
+
+    var totalCostos = r.costoVariable + r.costosFijos + r.amortizacion + r.manoDeObra;
+    var partes = [
+      { lbl: "Variable", val: r.costoVariable, color: "#4F46E5" },
+      { lbl: "Fijo", val: r.costosFijos + r.amortizacion, color: "#D97706" },
+      { lbl: "Mano de obra", val: r.manoDeObra, color: "#0F9D58" }
+    ];
+    document.getElementById("fin_desglose").innerHTML = partes.map(function(p){
+      var pct = totalCostos > 0 ? (p.val / totalCostos * 100) : 0;
+      return "<div class='fin-desglose-item'>" +
+        "<div class='fin-desglose-lbl'><span>" + p.lbl + "</span><span>" + pct.toFixed(0) + "%</span></div>" +
+        "<div class='fin-desglose-barra'><div class='fin-desglose-fill' style='width:" + pct + "%;background:" + p.color + "'></div></div>" +
+      "</div>";
+    }).join("");
+  }
+
+  function finCargarEvolucion(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var maxVentas = Math.max.apply(null, datos.map(function(d){ return d.ventas; }).concat([1]));
+        var maxResultadoAbs = Math.max.apply(null, datos.map(function(d){ return Math.abs(d.resultadoNeto); }).concat([1]));
+
+        document.getElementById("fin_chart_ventas").innerHTML = datos.map(function(d){
+          var alturaPct = Math.max(2, (d.ventas / maxVentas) * 100);
+          return "<div class='fin-chart-col'>" +
+            "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:linear-gradient(180deg,#7C6FF0,#4F46E5)' title='" + fmtP(d.ventas) + "'></div>" +
+            "<div class='fin-chart-lbl'>" + FIN_MESES[d.mes-1].slice(0,3) + "</div>" +
+          "</div>";
+        }).join("");
+
+        document.getElementById("fin_chart_resultado").innerHTML = datos.map(function(d){
+          var alturaPct = Math.max(2, (Math.abs(d.resultadoNeto) / maxResultadoAbs) * 100);
+          var color = d.resultadoNeto >= 0 ? "#0F9D58" : "#DC2626";
+          return "<div class='fin-chart-col'>" +
+            "<div class='fin-chart-bar' style='height:" + alturaPct + "%;background:" + color + "' title='" + fmtP(d.resultadoNeto) + "'></div>" +
+            "<div class='fin-chart-lbl'>" + FIN_MESES[d.mes-1].slice(0,3) + "</div>" +
+          "</div>";
+        }).join("");
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerEvolucionMensual(12);
+  }
+
+  // ------------------------------------------------------------
+  //  COSTOS FIJOS
+  // ------------------------------------------------------------
+  function finCargarCostosFijos(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finCostosFijosCache = (datos || []).filter(function(c){ return !c["Vigente Hasta"]; });
+        finRenderCostosFijos();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCostosFijos();
+  }
+
+  function finRenderCostosFijos(){
+    var tbody = document.getElementById("fin_tbody_costos_fijos");
+    if (_finCostosFijosCache.length === 0) { tbody.innerHTML = "<tr><td colspan='4' class='fin-vacio'>Todavía no cargaste ningún costo fijo.</td></tr>"; return; }
+    tbody.innerHTML = _finCostosFijosCache.map(function(c){
+      var claseCat = "fin-cat-" + c["Categoría"].toLowerCase().replace(/ó/g,"o");
+      var detalleInversion = c["Categoría"] === "Inversión" ? " <span class='hint'>(x" + c["Cantidad"] + ", " + c["Vida Útil (años)"] + " años)</span>" : "";
+      return "<tr>" +
+        "<td><span class='fin-cat-pill " + claseCat + "'>" + c["Categoría"] + "</span></td>" +
+        "<td>" + _finEsc(c["Concepto"]) + detalleInversion + (c["Descripción"] ? "<div class='hint'>" + _finEsc(c["Descripción"]) + "</div>" : "") + "</td>" +
+        "<td class='num'>" + (c["Moneda"] === "USD" ? "u$s " : "$") + Number(c["Monto"]).toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarCostoFijo(" + c["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaCostoFijo(" + c["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function _finEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  function finToggleCamposInversion(){
+    document.getElementById("fcf_bloque_inversion").style.display = (document.getElementById("fcf_categoria").value === "Inversión") ? "block" : "none";
+  }
+
+  function finAbrirModalCostoFijo(){
+    _finIdEnEdicionCF = null;
+    document.getElementById("fin_cf_titulo").textContent = "Nuevo costo fijo";
+    document.getElementById("fcf_categoria").value = "Servicios";
+    document.getElementById("fcf_concepto").value = "";
+    document.getElementById("fcf_descripcion").value = "";
+    document.getElementById("fcf_monto").value = "";
+    document.getElementById("fcf_moneda").value = "ARS";
+    document.getElementById("fcf_cantidad").value = 1;
+    document.getElementById("fcf_vida_util").value = 5;
+    document.getElementById("fcf_vigente_desde").value = new Date().toISOString().split("T")[0];
+    finToggleCamposInversion();
+    document.getElementById("fin-modal-costo-fijo").style.display = "flex";
+  }
+
+  function finEditarCostoFijo(id){
+    var c = _finCostosFijosCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!c) return;
+    _finIdEnEdicionCF = id;
+    document.getElementById("fin_cf_titulo").textContent = "Editar costo fijo";
+    document.getElementById("fcf_categoria").value = c["Categoría"];
+    document.getElementById("fcf_concepto").value = c["Concepto"];
+    document.getElementById("fcf_descripcion").value = c["Descripción"] || "";
+    setInputMoneda(document.getElementById("fcf_monto"), c["Monto"]);
+    document.getElementById("fcf_moneda").value = c["Moneda"] || "ARS";
+    document.getElementById("fcf_cantidad").value = c["Cantidad"] || 1;
+    document.getElementById("fcf_vida_util").value = c["Vida Útil (años)"] || 5;
+    document.getElementById("fcf_vigente_desde").value = new Date().toISOString().split("T")[0];
+    finToggleCamposInversion();
+    document.getElementById("fin-modal-costo-fijo").style.display = "flex";
+  }
+
+  function finGuardarCostoFijo(){
+    var d = {
+      idAnterior: _finIdEnEdicionCF,
+      categoria: document.getElementById("fcf_categoria").value,
+      concepto: document.getElementById("fcf_concepto").value.trim(),
+      descripcion: document.getElementById("fcf_descripcion").value.trim(),
+      monto: valorNumerico(document.getElementById("fcf_monto")),
+      moneda: document.getElementById("fcf_moneda").value,
+      cantidad: document.getElementById("fcf_cantidad").value,
+      vidaUtil: document.getElementById("fcf_vida_util").value,
+      vigenteDesde: document.getElementById("fcf_vigente_desde").value
+    };
+    llamarBackend("guardarCostoFijo", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarCostosFijos();
+      finCargarResultados();
+      finCargarEvolucion();
+    });
+  }
+
+  function finBajaCostoFijo(id){
+    confirmarAccion("¿Dar de baja este costo fijo? (queda en el histórico, no se borra)").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaCostoFijo", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarCostosFijos();
+        finCargarResultados();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  COSTO VARIABLE
+  // ------------------------------------------------------------
+  function finCargarCostoVariable(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finCostoVariableCache = (datos || []).filter(function(c){ return !c["Vigente Hasta"]; });
+        finRenderCostoVariable();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCostoVariableConfig();
+  }
+
+  function finRenderCostoVariable(){
+    var tbody = document.getElementById("fin_tbody_costo_variable");
+    if (_finCostoVariableCache.length === 0) { tbody.innerHTML = "<tr><td colspan='4' class='fin-vacio'>Sin costos variables adicionales cargados (funda, cable, transporte...).</td></tr>"; return; }
+    tbody.innerHTML = _finCostoVariableCache.map(function(c){
+      return "<tr>" +
+        "<td>" + _finEsc(c["Concepto"]) + "</td>" +
+        "<td class='hint'>" + _finEsc(c["Descripción"] || "") + "</td>" +
+        "<td class='num'>" + (c["Moneda"] === "USD" ? "u$s " : "$") + Number(c["Costo Unitario"]).toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarCostoVariable(" + c["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaCostoVariable(" + c["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function finAbrirModalCostoVariable(){
+    _finIdEnEdicionCV = null;
+    document.getElementById("fcv_concepto").value = "";
+    document.getElementById("fcv_descripcion").value = "";
+    document.getElementById("fcv_costo").value = "";
+    document.getElementById("fcv_moneda").value = "ARS";
+    document.getElementById("fcv_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-costo-variable").style.display = "flex";
+  }
+
+  function finEditarCostoVariable(id){
+    var c = _finCostoVariableCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!c) return;
+    _finIdEnEdicionCV = id;
+    document.getElementById("fcv_concepto").value = c["Concepto"];
+    document.getElementById("fcv_descripcion").value = c["Descripción"] || "";
+    setInputMoneda(document.getElementById("fcv_costo"), c["Costo Unitario"]);
+    document.getElementById("fcv_moneda").value = c["Moneda"] || "ARS";
+    document.getElementById("fcv_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-costo-variable").style.display = "flex";
+  }
+
+  function finGuardarCostoVariable(){
+    var d = {
+      idAnterior: _finIdEnEdicionCV,
+      concepto: document.getElementById("fcv_concepto").value.trim(),
+      descripcion: document.getElementById("fcv_descripcion").value.trim(),
+      costoUnitario: valorNumerico(document.getElementById("fcv_costo")),
+      moneda: document.getElementById("fcv_moneda").value,
+      vigenteDesde: document.getElementById("fcv_vigente_desde").value
+    };
+    llamarBackend("guardarCostoVariable", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarCostoVariable();
+      finCargarResultados();
+      finCargarEvolucion();
+    });
+  }
+
+  function finBajaCostoVariable(id){
+    confirmarAccion("¿Dar de baja este costo variable?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaCostoVariable", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarCostoVariable();
+        finCargarResultados();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  MANO DE OBRA
+  // ------------------------------------------------------------
+  function finCargarManoDeObra(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finManoObraCache = (datos || []).filter(function(m){ return !m["Vigente Hasta"]; });
+        finRenderManoDeObra();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerManoDeObra();
+  }
+
+  function finRenderManoDeObra(){
+    var tbody = document.getElementById("fin_tbody_mano_obra");
+    if (_finManoObraCache.length === 0) { tbody.innerHTML = "<tr><td colspan='5' class='fin-vacio'>Sin personal cargado todavía.</td></tr>"; return; }
+    tbody.innerHTML = _finManoObraCache.map(function(m){
+      var cant = Number(m["Cantidad"]) || 1, turnos = Number(m["Turnos"]) || 1, salario = Number(m["Salario"]) || 0;
+      var total = cant * turnos * salario;
+      return "<tr>" +
+        "<td>" + _finEsc(m["Rol / Persona"]) + "</td>" +
+        "<td class='num'>" + cant + " × " + turnos + "</td>" +
+        "<td class='num'>" + (m["Moneda"] === "USD" ? "u$s " : "$") + salario.toLocaleString("es-AR") + "</td>" +
+        "<td class='num'>" + (m["Moneda"] === "USD" ? "u$s " : "$") + total.toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarManoDeObra(" + m["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaManoDeObra(" + m["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function finAbrirModalManoDeObra(){
+    _finIdEnEdicionMO = null;
+    document.getElementById("fmo_rol").value = "";
+    document.getElementById("fmo_cantidad").value = 1;
+    document.getElementById("fmo_turnos").value = 1;
+    document.getElementById("fmo_salario").value = "";
+    document.getElementById("fmo_moneda").value = "ARS";
+    document.getElementById("fmo_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-mano-obra").style.display = "flex";
+  }
+
+  function finEditarManoDeObra(id){
+    var m = _finManoObraCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!m) return;
+    _finIdEnEdicionMO = id;
+    document.getElementById("fmo_rol").value = m["Rol / Persona"];
+    document.getElementById("fmo_cantidad").value = m["Cantidad"] || 1;
+    document.getElementById("fmo_turnos").value = m["Turnos"] || 1;
+    setInputMoneda(document.getElementById("fmo_salario"), m["Salario"]);
+    document.getElementById("fmo_moneda").value = m["Moneda"] || "ARS";
+    document.getElementById("fmo_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-mano-obra").style.display = "flex";
+  }
+
+  function finGuardarManoDeObra(){
+    var d = {
+      idAnterior: _finIdEnEdicionMO,
+      rol: document.getElementById("fmo_rol").value.trim(),
+      cantidad: document.getElementById("fmo_cantidad").value,
+      turnos: document.getElementById("fmo_turnos").value,
+      salario: valorNumerico(document.getElementById("fmo_salario")),
+      moneda: document.getElementById("fmo_moneda").value,
+      vigenteDesde: document.getElementById("fmo_vigente_desde").value
+    };
+    llamarBackend("guardarManoDeObra", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarManoDeObra();
+      finCargarResultados();
+      finCargarEvolucion();
+    });
+  }
+
+  function finBajaManoDeObra(id){
+    confirmarAccion("¿Dar de baja a esta persona/rol del cálculo de costos?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaManoDeObra", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarManoDeObra();
+        finCargarResultados();
+      });
+    });
+  }
+
+  function finCerrarModales(){
+    document.getElementById("fin-modal-costo-fijo").style.display = "none";
+    document.getElementById("fin-modal-costo-variable").style.display = "none";
+    document.getElementById("fin-modal-mano-obra").style.display = "none";
+  }
+</script>

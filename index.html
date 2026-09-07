@@ -346,6 +346,7 @@
 
     <div class="nav-group-title">Análisis</div>
     <div class="nav-btn" data-vista="reportes" onclick="cargarVista('reportes')">💰 Caja</div>
+    <div class="nav-btn" data-vista="finanzas" onclick="cargarVista('finanzas')">💹 Finanzas</div>
 
     <div class="nav-group-title">Inventario</div>
     <div class="nav-btn" data-vista="stock_accesorios" onclick="cargarVista('stock_accesorios')">📦 Stock Accesorios</div>
@@ -402,6 +403,7 @@
       <?!= include('gastos'); ?>
       <?!= include('vista_devoluciones'); ?>
       <?!= include('reportes'); ?>
+      <?!= include('finanzas'); ?>
       <?!= include('stock_accesorios'); ?>
       <?!= include('stock_general'); ?>
       <?!= include('mis_operaciones'); ?>
@@ -876,6 +878,7 @@
       calculadora_cuotas:"💳 Calculadora de Cuotas",
       reparaciones:"🔧 Registrar Reparación", entregar_reparacion:"📦 Entregar Reparación", tarifario_reparaciones:"🔧 Tarifario Reparaciones",
       gastos:"💸 Registrar Gasto", devoluciones:"💵 Registrar Devolución", reportes:"💰 Caja",
+      finanzas:"💹 Finanzas",
       stock_accesorios:"📦 Stock Accesorios", stock_general:"📋 Stock General",
       mis_operaciones:"🗂️ Mis Operaciones", comisiones:"💼 Comisiones",
       guia:"📖 Guía del sistema"
@@ -905,6 +908,7 @@
     if (nombre === "tarifario_reparaciones") tarifarioReparacionesInit();
     if (nombre === "entregar_preventa") entregaInit();
     if (nombre === "reportes") reportesInit();
+    if (nombre === "finanzas") finInit();
     if (nombre === "stock_accesorios") stockAccesoriosInit();
     if (nombre === "stock_general") stockGeneralInit();
     if (nombre === "mis_operaciones") misOperacionesInit();
