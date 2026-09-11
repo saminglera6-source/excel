@@ -1,4 +1,339 @@
 <div id="view-dashboard" class="view activa">
+  <style>
+    /* ============================================================
+       PANEL PROTAGONISTA DE PREVENTAS — lo principal del negocio son
+       las preventas, así que van arriba de todo en el Dashboard, como
+       tarjetas con filtros/búsqueda y edición al toque (modal propio,
+       sin salir de la pantalla). El guardado sigue pasando 100% por
+       corregirPreventa() (operadores.gs) — mismo mecanismo de siempre
+       (motivo + operador + auditoría), el modal solo arma el payload y
+       lo manda; no escribe nada por su cuenta.
+       ============================================================ */
+    #view-dashboard .gp-pre-hero {
+      background: linear-gradient(155deg, #1E1B4B, #312C85 55%, #4F46E5);
+      border-radius: 24px; padding: 26px 28px 22px; margin-bottom: 26px; color: #fff;
+      box-shadow: 0 20px 50px rgba(49,44,133,.35);
+    }
+    #view-dashboard .gp-pre-hero-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; }
+    #view-dashboard .gp-pre-hero-title { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -.4px; }
+    #view-dashboard .gp-pre-hero-sub { font-size: 12.5px; color: rgba(255,255,255,.65); margin-top: 3px; }
+    #view-dashboard .gp-pre-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+    #view-dashboard .gp-pre-stat {
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+      padding: 8px 16px; text-align: center; min-width: 84px;
+    }
+    #view-dashboard .gp-pre-stat b { display: block; font-family: "Manrope", sans-serif; font-size: 19px; font-weight: 800; }
+    #view-dashboard .gp-pre-stat span { font-size: 10px; color: rgba(255,255,255,.65); text-transform: uppercase; letter-spacing: .4px; }
+    #view-dashboard .gp-pre-stat-rojo b { color: #FF8A80; }
+    #view-dashboard .gp-pre-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    #view-dashboard .gp-pre-buscar {
+      flex: 1 1 220px; padding: 10px 14px; border-radius: 100px; border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.1); color: #fff; font-size: 13.5px; outline: none;
+    }
+    #view-dashboard .gp-pre-buscar::placeholder { color: rgba(255,255,255,.55); }
+    #view-dashboard .gp-pre-buscar:focus { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.4); }
+    #view-dashboard .gp-pre-filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+    #view-dashboard .gp-pre-filtro {
+      border: 1px solid rgba(255,255,255,.18); background: transparent; color: rgba(255,255,255,.8);
+      border-radius: 100px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: .15s;
+    }
+    #view-dashboard .gp-pre-filtro:hover { background: rgba(255,255,255,.1); }
+    #view-dashboard .gp-pre-filtro.activo { background: #fff; color: #312C85; border-color: #fff; }
+    #view-dashboard .gp-pre-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 12px;
+      max-height: 72vh; min-height: 460px; overflow-y: auto; padding-right: 2px;
+    }
+    #view-dashboard .gp-pre-vista-switch { display: flex; gap: 4px; background: rgba(255,255,255,.1); border-radius: 100px; padding: 3px; }
+    #view-dashboard .gp-pre-vista-btn {
+      border: none; background: transparent; color: rgba(255,255,255,.75); border-radius: 100px;
+      padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; transition: .15s;
+    }
+    #view-dashboard .gp-pre-vista-btn.activo { background: #fff; color: #312C85; }
+    #view-dashboard .gp-pre-card-tel { font-size: 11px; color: #767A94; margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+    #view-dashboard .gp-pre-card-tel a { color: inherit; text-decoration: none; }
+    #view-dashboard .gp-pre-card-tel a:hover { color: #16A34A; text-decoration: underline; }
+
+    /* ---- Calendario mensual embebido (vista "Calendario") ---- */
+    #view-dashboard .gp-pre-cal-mes { max-height: 72vh; min-height: 460px; overflow-y: auto; margin-top: 18px; padding-top: 2px; }
+    #view-dashboard .gp-pre-cal-mes-nav {
+      display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 14px; color: #fff;
+    }
+    #view-dashboard .gp-pre-cal-mes-nav button {
+      background: rgba(255,255,255,.12); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%;
+      cursor: pointer; font-size: 16px; flex-shrink: 0;
+    }
+    #view-dashboard .gp-pre-cal-mes-nav button:hover { background: rgba(255,255,255,.24); }
+    #view-dashboard .gp-pre-cal-mes-nav b { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 17px; letter-spacing: -.2px; min-width: 170px; text-align: center; }
+    #view-dashboard .gp-pre-cal-mes-hoy-btn {
+      border: 1px solid rgba(255,255,255,.25); background: transparent; color: rgba(255,255,255,.85);
+      border-radius: 100px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-cal-mes-hoy-btn:hover { background: rgba(255,255,255,.14); }
+    #view-dashboard .gp-pre-cal-mes-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+    #view-dashboard .gp-pre-cal-mes-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: rgba(255,255,255,.5); padding-bottom: 6px; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-cal-mes-lbl.gp-pre-cal-mes-finde { color: rgba(255,255,255,.32); }
+    #view-dashboard .gp-pre-cal-mes-dia {
+      position: relative; min-height: 88px; background: rgba(255,255,255,.055); border-radius: 12px;
+      display: flex; flex-direction: column; padding: 7px 6px; cursor: default;
+      border: 1px solid transparent; transition: background .12s, border-color .12s, transform .08s;
+    }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-finde { background: rgba(255,255,255,.028); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-vacio { background: transparent; visibility: hidden; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con { cursor: pointer; background: rgba(255,255,255,.13); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:hover { background: rgba(255,255,255,.24); transform: translateY(-1px); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-con:active { transform: scale(.98); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc { border-color: rgba(255,138,128,.55); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy { border-color: #fff; }
+    /* Señal de carga del día (cupo de entregas) — se ve de un vistazo sin entrar a la celda */
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-liviano { background: rgba(74,222,128,.12); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-liviano:hover { background: rgba(74,222,128,.22); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-cargado { background: rgba(251,191,36,.16); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-cargado:hover { background: rgba(251,191,36,.26); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado { background: rgba(255,138,128,.22); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado:hover { background: rgba(255,138,128,.32); }
+    #view-dashboard .gp-pre-cal-mes-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    #view-dashboard .gp-pre-cal-mes-monto { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); margin-top: auto; padding-top: 3px; }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-topado .gp-pre-cal-mes-monto { color: #FFC4BE; }
+
+    /* Resumen del mes — arriba de la grilla, para no tener que escanear celda por celda */
+    #view-dashboard .gp-pre-cal-mes-resumen {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    #view-dashboard .gp-pre-cal-mes-resumen-item {
+      background: rgba(255,255,255,.09); border-radius: 12px; padding: 8px 16px; text-align: center; min-width: 110px;
+    }
+    #view-dashboard .gp-pre-cal-mes-resumen-item b { display: block; font-family: "Manrope", sans-serif; font-size: 16px; font-weight: 800; color: #fff; }
+    #view-dashboard .gp-pre-cal-mes-resumen-item span { font-size: 10px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .3px; }
+    #view-dashboard .gp-pre-cal-mes-resumen-item.gp-pre-cal-mes-resumen-prox b { color: #FDE68A; }
+    #view-dashboard .gp-pre-cal-mes-num { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.9); }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-hoy .gp-pre-cal-mes-num {
+      background: #fff; color: #312C85; width: 19px; height: 19px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: 800;
+    }
+    #view-dashboard .gp-pre-cal-mes-badge {
+      background: rgba(255,255,255,.2); color: #fff; font-size: 9.5px; font-weight: 800;
+      border-radius: 100px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    #view-dashboard .gp-pre-cal-mes-dia.gp-pre-cal-mes-venc .gp-pre-cal-mes-badge { background: #FF8A80; color: #7A1E1E; }
+    #view-dashboard .gp-pre-cal-mes-clientes { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+    #view-dashboard .gp-pre-cal-mes-cliente {
+      font-size: 9.5px; color: rgba(255,255,255,.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.35;
+    }
+    #view-dashboard .gp-pre-cal-mes-mas { font-size: 9px; color: rgba(255,255,255,.55); font-weight: 700; }
+    #view-dashboard .gp-pre-cal-mes-leyenda {
+      display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 16px;
+      font-size: 11px; color: rgba(255,255,255,.6);
+    }
+    #view-dashboard .gp-pre-cal-mes-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+    #view-dashboard .gp-pre-cal-mes-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+    #view-dashboard .gp-pre-fecha-chip {
+      display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff;
+      border-radius: 100px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-fecha-chip:hover { background: rgba(255,255,255,.26); }
+
+    /* ---- Listado "Entregadas / Canceladas" (debajo del hero) ---- */
+    #view-dashboard .gp-pre-hist-card { background: #fff; border-radius: 20px; padding: 18px 20px; margin-bottom: 26px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    #view-dashboard .gp-pre-hist-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; flex-wrap: wrap; gap: 6px; }
+    #view-dashboard .gp-pre-hist-header b { font-family: "Manrope", sans-serif; font-size: 15px; color: #191B2E; }
+    #view-dashboard .gp-pre-hist-list { display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; }
+    #view-dashboard .gp-pre-hist-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: #F7F7FB; font-size: 12.5px; }
+    #view-dashboard .gp-pre-hist-info { flex: 1; min-width: 0; }
+    #view-dashboard .gp-pre-hist-cliente { font-weight: 700; color: #191B2E; }
+    #view-dashboard .gp-pre-hist-meta { color: #767A94; font-size: 11px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #view-dashboard .gp-pre-hist-pill { font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+    #view-dashboard .gp-pre-hist-pill-entregada { background: #E7F8EF; color: #0F7B3A; }
+    #view-dashboard .gp-pre-hist-pill-cancelada { background: #FDEBEC; color: #B91C1C; }
+    #view-dashboard .gp-pre-hist-btn {
+      border: none; background: #4F46E5; color: #fff; border-radius: 100px; padding: 7px 12px;
+      font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: .12s;
+    }
+    #view-dashboard .gp-pre-hist-btn:hover { filter: brightness(1.1); }
+    #view-dashboard .gp-pre-hist-btn:disabled { opacity: .5; cursor: default; }
+    #view-dashboard .gp-pre-grid .hint { color: rgba(255,255,255,.65); grid-column: 1/-1; }
+    #view-dashboard .gp-pre-card {
+      background: #fff; border-radius: 16px; padding: 14px 15px; cursor: pointer; color: #191B2E;
+      border-left: 5px solid #9AA1B2; transition: transform .12s ease, box-shadow .12s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    #view-dashboard .gp-pre-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.22); }
+    #view-dashboard .gp-pre-card.gp-pre-card-vencida { border-left-color: #DC2626; }
+    #view-dashboard .gp-pre-card.gp-pre-card-proxima { border-left-color: #D97706; }
+    #view-dashboard .gp-pre-card.gp-pre-card-plazo   { border-left-color: #16A34A; }
+    #view-dashboard .gp-pre-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    #view-dashboard .gp-pre-card-fecha { font-size: 10.5px; font-weight: 700; color: #767A94; text-transform: uppercase; letter-spacing: .3px; display: inline-flex; align-items: center; gap: 5px; }
+    #view-dashboard .gp-pre-card-fecha-btn {
+      border: none; background: #F0F1F6; cursor: pointer; font-size: 15px; line-height: 1;
+      width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 50%; opacity: .85; transition: opacity .15s, background .15s, transform .1s; flex-shrink: 0;
+    }
+    #view-dashboard .gp-pre-card-fecha-btn:hover { opacity: 1; background: #E3E5F0; }
+    #view-dashboard .gp-pre-card-fecha-btn:active { transform: scale(.92); }
+    #view-dashboard .gp-pre-card-repateada {
+      font-size: 9px; font-weight: 800; border-radius: 100px; padding: 1px 6px; margin-left: 4px;
+      color: #fff; vertical-align: middle;
+    }
+    #view-dashboard .gp-pre-card-repateada-1 { background: #D97706; }
+    #view-dashboard .gp-pre-card-repateada-2 { background: #DC2626; }
+    #view-dashboard .gp-pre-card-num { font-size: 10px; color: #AEB0C4; }
+    #view-dashboard .gp-pre-card-cliente { font-weight: 800; font-size: 14.5px; letter-spacing: -.2px; }
+    #view-dashboard .gp-pre-card-modelo { font-size: 12px; color: #767A94; margin-top: 1px; }
+    #view-dashboard .gp-pre-card-money { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11.5px; color: #767A94; }
+    #view-dashboard .gp-pre-card-money b { font-size: 14px; color: #191B2E; }
+    #view-dashboard .gp-pre-card-toma { font-size: 10.5px; color: #4F46E5; margin-top: 5px; }
+    #view-dashboard .gp-pre-card-entregar-fila { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 10px; }
+    #view-dashboard .gp-pre-card-entregar {
+      display: block; width: 100%; background: linear-gradient(135deg, #16A34A, #22C55E);
+      color: #fff; border: none; border-radius: 100px; padding: 7px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-card-entregar:hover { filter: brightness(1.08); }
+    #view-dashboard .gp-pre-card-personalizar { font-size: 10px; color: #9AA0B4; text-decoration: underline; cursor: pointer; }
+    #view-dashboard .gp-pre-card-personalizar:hover { color: #4F46E5; }
+
+    /* ---- Popover de fecha rápida (dashPreCalAbrir) ---- */
+    #dp-cal-popover {
+      position: fixed; z-index: 300; background: #fff; border-radius: 12px; padding: 10px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.25); font-size: 12px; width: 232px; display: none;
+    }
+    #dp-cal-popover .dp-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    #dp-cal-popover .dp-cal-nav button { background: none; border: none; cursor: pointer; font-size: 14px; color: #4F46E5; padding: 2px 8px; }
+    #dp-cal-popover .dp-cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+    #dp-cal-popover .dp-cal-dia {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px;
+      font-size: 11px; cursor: default;
+    }
+    #dp-cal-popover .dp-cal-dia.dp-cal-otromes { visibility: hidden; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-nohabil { background: repeating-linear-gradient(135deg,#F0F1F3,#F0F1F3 3px,#E4E6E9 3px,#E4E6E9 6px); color: #B0B7C0; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-ok { cursor: pointer; background: #EAF6EE; color: #0F7B3A; font-weight: 700; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-ok:hover { background: #16A34A; color: #fff; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-topado { cursor: pointer; background: #FEECEC; color: #B91C1C; font-weight: 700; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-topado:hover { background: #DC2626; color: #fff; }
+    #dp-cal-popover .dp-cal-dia.dp-cal-hoy { outline: 2px solid #4F46E5; outline-offset: -2px; }
+    #dp-cal-popover .dp-cal-leyenda { font-size: 9.5px; color: #767A94; margin-top: 6px; line-height: 1.5; }
+
+    /* ---- Modal de edición ---- */
+    #view-dashboard .gp-pre-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 200;
+      display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(2px);
+    }
+    #view-dashboard .gp-pre-modal {
+      background: #fff; border-radius: 22px; width: 100%; max-width: 480px; max-height: 88vh;
+      display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+    }
+    #view-dashboard .gp-pre-modal-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 18px 22px;
+      background: linear-gradient(135deg, #4F46E5, #7C6FF0); color: #fff; flex-shrink: 0;
+    }
+    #view-dashboard .gp-pre-modal-header b { font-family: "Manrope", sans-serif; font-size: 16px; }
+    #view-dashboard .gp-pre-modal-header button {
+      background: rgba(255,255,255,.18); border: none; color: #fff; width: 26px; height: 26px; border-radius: 50%;
+      cursor: pointer; font-size: 13px; line-height: 1;
+    }
+    #view-dashboard .gp-pre-modal-body { padding: 18px 22px; overflow-y: auto; }
+    #view-dashboard .gp-pre-modal-body label { display: block; font-size: 12px; font-weight: 700; color: #767A94; margin-top: 12px; margin-bottom: 4px; }
+    #view-dashboard .gp-pre-modal-body label:first-child { margin-top: 0; }
+    #view-dashboard .gp-pre-modal-body input, #view-dashboard .gp-pre-modal-body textarea {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid #E4E5F0;
+      background: #F7F7FB; font-size: 14px; font-family: inherit; color: #191B2E;
+    }
+    #view-dashboard .gp-pre-modal-body input:focus, #view-dashboard .gp-pre-modal-body textarea:focus {
+      outline: none; border-color: #4F46E5; background: #fff; box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+    #view-dashboard .gp-pre-modal-body textarea { min-height: 54px; resize: vertical; }
+    #view-dashboard .gp-pre-cobros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    #view-dashboard .gp-pre-modal-motivo-box { background: #FFF7ED; border: 1px solid #FDE0B0; border-radius: 13px; padding: 12px 14px; margin-top: 16px; }
+    #view-dashboard .gp-pre-modal-footer { display: flex; gap: 10px; padding: 16px 22px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+    #view-dashboard .gp-pre-modal-footer button {
+      flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer;
+    }
+    #view-dashboard .gp-pre-btn-cancelar { background: #F0F0F6; color: #4B4D63; }
+    #view-dashboard .gp-pre-btn-guardar { background: linear-gradient(135deg, #4F46E5, #7C6FF0); color: #fff; box-shadow: 0 6px 16px rgba(79,70,229,.35); }
+  </style>
+
+  <div class="gp-pre-hero">
+    <div class="gp-pre-hero-header">
+      <div>
+        <div class="gp-pre-hero-title">🟡 Preventas</div>
+        <div class="gp-pre-hero-sub">Lo más importante del local — tocá cualquier tarjeta para editarla al toque</div>
+      </div>
+      <div class="gp-pre-stats">
+        <div class="gp-pre-stat"><b id="gp-pre-cant">…</b><span>Pendientes</span></div>
+        <div class="gp-pre-stat gp-pre-stat-rojo"><b id="gp-pre-venc">…</b><span>Vencidas</span></div>
+        <div class="gp-pre-stat"><b id="gp-pre-monto">…</b><span>Saldo total</span></div>
+      </div>
+    </div>
+    <div class="gp-pre-toolbar">
+      <input type="text" id="gp-pre-buscar" class="gp-pre-buscar" placeholder="🔎 Buscar por cliente, modelo o N°..." oninput="dashPreRender()"/>
+      <div class="gp-pre-filtros">
+        <button type="button" class="gp-pre-filtro activo" data-f="todas" onclick="dashPreFiltrar('todas')">Todas</button>
+        <button type="button" class="gp-pre-filtro" data-f="vencida" onclick="dashPreFiltrar('vencida')">🔴 Vencidas</button>
+        <button type="button" class="gp-pre-filtro" data-f="proxima" onclick="dashPreFiltrar('proxima')">🟡 Próximas</button>
+        <button type="button" class="gp-pre-filtro" data-f="plazo" onclick="dashPreFiltrar('plazo')">🟢 En plazo</button>
+      </div>
+      <div class="gp-pre-vista-switch">
+        <button type="button" class="gp-pre-vista-btn activo" data-v="tarjetas" onclick="dashPreSetVista('tarjetas')">🗂️ Tarjetas</button>
+        <button type="button" class="gp-pre-vista-btn" data-v="calendario" onclick="dashPreSetVista('calendario')">📅 Calendario</button>
+      </div>
+      <span id="gp-pre-fecha-chip" class="gp-pre-fecha-chip" style="display:none" onclick="dashPreFiltroFechaLimpiar()"></span>
+    </div>
+    <div class="gp-pre-grid" id="gp-pre-grid">Cargando…</div>
+    <div class="gp-pre-cal-mes" id="gp-pre-cal-mes" style="display:none"></div>
+  </div>
+
+  <div class="gp-pre-hist-card">
+    <div class="gp-pre-hist-header">
+      <b>📋 Entregadas / Canceladas</b>
+      <span class="hint" style="margin:0">Un click para deshacer — se procesa en segundo plano</span>
+    </div>
+    <div class="gp-pre-hist-list" id="gp-pre-hist-list">Cargando…</div>
+  </div>
+
+  <div id="dp-cal-popover"></div>
+
+  <div id="gp-pre-modal-overlay" class="gp-pre-modal-overlay" style="display:none" onclick="if(event.target===this) dashPreModalCerrar()">
+    <div class="gp-pre-modal">
+      <div class="gp-pre-modal-header">
+        <b id="gp-pre-modal-titulo">Editar preventa</b>
+        <button type="button" onclick="dashPreModalCerrar()">✕</button>
+      </div>
+      <div class="gp-pre-modal-body">
+        <label>Cliente</label>
+        <input type="text" id="gpm_cliente"/>
+        <label>Teléfono</label>
+        <input type="text" id="gpm_tel"/>
+        <label>Modelo</label>
+        <input type="text" id="gpm_modelo"/>
+        <label>Precio pactado ($)</label>
+        <input type="text" inputmode="numeric" id="gpm_precio" oninput="formatearInputMoneda(this)"/>
+        <label>Cobrado</label>
+        <div class="gp-pre-cobros">
+          <div><label style="margin-top:0">Efectivo</label><input type="text" inputmode="numeric" id="gpm_efec" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">Transf.</label><input type="text" inputmode="numeric" id="gpm_transf" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">Cuotas</label><input type="text" inputmode="numeric" id="gpm_cuotas" oninput="formatearInputMoneda(this)"/></div>
+          <div><label style="margin-top:0">USD</label><input type="number" id="gpm_usd" min="0"/></div>
+        </div>
+        <label>Fecha de entrega</label>
+        <input type="date" id="gpm_fecha"/>
+        <label>Observaciones</label>
+        <textarea id="gpm_obs"></textarea>
+
+        <div class="gp-pre-modal-motivo-box">
+          <label style="margin-top:0">Operador que corrige: <span class="req">*</span></label>
+          <select id="gpm_operador">
+            <option value="" disabled selected>Seleccionar...</option>
+            <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+          </select>
+          <label>Motivo de la corrección: <span class="req">*</span></label>
+          <textarea id="gpm_motivo" placeholder="Ej: el cliente pidió cambiar la fecha de entrega"></textarea>
+        </div>
+      </div>
+      <div class="gp-pre-modal-footer">
+        <button type="button" class="gp-pre-btn-cancelar" onclick="dashPreModalCerrar()">Cancelar</button>
+        <button type="button" class="gp-pre-btn-guardar" onclick="dashPreModalGuardar()">✅ Guardar cambios</button>
+      </div>
+    </div>
+  </div>
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
     <div>
@@ -110,8 +445,9 @@
     <div class="accion-btn" onclick="cargarVista('preventas')"><span class="ico">🟡</span>Registrar Preventa</div>
     <div class="accion-btn" onclick="cargarVista('entregar_preventa')"><span class="ico">📦</span>Entregar Preventa</div>
     <div class="accion-btn" onclick="cargarVista('reparaciones')"><span class="ico">🔧</span>Registrar Reparación</div>
+    <div class="accion-btn" onclick="cargarVista('entregar_reparacion')"><span class="ico">📦</span>Entregar Reparación</div>
     <div class="accion-btn" onclick="cargarVista('gastos')"><span class="ico">💸</span>Registrar Gasto</div>
-    <div class="accion-btn" onclick="cargarVista('reportes')"><span class="ico">📈</span>Ver Reportes</div>
+    <div class="accion-btn" onclick="cargarVista('reportes')"><span class="ico">💰</span>Ver Caja</div>
     <div class="accion-btn" onclick="cargarVista('precios')"><span class="ico">💰</span>Lista de Precios</div>
     <div class="accion-btn" onclick="cargarVista('toma_precios')"><span class="ico">🔄</span>Precios de Toma</div>
     <div class="accion-btn" onclick="cargarVista('calculadora_toma')"><span class="ico">🧮</span>Calculadora de Toma</div>
@@ -123,7 +459,610 @@
 </div>
 
 <script>
+  // ============================================================
+  //  PANEL PROTAGONISTA DE PREVENTAS (Dashboard) — tarjetas + filtros +
+  //  búsqueda + edición en un modal propio, sin salir de la pantalla.
+  //  Los datos vienen de obtenerPreventasEntregables() (webapp.gs, ya
+  //  usada por el panel de seguimiento de preventas.html — no duplica
+  //  lectura de la hoja). La edición carga la operación completa con
+  //  obtenerOperacionParaCorregirWeb() (la misma que usa "Mis
+  //  Operaciones" → Editar) y guarda con corregirPreventa()
+  //  (operadores.gs): motivo + operador quedan igual de auditados que
+  //  si se editara desde cualquier otro lado del ERP. Los campos que no
+  //  se muestran en este modal compacto (CUIL, domicilio, email, IMEI,
+  //  color, estado requerido, parte de pago) se mandan tal cual estaban
+  //  — el modal no los toca ni los borra.
+  // ============================================================
+  var _dashPreventas = [];
+  var _dashPreFiltro = "todas";
+  var _dashPreFiltroFecha = null; // yyyy-mm-dd elegido en el calendario mensual, o null (sin filtrar)
+  var _dashPreVista = "tarjetas";
+  var _dashPreEditando = null; // { numero, datos } de obtenerOperacionParaCorregirWeb
+
+  function dashPreCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        var hoy = new Date(); hoy.setHours(0,0,0,0);
+        _dashPreventas = (datos || []).filter(function(p){ return p.fechaHasta; }).map(function(p){
+          var partes = p.fechaHasta.split("-");
+          var limite = new Date(+partes[0], +partes[1]-1, +partes[2]);
+          var dias = Math.round((limite - hoy) / 86400000);
+          p.diasRestantes = dias;
+          p.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
+          return p;
+        });
+        dashPreRenderStats();
+        dashPreRender();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregables();
+  }
+
+  function dashPreRenderStats(){
+    var vencidas = _dashPreventas.filter(function(p){ return p.severidad === "vencida"; }).length;
+    var montoTotal = _dashPreventas.reduce(function(s,p){ return s + (Number(p.saldo) || 0); }, 0);
+    document.getElementById("gp-pre-cant").textContent = _dashPreventas.length;
+    document.getElementById("gp-pre-venc").textContent = vencidas;
+    document.getElementById("gp-pre-monto").textContent = fmtP(montoTotal);
+  }
+
+  function dashPreFiltrar(f){
+    _dashPreFiltro = f;
+    document.querySelectorAll("#view-dashboard .gp-pre-filtro").forEach(function(b){
+      b.classList.toggle("activo", b.dataset.f === f);
+    });
+    dashPreRender();
+  }
+
+  // ============================================================
+  //  VISTA "Tarjetas" / "Calendario" — el calendario reutiliza los mismos
+  //  datos ya cargados en _dashPreventas (sin pedir nada al backend).
+  //  Clickear un día del calendario filtra la vista de tarjetas a ese día
+  //  (mismo mecanismo que buscar/filtrar por severidad), con un chip para
+  //  sacar el filtro.
+  // ============================================================
+  function dashPreSetVista(v){
+    _dashPreVista = v;
+    document.querySelectorAll("#view-dashboard .gp-pre-vista-btn").forEach(function(b){
+      b.classList.toggle("activo", b.dataset.v === v);
+    });
+    document.getElementById("gp-pre-grid").style.display = (v === "tarjetas") ? "grid" : "none";
+    document.getElementById("gp-pre-cal-mes").style.display = (v === "calendario") ? "block" : "none";
+    if (v === "calendario") dashPreCalMesRender();
+  }
+
+  var _dashPreCalMesFecha = new Date();
+
+  function dashPreCalMesCambiar(delta){
+    _dashPreCalMesFecha.setMonth(_dashPreCalMesFecha.getMonth() + delta);
+    dashPreCalMesRender();
+  }
+
+  /** "$1,2M" / "$850K" en vez del número completo — para que el monto entre en el espacio chico de una celda del calendario y de las tarjetas de resumen del mes. */
+  function fmtPCompacto(n){
+    n = Number(n) || 0;
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1).replace(".0", "").replace(".", ",") + "M";
+    if (n >= 1000) return "$" + Math.round(n / 1000) + "K";
+    return fmtP(n);
+  }
+
+  /** Nombre corto para las tarjetitas del calendario — primer nombre + inicial del apellido, así entra en el espacio de la celda sin recortar feo. */
+  function _dashPreNombreCorto(cliente){
+    var partes = String(cliente || "").trim().split(/\s+/);
+    if (partes.length <= 1) return partes[0] || "";
+    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
+  }
+
+  function dashPreCalMesIrAHoy(){
+    _dashPreCalMesFecha = new Date();
+    dashPreCalMesRender();
+  }
+
+  function dashPreCalMesRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var DIAS_FINDE = [0, 6];
+    var anio = _dashPreCalMesFecha.getFullYear(), mes = _dashPreCalMesFecha.getMonth();
+    var porDia = {};
+    _dashPreventas.forEach(function(p){
+      if (!p.fechaHasta) return;
+      (porDia[p.fechaHasta] = porDia[p.fechaHasta] || []).push(p);
+    });
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var MAX_VISIBLES = 2;
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l, i){
+      return "<div class='gp-pre-cal-mes-lbl" + (DIAS_FINDE.indexOf(i) >= 0 ? " gp-pre-cal-mes-finde" : "") + "'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='gp-pre-cal-mes-dia gp-pre-cal-mes-vacio'></div>");
+    var totalMes = 0, montoMes = 0, proximaFecha = null, proximaCliente = null;
+
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var iso = anio + "-" + String(mes + 1).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+      var items = (porDia[iso] || []).slice().sort(function(a, b){ return (a.cliente||"").localeCompare(b.cliente||""); });
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
+      var vencidas = items.filter(function(x){ return x.severidad === "vencida"; }).length;
+      var montoDia = items.reduce(function(s, x){ return s + (Number(x.precio) || 0); }, 0);
+
+      // Señal de carga: mismas reglas de cupo que usa el popover de
+      // posponer fecha (_dpCalCapacidad) — así el color de la celda
+      // anticipa si ese día ya está topado, sin tener que abrir nada.
+      var claseCarga = "";
+      if (items.length > 0) {
+        var limites = _dpCalCapacidad(fechaDia);
+        if (items.length >= limites.maxEquipos || montoDia >= limites.maxMonto) claseCarga = " gp-pre-cal-mes-topado";
+        else if (items.length >= limites.maxEquipos - 1 || montoDia >= limites.maxMonto * .7) claseCarga = " gp-pre-cal-mes-cargado";
+        else claseCarga = " gp-pre-cal-mes-liviano";
+
+        totalMes += items.length;
+        montoMes += montoDia;
+        if (fechaDia >= hoy && !proximaFecha) { proximaFecha = fechaDia; proximaCliente = items[0].cliente; }
+      }
+
+      var clase = "gp-pre-cal-mes-dia" +
+        (esHoy ? " gp-pre-cal-mes-hoy" : "") +
+        (esFinde ? " gp-pre-cal-mes-finde" : "") +
+        (items.length ? " gp-pre-cal-mes-con" : "") +
+        claseCarga +
+        (vencidas ? " gp-pre-cal-mes-venc" : "");
+      var onclick = items.length ? " onclick=\"dashPreCalMesElegirDia('" + iso + "')\"" : "";
+
+      var visibles = items.slice(0, MAX_VISIBLES).map(function(x){
+        return "<div class='gp-pre-cal-mes-cliente'>" + _dashEsc(_dashPreNombreCorto(x.cliente)) + "</div>";
+      }).join("");
+      var resto = items.length > MAX_VISIBLES ? "<div class='gp-pre-cal-mes-mas'>+" + (items.length - MAX_VISIBLES) + " más</div>" : "";
+
+      celdas.push("<div class='" + clase + "'" + onclick + ">" +
+        "<div class='gp-pre-cal-mes-top'>" +
+          "<span class='gp-pre-cal-mes-num'>" + d + "</span>" +
+          (items.length ? "<span class='gp-pre-cal-mes-badge'>" + items.length + "</span>" : "") +
+        "</div>" +
+        (items.length ? "<div class='gp-pre-cal-mes-clientes'>" + visibles + resto + "</div>" : "") +
+        (montoDia > 0 ? "<div class='gp-pre-cal-mes-monto'>" + fmtPCompacto(montoDia) + "</div>" : "") +
+      "</div>");
+    }
+
+    var resumen =
+      "<div class='gp-pre-cal-mes-resumen'>" +
+        "<div class='gp-pre-cal-mes-resumen-item'><b>" + totalMes + "</b><span>Preventas del mes</span></div>" +
+        "<div class='gp-pre-cal-mes-resumen-item'><b>" + fmtPCompacto(montoMes) + "</b><span>Saldo del mes</span></div>" +
+        (proximaFecha ?
+          "<div class='gp-pre-cal-mes-resumen-item gp-pre-cal-mes-resumen-prox'><b>" + proximaFecha.getDate() + "/" + (proximaFecha.getMonth()+1) + "</b><span>Próxima — " + _dashEsc(_dashPreNombreCorto(proximaCliente)) + "</span></div>"
+          : "") +
+      "</div>";
+
+    document.getElementById("gp-pre-cal-mes").innerHTML =
+      "<div class='gp-pre-cal-mes-nav'>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(-1)' title='Mes anterior'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' onclick='dashPreCalMesCambiar(1)' title='Mes siguiente'>›</button>" +
+        "<button type='button' class='gp-pre-cal-mes-hoy-btn' onclick='dashPreCalMesIrAHoy()'>Hoy</button>" +
+      "</div>" +
+      resumen +
+      "<div class='gp-pre-cal-mes-grid'>" + celdas.join("") + "</div>" +
+      "<div class='gp-pre-cal-mes-leyenda'>" +
+        "<span><i style='background:rgba(74,222,128,.35)'></i>Con cupo</span>" +
+        "<span><i style='background:rgba(251,191,36,.5)'></i>Casi topado</span>" +
+        "<span><i style='background:rgba(255,138,128,.55)'></i>Topado</span>" +
+        "<span><i style='background:transparent;border:1.5px solid #FF8A80'></i>Con vencidas</span>" +
+        "<span><i style='background:transparent;border:1.5px solid #fff'></i>Hoy</span>" +
+      "</div>";
+  }
+
+  function dashPreCalMesElegirDia(iso){
+    _dashPreFiltroFecha = iso;
+    dashPreActualizarChipFecha();
+    dashPreSetVista("tarjetas");
+    dashPreRender();
+  }
+
+  function dashPreFiltroFechaLimpiar(){
+    _dashPreFiltroFecha = null;
+    dashPreActualizarChipFecha();
+    dashPreRender();
+  }
+
+  function dashPreActualizarChipFecha(){
+    var chip = document.getElementById("gp-pre-fecha-chip");
+    if (!_dashPreFiltroFecha) { chip.style.display = "none"; return; }
+    var partes = _dashPreFiltroFecha.split("-");
+    chip.style.display = "inline-flex";
+    chip.textContent = "📅 " + partes[2] + "/" + partes[1] + " ✕";
+  }
+
+  function _dashEsc(s){
+    return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function dashPreRender(){
+    var q = (document.getElementById("gp-pre-buscar").value || "").trim().toLowerCase();
+    var lista = _dashPreventas.filter(function(p){
+      if (_dashPreFiltro !== "todas" && p.severidad !== _dashPreFiltro) return false;
+      if (_dashPreFiltroFecha && p.fechaHasta !== _dashPreFiltroFecha) return false;
+      if (q) {
+        var enTexto = (p.cliente||"").toLowerCase().indexOf(q) >= 0 ||
+                      (p.modelo||"").toLowerCase().indexOf(q) >= 0 ||
+                      (p.nPre||"").toLowerCase().indexOf(q) >= 0;
+        if (!enTexto) return false;
+      }
+      return true;
+    }).sort(function(a,b){ return a.fechaHasta.localeCompare(b.fechaHasta); });
+
+    var grid = document.getElementById("gp-pre-grid");
+    if (lista.length === 0) {
+      grid.innerHTML = "<div class='hint'>" + (q || _dashPreFiltro !== "todas" ? "Nada para mostrar con ese filtro." : "No hay preventas pendientes de entrega.") + "</div>";
+      return;
+    }
+
+    var ETIQUETAS = { vencida: "Vencida", proxima: "Próxima", plazo: "En plazo" };
+    grid.innerHTML = lista.map(function(p){
+      var partes = p.fechaHasta.split("-");
+      var fechaLinda = partes[2] + "/" + partes[1];
+      var toma = p.partePagoEquipo ? "<div class='gp-pre-card-toma'>🔁 " + _dashEsc(p.partePagoEquipo) + "</div>" : "";
+      var veces = Number(p.vecesRepateada) || 0;
+      var marcaRepateada = veces <= 0 ? "" :
+        "<span class='gp-pre-card-repateada gp-pre-card-repateada-" + (veces >= 2 ? "2" : "1") + "' title='Se reprogramó " + veces + " vez(veces)'>🚩 x" + veces + "</span>";
+      return "<div class='gp-pre-card gp-pre-card-" + p.severidad + "' onclick=\"dashPreEditar('" + p.nPre + "')\">" +
+        "<div class='gp-pre-card-top'>" +
+          "<span class='gp-pre-card-fecha'>" + fechaLinda + " · " + ETIQUETAS[p.severidad] +
+            "<button type='button' class='gp-pre-card-fecha-btn' title='Cambiar fecha de entrega' onclick=\"event.stopPropagation(); dashPreCalAbrir(event, '" + p.nPre + "')\">📅</button>" +
+            marcaRepateada +
+          "</span>" +
+          "<span class='gp-pre-card-num'>" + p.nPre + "</span>" +
+        "</div>" +
+        "<div class='gp-pre-card-cliente'>" + _dashEsc(p.cliente) + "</div>" +
+        "<div class='gp-pre-card-modelo'>" + _dashEsc(p.modelo) + "</div>" +
+        (p.tel ? "<div class='gp-pre-card-tel' onclick='event.stopPropagation()'>📞 <a href='tel:" + _dashEsc(p.tel) + "'>" + _dashEsc(p.tel) + "</a></div>" : "") +
+        "<div class='gp-pre-card-money'><span>Saldo</span><b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b></div>" +
+        toma +
+        "<div class='gp-pre-card-entregar-fila'>" +
+          "<button type='button' class='gp-pre-card-entregar' onclick=\"event.stopPropagation(); dashPreEntregarInstantaneo('" + p.nPre + "')\">🚚 Entregar</button>" +
+          "<a href='javascript:void(0)' class='gp-pre-card-personalizar' onclick=\"event.stopPropagation(); dashPreEntregarRapido('" + p.nPre + "')\">Personalizar</a>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  // ============================================================
+  //  CAMBIO RÁPIDO DE "FECHA DE ENTREGA" — popover con mini-calendario
+  //  propio (no el <input type="date"> nativo: en Safari/iPad no siempre
+  //  abre el selector con showPicker()/focus(), y si el operador no ve
+  //  pasar nada termina tocando la tarjeta entera, que abre el modal
+  //  completo con su propio viaje al backend — eso era el "cartel de
+  //  carga de 2 segundos" que se reportó). Se abre al instante (ya se
+  //  tiene todo lo necesario en _dashPreventas, sin pedir nada al
+  //  backend) y no bloquea días sin cupo — los marca en rojo y los deja
+  //  elegir igual, con aviso (pedido explícito del dueño).
+  // ============================================================
+  var _dpCalNPre = null;
+  var _dpCalMes = new Date();
+
+  function _dpCalEsFinDeMes(fecha){
+    var diasEnMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0).getDate();
+    return (diasEnMes - fecha.getDate()) < 5;
+  }
+  function _dpCalCapacidad(fecha){
+    return _dpCalEsFinDeMes(fecha) ? { maxEquipos: 5, maxMonto: 5000000 } : { maxEquipos: 3, maxMonto: 2500000 };
+  }
+  function _dpCalISO(fecha){
+    return fecha.getFullYear() + "-" + String(fecha.getMonth() + 1).padStart(2, "0") + "-" + String(fecha.getDate()).padStart(2, "0");
+  }
+  /** Cupo ya usado por día a partir de _dashPreventas (ya cargado, sin pedir nada al backend) — excluye la preventa que se está reprogramando. */
+  function _dpCalUsosPorDia(excluirNPre){
+    var porDia = {};
+    (_dashPreventas || []).forEach(function(p){
+      if (p.nPre === excluirNPre || !p.fechaHasta) return;
+      if (!porDia[p.fechaHasta]) porDia[p.fechaHasta] = { cant: 0, monto: 0 };
+      porDia[p.fechaHasta].cant++;
+      porDia[p.fechaHasta].monto += Number(p.precio) || 0;
+    });
+    return porDia;
+  }
+  function _dpCalUsados(fecha, porDia){
+    if (!_dpCalEsFinDeMes(fecha)) return porDia[_dpCalISO(fecha)] || { cant: 0, monto: 0 };
+    var anio = fecha.getFullYear(), mes = fecha.getMonth();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var total = { cant: 0, monto: 0 };
+    for (var d = diasEnMes - 4; d <= diasEnMes; d++) {
+      var u = porDia[_dpCalISO(new Date(anio, mes, d))];
+      if (u) { total.cant += u.cant; total.monto += u.monto; }
+    }
+    return total;
+  }
+
+  function dashPreCalAbrir(ev, nPre){
+    var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (!item) return;
+    _dpCalNPre = nPre;
+    // Arranca siempre en el mes de HOY (pedido explícito: si estamos en
+    // septiembre, se abre en septiembre) — sin importar en qué mes esté
+    // la fecha actual de esta preventa puntual.
+    _dpCalMes = new Date();
+
+    var pop = document.getElementById("dp-cal-popover");
+    pop.style.display = "block";
+    var rect = ev.target.getBoundingClientRect();
+    var left = Math.min(rect.left, window.innerWidth - 246);
+    pop.style.left = Math.max(8, left) + "px";
+    pop.style.top = Math.min(rect.bottom + 6, window.innerHeight - 280) + "px";
+    dashPreCalRender();
+  }
+
+  function dashPreCalCerrar(){
+    document.getElementById("dp-cal-popover").style.display = "none";
+    _dpCalNPre = null;
+  }
+
+  document.addEventListener("click", function(ev){
+    var pop = document.getElementById("dp-cal-popover");
+    if (pop.style.display === "none") return;
+    var path = ev.composedPath ? ev.composedPath() : [ev.target];
+    if (path.indexOf(pop) === -1) dashPreCalCerrar();
+  });
+
+  function dashPreCalMes(delta){
+    _dpCalMes.setMonth(_dpCalMes.getMonth() + delta);
+    dashPreCalRender();
+  }
+
+  function dashPreCalRender(){
+    var MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    var item = _dashPreventas.filter(function(x){ return x.nPre === _dpCalNPre; })[0];
+    if (!item) { dashPreCalCerrar(); return; }
+    var anio = _dpCalMes.getFullYear(), mes = _dpCalMes.getMonth();
+    var porDia = _dpCalUsosPorDia(_dpCalNPre);
+    var montoEsta = Number(item.precio) || 0;
+    var feriados = (typeof _feriadosMap !== "undefined" && _feriadosMap) ? _feriadosMap : {};
+
+    var hoy = new Date();
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){
+      return "<div style='font-weight:700;color:#9AA5B1'>" + l + "</div>";
+    });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='dp-cal-dia dp-cal-otromes'>·</div>");
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var iso = _dpCalISO(fechaDia);
+      var diaSemana = fechaDia.getDay();
+      var descFeriado = feriados[iso];
+      var esNoHabil = diaSemana === 0 || diaSemana === 6 || !!descFeriado;
+      var esHoy = hoy.getFullYear() === anio && hoy.getMonth() === mes && hoy.getDate() === d;
+      var clases = "dp-cal-dia" + (esHoy ? " dp-cal-hoy" : "");
+      var attrs = "";
+      if (esNoHabil) {
+        clases += " dp-cal-nohabil";
+        attrs = " title='" + (descFeriado ? _dashEsc(descFeriado) : "Fin de semana") + " — no hábil'";
+      } else {
+        var limites = _dpCalCapacidad(fechaDia);
+        var usados = _dpCalUsados(fechaDia, porDia);
+        var entra = usados.cant < limites.maxEquipos && (usados.monto + montoEsta) <= limites.maxMonto;
+        clases += entra ? " dp-cal-ok" : " dp-cal-topado";
+        attrs = " onclick=\"dashPreCalElegir('" + iso + "', " + (entra ? "false" : "true") + ")\"" +
+          (entra ? "" : " title='Cupo de entregas completo para este día — igual se puede registrar'");
+      }
+      celdas.push("<div class='" + clases + "'" + attrs + ">" + d + "</div>");
+    }
+
+    document.getElementById("dp-cal-popover").innerHTML =
+      "<div class='dp-cal-nav'>" +
+        "<button type='button' onclick='dashPreCalMes(-1)'>‹</button>" +
+        "<b>" + MESES[mes] + " " + anio + "</b>" +
+        "<button type='button' onclick='dashPreCalMes(1)'>›</button>" +
+      "</div>" +
+      "<div class='dp-cal-grid'>" + celdas.join("") + "</div>" +
+      "<div class='dp-cal-leyenda'>🟩 Con cupo &nbsp; 🟥 Sin cupo (se puede igual) &nbsp; ▦ No hábil</div>";
+  }
+
+  /** Elegir un día del popover: UI optimista al toque + guardado liviano en segundo plano (reprogramarFechaPreventaRapido, operadores.gs — solo escribe la fecha y suma el contador de "repateada", no pasa por la corrección completa: por eso es instantáneo). */
+  function dashPreCalElegir(nuevaFechaISO, eraTopado){
+    var nPre = _dpCalNPre;
+    var item = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (!item) return;
+    dashPreCalCerrar();
+
+    item.fechaHasta = nuevaFechaISO;
+    var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    var partes = nuevaFechaISO.split("-");
+    var limite = new Date(+partes[0], +partes[1] - 1, +partes[2]);
+    var dias = Math.round((limite - hoy) / 86400000);
+    item.severidad = dias < 0 ? "vencida" : (dias <= 1 ? "proxima" : "plazo");
+    // Optimista también para la marca de "repateada": se suma YA, sin
+    // esperar la respuesta del servidor — así aparece al toque, no recién
+    // cuando termina de guardar en segundo plano.
+    item.vecesRepateada = (Number(item.vecesRepateada) || 0) + 1;
+    dashPreRenderStats();
+    dashPreRender();
+    if (eraTopado) mostrarToast("⚠️ Ese día ya tiene el cupo de entregas completo — se registró igual.", "info");
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        // Math.max en vez de pisar directo: si dos cambios de fecha se
+        // dispararon casi juntos, la respuesta del servidor que llega
+        // después no debe poder hacer bajar la marca que ya se sumó acá
+        // arriba de forma optimista.
+        item.vecesRepateada = Math.max(Number(item.vecesRepateada) || 0, (res && res.vecesRepateada) || 0);
+        dashPreRender();
+        if (res && res.cupoTopado && !eraTopado) mostrarToast("⚠️ Ese día quedó con el cupo completo tras guardar — se registró igual.", "info");
+        mostrarToast("✅ Fecha de " + nPre + " actualizada.", "exito");
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ No se pudo actualizar la fecha de " + nPre + " (" + e.message + ") — se restauró.", "error");
+        cargarDashboard();
+      })
+      .reprogramarFechaPreventaRapido(nPre, nuevaFechaISO, "Martin");
+  }
+
+  /** Entrega en un click, sin modal (entregaInstantanea(), index.html): pensado para el caso normal, saldo $0 u operador Martin. */
+  function dashPreEntregarInstantaneo(nPre){
+    var p = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (p && typeof entregaInstantanea === "function") entregaInstantanea(p);
+  }
+
+  /** "Personalizar": abre el modal de siempre (entregaRapidaAbrir(), index.html) para cobro parcial, otro operador, etc. */
+  function dashPreEntregarRapido(nPre){
+    var p = _dashPreventas.filter(function(x){ return x.nPre === nPre; })[0];
+    if (p && typeof entregaRapidaAbrir === "function") entregaRapidaAbrir(p);
+  }
+
+  function dashPreEditar(nPre){
+    llamarBackend("obtenerOperacionParaCorregirWeb", nPre, function(op){
+      if (!op || op.tipo !== "PREVENTA") { mostrarToast("❌ No se pudo abrir esa preventa para editar.", "error"); return; }
+      if (op.operacionOrigen) { mostrarToast("Esta preventa ya fue corregida antes — editala desde Mis Operaciones para ver la cadena completa.", "error"); return; }
+      _dashPreEditando = op;
+      var d = op.datos;
+      document.getElementById("gpm_cliente").value = d["Cliente"] || "";
+      document.getElementById("gpm_tel").value = d["Teléfono"] || "";
+      document.getElementById("gpm_modelo").value = d["Modelo Solicitado"] || "";
+      setInputMoneda(document.getElementById("gpm_precio"), d["Precio Venta Pactado"] || 0);
+      setInputMoneda(document.getElementById("gpm_efec"), d["Cobrado Efectivo"] || 0);
+      setInputMoneda(document.getElementById("gpm_transf"), d["Cobrado Transferencia"] || 0);
+      setInputMoneda(document.getElementById("gpm_cuotas"), d["Cobrado Cuotas"] || 0);
+      document.getElementById("gpm_usd").value = d["Cobrado USD"] || "";
+      document.getElementById("gpm_fecha").value = fechaParaInput(d["Fecha Prometida Hasta"]) || "";
+      document.getElementById("gpm_obs").value = d["Observaciones"] || "";
+      document.getElementById("gpm_operador").value = "";
+      document.getElementById("gpm_motivo").value = "";
+      document.getElementById("gp-pre-modal-titulo").textContent = "Editar " + nPre;
+      document.getElementById("gp-pre-modal-overlay").style.display = "flex";
+    });
+  }
+
+  function dashPreModalCerrar(){
+    document.getElementById("gp-pre-modal-overlay").style.display = "none";
+    _dashPreEditando = null;
+  }
+
+  function dashPreModalGuardar(){
+    if (!_dashPreEditando) return;
+    var operador = document.getElementById("gpm_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador que corrige.", "error"); return; }
+    var motivo = document.getElementById("gpm_motivo").value.trim();
+    if (!motivo) { mostrarToast("Ingresá el motivo de la corrección.", "error"); return; }
+
+    var cliente = document.getElementById("gpm_cliente").value.trim();
+    var modelo = document.getElementById("gpm_modelo").value.trim();
+    var precio = valorNumerico(document.getElementById("gpm_precio"));
+    if (!cliente) { mostrarToast("Ingresá el nombre del cliente.", "error"); return; }
+    if (!modelo) { mostrarToast("Ingresá el modelo.", "error"); return; }
+    if (precio <= 0) { mostrarToast("El precio pactado debe ser > 0.", "error"); return; }
+
+    var original = _dashPreEditando.datos;
+    var fechaEntrega = document.getElementById("gpm_fecha").value || fechaParaInput(original["Fecha Prometida Hasta"]) || "";
+
+    // Campos no editables en este modal compacto: se mandan tal cual
+    // estaban en la preventa original, para no perderlos ni pisarlos.
+    var datosNuevos = {
+      fecha: fechaParaInput(original["Fecha Preventa"]) || "",
+      modelo: modelo,
+      cliente: cliente,
+      cuil: original["CUIL Cliente"] || "",
+      tel: document.getElementById("gpm_tel").value.trim(),
+      domicilio: original["Domicilio Cliente"] || "",
+      email: original["Email Cliente"] || "",
+      imei: original["IMEI Solicitado"] || "",
+      color: original["Color Solicitado"] || "",
+      estadoRequerido: original["Estado Requerido"] || "",
+      partePagoEquipo: original["Equipo Parte De Pago"] || "",
+      partePagoValor: Number(original["Valor Parte De Pago"]) || 0,
+      vendedor: original["OPERADOR"] || "",
+      precioVenta: precio,
+      efec: valorNumerico(document.getElementById("gpm_efec")),
+      transf: valorNumerico(document.getElementById("gpm_transf")),
+      cuotas: valorNumerico(document.getElementById("gpm_cuotas")),
+      usd: parseFloat(document.getElementById("gpm_usd").value) || 0,
+      fechaDesde: fechaEntrega,
+      fechaHasta: fechaEntrega,
+      obs: document.getElementById("gpm_obs").value.trim(),
+      operador: original["OPERADOR"] || ""
+    };
+
+    confirmarAccion("¿Confirmás guardar los cambios de " + _dashPreEditando.numero + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("corregirPreventa", {
+        numeroOriginal: _dashPreEditando.numero,
+        datosNuevos: datosNuevos,
+        motivo: motivo,
+        operador: operador
+      }, function(msg){
+        mostrarToastOperacion(msg);
+        dashPreModalCerrar();
+        dashPreCargar();
+        cargarDashboard();
+      });
+    });
+  }
+
+  // ============================================================
+  //  LISTADO "Entregadas / Canceladas" — deshacer al toque, en segundo
+  //  plano (UI optimista: la fila se saca YA de la lista, el guardado
+  //  real viaja aparte con google.script.run directo, sin pasar por
+  //  llamarBackend() y su spinner bloqueante).
+  // ============================================================
+  var _dashPreHist = [];
+
+  function dashPreHistCargar(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _dashPreHist = datos || [];
+        dashPreHistRender();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPreventasEntregadasOCanceladas();
+  }
+
+  function dashPreHistRender(){
+    var cont = document.getElementById("gp-pre-hist-list");
+    if (_dashPreHist.length === 0) { cont.innerHTML = "<div class='hint'>No hay entregas ni cancelaciones recientes.</div>"; return; }
+    cont.innerHTML = _dashPreHist.map(function(p){
+      var esEntregada = p.estado === "entregada";
+      var pillTxt = esEntregada ? "✅ Entregada" : "❌ Cancelada";
+      var pillClase = esEntregada ? "gp-pre-hist-pill-entregada" : "gp-pre-hist-pill-cancelada";
+      var btnTxt = esEntregada ? "↩️ Deshacer entrega" : "↩️ Restaurar";
+      var telTxt = p.tel ? " · 📞 " + _dashEsc(p.tel) : "";
+      return "<div class='gp-pre-hist-row'>" +
+        "<span class='gp-pre-hist-pill " + pillClase + "'>" + pillTxt + "</span>" +
+        "<div class='gp-pre-hist-info'>" +
+          "<div class='gp-pre-hist-cliente'>" + _dashEsc(p.cliente) + "</div>" +
+          "<div class='gp-pre-hist-meta'>" + p.nPre + " · " + _dashEsc(p.modelo) + telTxt + "</div>" +
+        "</div>" +
+        "<button type='button' class='gp-pre-hist-btn' onclick=\"dashPreHistDeshacer('" + p.nPre + "', '" + p.estado + "', this)\">" + btnTxt + "</button>" +
+      "</div>";
+    }).join("");
+  }
+
+  /** Deshacer entrega o restaurar cancelación al toque: saca la fila YA (optimista), dispara el guardado real en segundo plano, y si algo falla la vuelve a poner y avisa. No pide operador ni motivo — mismo criterio que el resto de los botones de anular/deshacer instantáneos de esta sesión. */
+  function dashPreHistDeshacer(nPre, estado, btnEl){
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = "..."; }
+    var idx = _dashPreHist.findIndex(function(x){ return x.nPre === nPre; });
+    var item = idx >= 0 ? _dashPreHist[idx] : null;
+    if (idx >= 0) _dashPreHist.splice(idx, 1);
+    dashPreHistRender();
+    mostrarToast((estado === "entregada" ? "Deshaciendo entrega de " : "Restaurando ") + nPre + "...", "info");
+
+    var funcion = estado === "entregada" ? "deshacerEntregaPreventaRapido" : "restaurarPreventaCanceladaRapido";
+    google.script.run
+      .withSuccessHandler(function(msg){
+        mostrarToastOperacion(msg);
+        dashPreCargar();
+        dashPreHistCargar();
+        cargarDashboard();
+      })
+      .withFailureHandler(function(e){
+        mostrarToast("❌ " + e.message, "error");
+        if (item) { _dashPreHist.splice(idx, 0, item); dashPreHistRender(); }
+      })
+      [funcion](nPre, "Martin");
+  }
+
   function cargarDashboard(){
+    dashPreCargar();
+    dashPreHistCargar();
     google.script.run
       .withSuccessHandler(function(d){
         document.getElementById("dash-stock").textContent      = d.stockCantidad;

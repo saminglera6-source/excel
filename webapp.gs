@@ -9,12 +9,60 @@
 //  getFilaVacia, genCorrelativo, actualizarStock_) fue modificada.
 // ============================================================
 
-function doGet() {
+function doGet(e) {
+  // API JSON de solo lectura para el agente vendedor-ia
+  //   ?api=precios | toma | all | cuotas_coef
+  //   ?api=cuotas&monto=925000
+  //   ?api=toma_calc&modelo=iPhone+13+128+GB&fallas=pantalla,marco
+  var params = (e && e.parameter) || {};
+  if (params.api) return apiJson_(params.api, params.token || '', params);
+
   return HtmlService
     .createTemplateFromFile('index')
     .evaluate()
     .setTitle('GreatPhones ERP')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function apiTokenCrudo_() {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Config');
+  if (!sh) return '';
+  var data = sh.getDataRange().getValues();
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'API_TOKEN') return String(data[i][1]).trim();
+  }
+  return '';
+}
+
+function apiJson_(api, token, params) {
+  params = params || {};
+  var salida = function (obj) {
+    return ContentService.createTextOutput(JSON.stringify(obj))
+      .setMimeType(ContentService.MimeType.JSON);
+  };
+  var esperado = apiTokenCrudo_();
+  if (!esperado || String(token).trim() !== esperado) {
+    return salida({ ok: false, error: 'token invalido o API deshabilitada' });
+  }
+  try {
+    if (api === 'precios') return salida({ ok: true, data: obtenerListaPrecios() });
+    if (api === 'toma')    return salida({ ok: true, data: obtenerPreciosToma() });
+    if (api === 'all') return salida({ ok: true, data: {
+      precios: obtenerListaPrecios(),
+      toma: obtenerPreciosToma(),
+      cuotas_coef: obtenerConfiguracionCuotas()
+    }});
+    if (api === 'cuotas_coef') return salida({ ok: true, data: obtenerConfiguracionCuotas() });
+    if (api === 'cuotas') return salida({ ok: true, data: calcularCuotas(Number(params.monto) || 0) });
+    if (api === 'toma_calc') {
+      var fallas = {};
+      String(params.fallas || '').toLowerCase().split(/[,\s]+/).forEach(function (f) { if (f) fallas[f] = true; });
+      return salida({ ok: true, data: calcularValorToma({ modelo: String(params.modelo || ''), fallas: fallas }) });
+    }
+    return salida({ ok: false, error: 'api desconocida: ' + api });
+  } catch (err) {
+    return salida({ ok: false, error: String(err && err.message || err) });
+  }
 }
 
 /** Incluye un archivo HTML dentro de otro (usado por index.html para armar la SPA). */
@@ -89,12 +137,34 @@ function obtenerPreventasEntregables() {
   const cSP = getCol(preSheet, "Saldo Pendiente",       fE);
   const cES = getCol(preSheet, "Estado",                fE);
   const cNC = getCol(preSheet, "N° Compra Asociada",    fE);
-  let cEstReg = -1;
+  let cEstReg = -1, cTL = -1, cED = -1, cEH = -1, cPPE = -1, cPPV = -1;
   try { cEstReg = getCol(preSheet, "ESTADO_REGISTRO", fE); } catch (e) { /* columna opcional */ }
+  try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
+  // Fecha Prometida Desde/Hasta: usadas por el panel de seguimiento de
+  // preventas (calendario + lista) en preventas.html, para saber para
+  // cuándo se comprometió cada entrega — opcionales para no romper si la
+  // hoja todavía no las tiene (asegurarColumnaGenerica_ las crea recién al
+  // registrar la próxima preventa, ver procesarPreventa en Code.gs).
+  try { cED = getCol(preSheet, "Fecha Prometida Desde", fE); } catch (e) { /* opcional */ }
+  try { cEH = getCol(preSheet, "Fecha Prometida Hasta", fE); } catch (e) { /* opcional */ }
+  // Equipo/Valor Parte De Pago: si el cliente va a entregar un equipo como
+  // parte del pago de esta preventa, para que el panel de seguimiento lo
+  // muestre junto con el resto (mismo criterio de columna opcional).
+  try { cPPE = getCol(preSheet, "Equipo Parte De Pago", fE); } catch (e) { /* opcional */ }
+  try { cPPV = getCol(preSheet, "Valor Parte De Pago", fE); } catch (e) { /* opcional */ }
+  // "Veces Repateada": cuántas veces se reprogramó la fecha de entrega
+  // desde el botón 📅 del Dashboard (reprogramarFechaPreventaRapido,
+  // operadores.gs) — para marcar en la tarjeta si ya se corrió una vez o
+  // más. Opcional: la crea sola esa función la primera vez que hace falta.
+  let cVR = -1;
+  try { cVR = getCol(preSheet, "Veces Repateada", fE); } catch (e) { /* opcional */ }
 
   const lastRow = preSheet.getLastRow();
   const opciones = [];
   if (lastRow < fE + 1) return opciones;
+
+  const tz = Session.getScriptTimeZone();
+  const fISO = (celda) => (celda instanceof Date) ? Utilities.formatDate(celda, tz, "yyyy-MM-dd") : "";
 
   const datos = preSheet.getRange(fE + 1, 1, lastRow - fE, preSheet.getLastColumn()).getValues();
   datos.forEach(row => {
@@ -109,7 +179,13 @@ function obtenerPreventasEntregables() {
       cobrado: Number(row[cTC-1]) || 0,
       saldo:   Number(row[cSP-1]) || 0,
       nComp:   String(row[cNC-1] || ""),
-      estado:  estado
+      estado:  estado,
+      tel:     cTL > 0 ? String(row[cTL-1] || "") : "",
+      fechaDesde: cED > 0 ? fISO(row[cED-1]) : "",
+      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : "",
+      partePagoEquipo: cPPE > 0 ? String(row[cPPE-1] || "") : "",
+      partePagoValor:  cPPV > 0 ? (Number(row[cPPV-1]) || 0) : 0,
+      vecesRepateada:  cVR > 0 ? (Number(row[cVR-1]) || 0) : 0
     });
   });
   return opciones;
@@ -915,4 +991,60 @@ function calcularCuotas(monto) {
 // ============================================================
 function obtenerOperacionCompletaWeb(numero) {
   return obtenerOperacionCompleta_(numero);
+}
+
+/** Misma función, pero sin traer movimientos de Libro Diario ni líneas de Compras Accesorios (incluirExtras=false) — usada por el botón "✏️ Editar" de Mis Operaciones, que no necesita ese detalle y así evita escanear Libro Diario completo solo para abrir el formulario de corrección. */
+function obtenerOperacionParaCorregirWeb(numero) {
+  return obtenerOperacionCompleta_(numero, false);
+}
+
+/**
+ * Preventas ENTREGADAS o CANCELADAS — para el listado "Entregadas /
+ * Canceladas" del Dashboard (con botón de deshacer rápido). A diferencia
+ * de obtenerPreventasEntregables() (que trae justo lo opuesto: lo
+ * pendiente de entrega), esta trae Estado="✅ Entregado" o
+ * Estado.includes("Cancelado") — incluye las canceladas aunque
+ * ESTADO_REGISTRO ya diga ANULADO, porque son justo las que el botón
+ * "↩️ Restaurar" necesita poder ofrecer.
+ */
+function obtenerPreventasEntregadasOCanceladas() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const preSheet = ss.getSheetByName("Preventas");
+  if (!preSheet) return [];
+
+  const fE = 2;
+  const cNP = getCol(preSheet, "N° Preventa", fE);
+  const cCL = getCol(preSheet, "Cliente", fE);
+  const cMO = getCol(preSheet, "Modelo Solicitado", fE);
+  const cES = getCol(preSheet, "Estado", fE);
+  const cNV = getCol(preSheet, "N° Venta Asociada", fE);
+  let cTL = -1, cEH = -1;
+  try { cTL = getCol(preSheet, "Teléfono", fE); } catch (e) { /* opcional */ }
+  try { cEH = getCol(preSheet, "Fecha Prometida Hasta", fE); } catch (e) { /* opcional */ }
+
+  const lastRow = preSheet.getLastRow();
+  const opciones = [];
+  if (lastRow < fE + 1) return opciones;
+
+  const tz = Session.getScriptTimeZone();
+  const fISO = (celda) => (celda instanceof Date) ? Utilities.formatDate(celda, tz, "yyyy-MM-dd") : "";
+
+  const datos = preSheet.getRange(fE + 1, 1, lastRow - fE, preSheet.getLastColumn()).getValues();
+  datos.forEach(row => {
+    const estado = String(row[cES-1] || "");
+    const esEntregada = estado === "✅ Entregado";
+    const esCancelada = estado.includes("Cancelado");
+    if (!esEntregada && !esCancelada) return;
+    opciones.push({
+      nPre: String(row[cNP-1]),
+      cliente: String(row[cCL-1]),
+      modelo: String(row[cMO-1]),
+      estado: esEntregada ? "entregada" : "cancelada",
+      nVenta: String(row[cNV-1] || ""),
+      tel: cTL > 0 ? String(row[cTL-1] || "") : "",
+      fechaHasta: cEH > 0 ? fISO(row[cEH-1]) : ""
+    });
+  });
+  // Más recientes primero (por fila = orden de carga/actualización real).
+  return opciones.reverse();
 }

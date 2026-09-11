@@ -73,19 +73,20 @@ function _reiniciarOperacionesInterno_() {
     { nombre: "Venta Accesorios",                     filaEnc: 2 },
     { nombre: "Compras Accesorios",                     filaEnc: 2 },
     { nombre: "CAMBIO_MONEDA",                          filaEnc: 2 },
-    { nombre: "AJUSTES_CAJA",                           filaEnc: 2 }
+    { nombre: "AJUSTES_CAJA",                           filaEnc: 2 },
+    { nombre: "Devoluciones",                           filaEnc: 2 }
   ]);
   // CATALOGO_ACCESORIOS y CONFIG_REGALOS NO se vacían acá: son maestros de
   // datos/configuración (mismo criterio que "Lista de Precios" y "Toma de
   // Equipos", que tampoco se tocan en ningún bloque de reinicio).
 }
 
-/** Vacía Compras, Ventas, Preventas, Reparaciones, Gastos, Ventas Accesorios, Compras Accesorios, Cambio de Moneda y Ajustes de Caja. */
+/** Vacía Compras, Ventas, Preventas, Reparaciones, Gastos, Ventas Accesorios, Compras Accesorios, Cambio de Moneda, Ajustes de Caja y Devoluciones. */
 function reiniciarOperaciones() {
   const ui = SpreadsheetApp.getUi();
   const resp = ui.alert(
     "⚠️ ATENCIÓN",
-    "Esto vaciará Compras, Ventas, Preventas, Reparaciones, Gastos, Ventas Accesorios, Compras Accesorios, Cambio de Moneda y Ajustes de Caja.\n\n¿Desea continuar?",
+    "Esto vaciará Compras, Ventas, Preventas, Reparaciones, Gastos, Ventas Accesorios, Compras Accesorios, Cambio de Moneda, Ajustes de Caja y Devoluciones.\n\n¿Desea continuar?",
     ui.ButtonSet.YES_NO
   );
   if (resp !== ui.Button.YES) return;

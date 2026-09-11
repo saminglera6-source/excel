@@ -11,7 +11,7 @@
     <div class="fila4">
       <div>
         <label style="font-size:11px">Operador</label>
-        <select id="mo_operador" onchange="misOperacionesFiltrar()">
+        <select id="mo_operador" onchange="misOperacionesOnFiltroManual()">
           <option value="">Todos</option>
           <option value="Martin">Martin</option>
           <option value="Maca">Maca</option>
@@ -22,44 +22,60 @@
       </div>
       <div>
         <label style="font-size:11px">Tipo</label>
-        <select id="mo_tipo" onchange="misOperacionesFiltrar()">
+        <select id="mo_tipo" onchange="misOperacionesOnFiltroManual()">
           <option value="">Todos</option>
           <option value="Compra">Compra</option>
           <option value="Venta">Venta</option>
           <option value="Preventa">Preventa</option>
+          <option value="Preventa:ENTREGA">↳ Preventa — Entregas</option>
           <option value="Reparación">Reparación</option>
+          <option value="Reparación:ENTREGA">↳ Reparación — Entregas</option>
           <option value="Gasto">Gasto</option>
           <option value="Compra Accesorio">Compra Accesorio</option>
           <option value="Venta Accesorio">Venta Accesorio</option>
           <option value="Cambio Moneda">Cambio Moneda</option>
           <option value="Ajuste Caja">Ajuste Caja</option>
+          <option value="Devolución">Devolución</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:11px">Estado</label>
+        <select id="mo_estado" onchange="misOperacionesOnFiltroManual()">
+          <option value="">Todos</option>
         </select>
       </div>
       <div>
         <label style="font-size:11px">Fecha</label>
-        <input type="date" id="mo_fecha" onchange="misOperacionesFiltrar()"/>
+        <input type="date" id="mo_fecha" onchange="misOperacionesOnFiltroManual()"/>
       </div>
-      <div>
-        <label style="font-size:11px">Buscar N°</label>
-        <input type="text" id="mo_busqueda" placeholder="Ej: VTA-004" oninput="misOperacionesFiltrar()"/>
+    </div>
+    <div class="fila4" style="margin-top:8px">
+      <div style="grid-column:span 2">
+        <label style="font-size:11px">Buscar (N°, cliente o equipo)</label>
+        <input type="text" id="mo_busqueda" placeholder="Ej: VTA-004, Juan Pérez, iPhone 13" oninput="misOperacionesFiltrar()"/>
       </div>
     </div>
 
-    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Usá el filtro "Operador" para ver solo las de uno en particular. Cualquier operación puede anularse o corregirse en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+    <div style="margin-top:12px">
+      <button class="btn" style="margin:0;width:auto;padding:6px 12px;font-size:12px;background:#5D6D7E" onclick="misOperacionesLimpiarFiltros()">✖ Limpiar filtros</button>
+    </div>
 
-    <div style="overflow-x:auto;margin-top:14px">
+    <div class="hint" style="margin-top:10px">Por defecto se muestran las operaciones de todos los operadores. Las opciones "↳ Entregas" del filtro Tipo muestran las preventas ya entregadas / reparaciones ya retiradas (la entrega no es una operación nueva, así que no tiene su propio número — actualiza el estado de la Preventa/Reparación original). Cualquier operación puede anularse, corregirse o editarse rápido en cualquier momento, por cualquier operador — toda acción queda registrada en Auditoría, Backups y CORRECCIONES.</div>
+    <div id="mo_contador" style="font-size:11.5px;color:#667;margin-top:6px"></div>
+
+    <div style="overflow:auto;max-height:520px;margin-top:10px;border:1px solid #E1E5EA;border-radius:8px">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead>
-          <tr style="background:#F4F6F9;text-align:left">
-            <th style="padding:8px">Fecha</th>
-            <th style="padding:8px">Tipo</th>
-            <th style="padding:8px">Número</th>
-            <th style="padding:8px">Equipo</th>
-            <th style="padding:8px">Cliente</th>
-            <th style="padding:8px;text-align:right">Importe</th>
-            <th style="padding:8px">Operador</th>
-            <th style="padding:8px">Estado</th>
-            <th style="padding:8px">Acciones</th>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Fecha</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Tipo</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Número</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Equipo</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Cliente</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA;text-align:right">Importe</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Operador</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Estado</th>
+            <th style="position:sticky;top:0;background:#F4F6F9;padding:9px 8px;box-shadow:0 1px 0 #E1E5EA">Acciones</th>
           </tr>
         </thead>
         <tbody id="mo_tbody">
@@ -156,7 +172,7 @@
         if (!ok) return;
         llamarBackend("marcarEquipoReparado", { nOp: nOp, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
@@ -170,74 +186,174 @@
         if (!ok) return;
         llamarBackend("actualizarEstadoReparacionWeb", { numero: numero, estado: estadoNuevo, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
     });
   }
 
+  /** Entrada "fresca" a la vista (nav lateral) — ahí sí tiene sentido arrancar sin ningún filtro puesto. */
   function misOperacionesInit(){
     document.getElementById("mo_operador").value = "";
+    document.getElementById("mo_tipo").value = "";
+    document.getElementById("mo_estado").value = "";
+    document.getElementById("mo_fecha").value = "";
+    document.getElementById("mo_busqueda").value = "";
+    misOperacionesRecargar();
+  }
+
+  /** Recarga los datos y vuelve a filtrar/renderizar SIN tocar ningún filtro — la usa cualquier acción (anular/editar/cambiar estado/etc.) para refrescar la tabla en el lugar donde estaba el operador, en vez de mandarlo de vuelta a "Todos" como pasaba antes. */
+  function misOperacionesRecargar(){
     google.script.run
       .withSuccessHandler(function(datos){
         _misOperacionesData = datos || [];
+        _misOperacionesPoblarEstados();
         misOperacionesFiltrar();
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerOperacionesRecientes();
   }
 
+  /** Repuebla el filtro "Estado" con los estados que realmente existen en los datos cargados (no un listado fijo — cada tipo de operación tiene los suyos), preservando la selección actual si sigue siendo válida. */
+  function _misOperacionesPoblarEstados(){
+    var sel = document.getElementById("mo_estado");
+    var actual = sel.value;
+    var estados = {};
+    _misOperacionesData.forEach(function(op){ if (op.estado) estados[op.estado] = true; });
+    var lista = Object.keys(estados).sort();
+    sel.innerHTML = "<option value=''>Todos</option>" + lista.map(function(e){
+      return "<option value=\"" + e.replace(/"/g, "&quot;") + "\">" + e + "</option>";
+    }).join("");
+    if (lista.indexOf(actual) !== -1) sel.value = actual;
+  }
+
+  /** Único punto donde cambia un filtro manual (Operador/Tipo/Estado/Fecha) — hoy no hace falta nada más que re-filtrar, pero queda separado de misOperacionesFiltrar() por si en el futuro un filtro depende de otro. */
+  function misOperacionesOnFiltroManual(){
+    misOperacionesFiltrar();
+  }
+
+  function misOperacionesLimpiarFiltros(){
+    document.getElementById("mo_operador").value = "";
+    document.getElementById("mo_tipo").value = "";
+    document.getElementById("mo_estado").value = "";
+    document.getElementById("mo_fecha").value = "";
+    document.getElementById("mo_busqueda").value = "";
+    misOperacionesFiltrar();
+  }
+
+  /** Colores de estado agrupados por familia — reconocidos por substring así cubren los estados de todos los tipos sin tener que listarlos uno por uno. */
+  function _moColorEstado(estado){
+    var e = String(estado || "");
+    if (e.indexOf("Retirado") !== -1 || e.indexOf("Entregado") !== -1 || e.indexOf("Vendido") !== -1 || e === "PROCESADA") return "background:#E7F8EF;color:#0F9D58";
+    if (e.indexOf("Listo") !== -1) return "background:#E7F8EF;color:#0F9D58";
+    if (e.indexOf("Proceso") !== -1 || e.indexOf("con saldo") !== -1) return "background:#FEF3E2;color:#D97706";
+    if (e.indexOf("PARA REPARAR") !== -1 || e.indexOf("DIAGNOSTICAR") !== -1 || e.indexOf("Reparación") !== -1) return "background:#FDEAEA;color:#DC2626";
+    if (e.indexOf("Stock") !== -1 || e.indexOf("Reservado") !== -1) return "background:#EAF1FB;color:#1A5276";
+    return "background:#F0F1F6;color:#556";
+  }
+
   function misOperacionesFiltrar(){
-    var fOperador = document.getElementById("mo_operador").value;
-    var fTipo     = document.getElementById("mo_tipo").value;
-    var fFecha    = document.getElementById("mo_fecha").value;
-    var fBusqueda = document.getElementById("mo_busqueda").value.trim().toLowerCase();
+    var fOperador  = document.getElementById("mo_operador").value;
+    var fTipoRaw   = document.getElementById("mo_tipo").value;
+    var fEstado    = document.getElementById("mo_estado").value;
+    var fFecha     = document.getElementById("mo_fecha").value;
+    var fBusqueda  = document.getElementById("mo_busqueda").value.trim().toLowerCase();
+
+    // Las opciones "↳ ... — Entregas" del dropdown Tipo no son tipos reales
+    // de la planilla (la entrega actualiza el estado de la Preventa/
+    // Reparación existente, no crea una fila nueva): "Preventa:ENTREGA" se
+    // resuelve como tipo=Preventa + estado que contenga "Entregado";
+    // "Reparación:ENTREGA" como tipo=Reparación + estado que contenga
+    // "Retirado".
+    var fTipo = fTipoRaw, fSoloEntregas = null;
+    if (fTipoRaw.indexOf(":ENTREGA") !== -1) {
+      fTipo = fTipoRaw.split(":")[0];
+      fSoloEntregas = fTipo === "Preventa" ? "Entregado" : "Retirado";
+    }
 
     var filtradas = _misOperacionesData.filter(function(op){
       if (fOperador && op.operador !== fOperador) return false;
       if (fTipo && op.tipo !== fTipo) return false;
+      if (fSoloEntregas && String(op.estado || "").indexOf(fSoloEntregas) === -1) return false;
+      if (fEstado && op.estado !== fEstado) return false;
       if (fFecha && op.fechaISO !== fFecha) return false;
-      if (fBusqueda && op.numero.toLowerCase().indexOf(fBusqueda) === -1) return false;
+      if (fBusqueda) {
+        var enNumero  = op.numero.toLowerCase().indexOf(fBusqueda) !== -1;
+        var enCliente = String(op.cliente || "").toLowerCase().indexOf(fBusqueda) !== -1;
+        var enEquipo  = String(op.equipo  || "").toLowerCase().indexOf(fBusqueda) !== -1;
+        if (!enNumero && !enCliente && !enEquipo) return false;
+      }
       return true;
     });
+
+    document.getElementById("mo_contador").textContent =
+      "Mostrando " + filtradas.length + " de " + _misOperacionesData.length + " operaciones.";
 
     var tbody = document.getElementById("mo_tbody");
     if (filtradas.length === 0) {
       tbody.innerHTML = "<tr><td colspan='9' style='padding:14px;text-align:center;color:#889'>Sin operaciones para este filtro.</td></tr>";
       return;
     }
-    tbody.innerHTML = filtradas.map(function(op){
+    tbody.innerHTML = filtradas.map(function(op, i){
       var numeroCelda = op.numero;
       if (op.operacionOrigen) numeroCelda += "<br><small style='color:#889'>↳ corrige " + op.operacionOrigen + "</small>";
       if (op.operacionCorregida) numeroCelda += "<br><small style='color:#889'>↳ corregida en " + op.operacionCorregida + "</small>";
 
       var puedeCorregir = !op.operacionCorregida; // si ya fue corregida, la acción corresponde a la operación nueva
       var tieneHistorial = op.operacionOrigen || op.operacionCorregida;
+      // Un solo botón "✏️ Editar" = el mecanismo de siempre (antes llamado
+      // "Corregir"): abre el formulario completo de la operación, precargado,
+      // se puede tocar CUALQUIER campo (precio, cobros, modelo, lo que sea),
+      // pide operador + motivo, y al confirmar registra la corrección
+      // completa (CORRECCIONES + AUDITORIA + cadena origen→nueva), igual
+      // que siempre.
       var acciones =
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto' onclick=\"misOperacionesVer('" + op.numero + "')\">Ver</button> " +
+        (puedeCorregir
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#8E44AD' onclick=\"misOperacionesCorregir('" + op.numero + "')\" title=\"Editar cualquier dato de esta operación (precio, cobros, modelo, etc.) — pide motivo y queda registrado\">✏️ Editar</button> "
+          : "") +
         (op.tipo === "Reparación"
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> "
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirEtiquetaReparacion('" + op.numero + "')\">🖨 Etiqueta</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboReparacion('" + op.numero + "')\">🖨 Ticket</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('REPARACION','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\">📲</button> "
+          : "") +
+        (op.tipo === "Reparación" && String(op.estado || "").indexOf("Retirado") !== -1
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaReparacion('" + op.numero + "')\">🖨 Entrega</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('ENTREGA_REPARACION','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\">📲</button> "
+          : "") +
+        (op.tipo === "Venta"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboVenta('" + op.numero + "')\">🖨 Recibo</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('VENTA','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\">📲</button> "
+          : "") +
+        (op.tipo === "Preventa"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboPreventa('" + op.numero + "')\">🖨 Recibo</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('PREVENTA','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\">📲</button> "
+          : "") +
+        (op.tipo === "Preventa" && String(op.estado || "").indexOf("Entregado") !== -1
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboEntregaPreventa('" + op.numero + "')\">🖨 Entrega</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('ENTREGA_PREVENTA','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\">📲</button> "
+          : "") +
+        (op.tipo === "Compra"
+          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#117864' onclick=\"imprimirReciboCesion('" + op.numero + "')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📄 Cesión</button> " +
+            "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1E8449' onclick=\"firmarYEnviarPorWhatsapp('CESION','" + op.numero + "','" + (op.tel||'').replace(/'/g,'') + "')\" title=\"Solo corresponde si esta compra fue tipo COMPRA (no CONSIGNACIÓN)\">📲</button> "
           : "") +
         _botonesEstadoReparacion(op) +
         _botonReparacionInternaCompra(op) +
-        (puedeCorregir
-          ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#B7950B' onclick=\"misOperacionesCorregir('" + op.numero + "')\">Corregir</button> "
-          : "") +
         "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#922B21' onclick=\"misOperacionesAnular('" + op.numero + "')\">Anular</button> " +
         (tieneHistorial
           ? "<button class='btn' style='margin:0;padding:5px 9px;font-size:11px;width:auto;background:#1A5276' onclick=\"misOperacionesHistorial('" + op.numero + "')\">Historial</button>"
           : "");
 
-      return "<tr style='border-top:1px solid #E1E5EA'>" +
-        "<td style='padding:8px'>" + op.fecha + "</td>" +
+      return "<tr style='border-top:1px solid #E1E5EA;background:" + (i % 2 === 1 ? "#FAFBFC" : "#fff") + "'>" +
+        "<td style='padding:8px;white-space:nowrap'>" + op.fecha + "</td>" +
         "<td style='padding:8px'>" + op.tipo + "</td>" +
         "<td style='padding:8px'>" + numeroCelda + "</td>" +
         "<td style='padding:8px'>" + (op.equipo || "—") + "</td>" +
         "<td style='padding:8px'>" + (op.cliente || "—") + "</td>" +
-        "<td style='padding:8px;text-align:right'>" + fmtP(op.importe) + "</td>" +
+        "<td style='padding:8px;text-align:right;white-space:nowrap'>" + fmtP(op.importe) + "</td>" +
         "<td style='padding:8px'>" + (op.operador || "—") + "</td>" +
-        "<td style='padding:8px'>" + (op.estado || "—") + "</td>" +
+        "<td style='padding:8px'>" + (op.estado ? "<span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + _moColorEstado(op.estado) + "'>" + op.estado + "</span>" : "—") + "</td>" +
         "<td style='padding:8px;white-space:nowrap'>" + acciones + "</td>" +
       "</tr>";
     }).join("");
@@ -245,8 +361,7 @@
 
   // ---------- VER ----------
   function misOperacionesVer(numero){
-    google.script.run
-      .withSuccessHandler(function(op){
+    llamarBackend("obtenerOperacionCompletaWeb", numero, function(op){
         document.getElementById("ver-titulo").textContent = op.tipo + " — " + op.numero;
         var html = "<b>Operador:</b> " + (op.operador || "—") + "<br>" +
           "<b>Estado:</b> " + (op.estado || "—") + "<br>";
@@ -295,9 +410,7 @@
         }
         document.getElementById("ver-contenido").innerHTML = html;
         document.getElementById("ver-overlay").style.display = "flex";
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerOperacionCompletaWeb(numero);
+    });
   }
 
   // ---------- DIAGNÓSTICO: aceptar / rechazar (Partes 6-8) ----------
@@ -309,7 +422,7 @@
         llamarBackend("aceptarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
           document.getElementById("ver-overlay").style.display = "none";
-          misOperacionesInit();
+          misOperacionesRecargar();
           cargarDashboard();
         });
       });
@@ -324,60 +437,58 @@
         llamarBackend("rechazarPresupuestoDiagnostico", { numero: numero, operador: operador }, function(msg){
           mostrarToast(msg, "exito");
           document.getElementById("ver-overlay").style.display = "none";
-          misOperacionesInit();
+          misOperacionesRecargar();
         });
       });
     });
   }
 
   // ---------- ANULAR ----------
+  /**
+   * Pedido explícito: los botones de anular anulan de una, sin pedir
+   * operador ni motivo (antes pedía los dos con prompts + un confirm
+   * de por medio). El backend (procesarAnularOperacion, anulaciones.gs)
+   * solo exige que el motivo no llegue vacío — se manda un motivo fijo
+   * que dice justamente eso, para no perder el rastro de que fue una
+   * anulación rápida. Sigue quedando 100% trazable: mismo backup +
+   * registro en Auditoría/CORRECCIONES de siempre, nada de eso se tocó.
+   */
   function misOperacionesAnular(numero){
-    pedirOperador("¿Quién está anulando " + numero + "?").then(function(operador){
-      if (!operador) return;
-      pedirTexto("Motivo de la anulación de " + numero + ":").then(function(motivo){
-        if (motivo === null) return;
-        if (!motivo.trim()) { mostrarToast("Ingresá un motivo.", "error"); return; }
-        confirmarAccion("¿Confirmás anular " + numero + "?").then(function(ok){
-          if (!ok) return;
-          llamarBackend("anularOperacionPropia", { numero: numero, motivo: motivo, operador: operador }, function(msg){
-            mostrarToast(msg, "exito");
-            misOperacionesInit();
-            cargarDashboard();
-          });
-        });
-      });
+    llamarBackend("anularOperacionPropia", { numero: numero, motivo: "Anulación rápida (sin motivo especificado)", operador: "Martin" }, function(msg){
+      mostrarToast(msg, "exito");
+      misOperacionesRecargar();
+      cargarDashboard();
     });
   }
 
   // ---------- CORREGIR ----------
+  // Usa llamarBackend() (en vez de google.script.run directo) para que se
+  // vea el spinner mientras el backend arma la operación completa (lee la
+  // fila, escanea Libro Diario/accesorios) — antes no había ningún
+  // indicador y el clic se sentía "colgado" hasta que aparecía el
+  // formulario, dando la sensación de que tardaba mucho en abrir.
   function misOperacionesCorregir(numero){
-    google.script.run
-      .withSuccessHandler(function(op){
-        iniciarCorreccion(op);
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerOperacionCompletaWeb(numero);
+    llamarBackend("obtenerOperacionParaCorregirWeb", numero, function(op){
+      iniciarCorreccion(op);
+    });
   }
 
   // ---------- HISTORIAL (PASO 2/3) ----------
   function misOperacionesHistorial(numero){
-    google.script.run
-      .withSuccessHandler(function(h){
-        document.getElementById("ver-titulo").textContent = "🕓 Historial de " + numero;
-        var html =
-          "<b>Operación original:</b> " + h.original + "<br>" +
-          "<b>Operación actual:</b> " + h.actual + "<br>" +
-          "<b>Cantidad de correcciones:</b> " + h.cantidadCorrecciones + "<br>";
-        if (h.ultimaCorreccion) {
-          html += "<b>Última corrección:</b> " + h.ultimaCorreccion.fecha + " — " + h.ultimaCorreccion.operador +
-            (h.ultimaCorreccion.motivo ? " (" + h.ultimaCorreccion.motivo + ")" : "") + "<br>";
-        }
-        html += "<hr><b>Cadena completa:</b><br>" + h.cadena.join(" &rarr; ");
-        document.getElementById("ver-contenido").innerHTML = html;
-        document.getElementById("ver-overlay").style.display = "flex";
-      })
-      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
-      .obtenerHistorialCorreccion(numero);
+    llamarBackend("obtenerHistorialCorreccion", numero, function(h){
+      document.getElementById("ver-titulo").textContent = "🕓 Historial de " + numero;
+      var html =
+        "<b>Operación original:</b> " + h.original + "<br>" +
+        "<b>Operación actual:</b> " + h.actual + "<br>" +
+        "<b>Cantidad de correcciones:</b> " + h.cantidadCorrecciones + "<br>";
+      if (h.ultimaCorreccion) {
+        html += "<b>Última corrección:</b> " + h.ultimaCorreccion.fecha + " — " + h.ultimaCorreccion.operador +
+          (h.ultimaCorreccion.motivo ? " (" + h.ultimaCorreccion.motivo + ")" : "") + "<br>";
+      }
+      html += "<hr><b>Cadena completa:</b><br>" + h.cadena.join(" &rarr; ");
+      document.getElementById("ver-contenido").innerHTML = html;
+      document.getElementById("ver-overlay").style.display = "flex";
+    });
   }
 
   // ---------- PESTAÑAS: Mis Operaciones / Operaciones Anuladas (PASO 1) ----------

@@ -1,0 +1,947 @@
+<div id="view-finanzas" class="view">
+  <style>
+    /* Mismo lenguaje visual que Compras/Ventas/Dashboard (indigo/violeta) — escapado a #view-finanzas. */
+    #view-finanzas {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0;
+      --gpw-verde: #0F9D58; --gpw-verde-cl: #E7F8EF; --gpw-rojo: #DC2626; --gpw-rojo-cl: #FDEBEC;
+      --gpw-ambar: #D97706; --gpw-ambar-cl: #FEF3E2;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #view-finanzas .fin-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    #view-finanzas .fin-kpi { background: rgba(255,255,255,.09); border-radius: 14px; padding: 12px 14px; }
+    #view-finanzas .fin-kpi .lbl { font-size: 10.5px; color: rgba(255,255,255,.6); text-transform: uppercase; letter-spacing: .3px; }
+    #view-finanzas .fin-kpi .val { font-family: "Manrope", sans-serif; font-size: 19px; font-weight: 800; margin-top: 3px; }
+
+    #view-finanzas .fin-panel { background: #fff; border-radius: 20px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.06); }
+    #view-finanzas .fin-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    #view-finanzas .fin-panel-head b { font-family: "Manrope", sans-serif; font-size: 15.5px; color: var(--gpw-texto); }
+    #view-finanzas .fin-btn-agregar {
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; border: none;
+      border-radius: 100px; padding: 8px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    }
+    #view-finanzas .fin-btn-agregar:hover { filter: brightness(1.08); }
+
+    #view-finanzas .fin-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+    #view-finanzas .fin-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .3px; color: var(--gpw-texto-sua); padding: 6px 10px; border-bottom: 1.5px solid var(--gpw-borde); }
+    #view-finanzas .fin-tabla td { padding: 9px 10px; border-bottom: 1px solid var(--gpw-borde); vertical-align: middle; }
+    #view-finanzas .fin-tabla tr:last-child td { border-bottom: none; }
+    #view-finanzas .fin-tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
+    #view-finanzas .fin-cat-pill { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 100px; white-space: nowrap; }
+    #view-finanzas .fin-cat-servicios { background: #EEF0FF; color: var(--gpw-indigo); }
+    #view-finanzas .fin-cat-administrativos { background: var(--gpw-ambar-cl); color: var(--gpw-ambar); }
+    #view-finanzas .fin-cat-inversión { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
+    #view-finanzas .fin-fila-btns { display: flex; gap: 6px; justify-content: flex-end; }
+    #view-finanzas .fin-fila-btn { border: none; background: var(--gpw-fondo-campo); border-radius: 8px; padding: 5px 9px; font-size: 11px; cursor: pointer; color: var(--gpw-texto-sua); }
+    #view-finanzas .fin-fila-btn:hover { background: #E3E5F0; color: var(--gpw-texto); }
+    #view-finanzas .fin-fila-btn.baja:hover { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
+    #view-finanzas .fin-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 24px 10px; font-size: 13px; }
+
+    /* ---- Modal genérico de alta/edición (costos fijos / variables / mano de obra / pagos) ---- */
+    #view-finanzas .fin-modal-overlay {
+      position: fixed; inset: 0; background: rgba(15,15,35,.55); z-index: 200;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    #view-finanzas .fin-modal {
+      background: #fff; border-radius: 22px; width: 100%; max-width: 440px; max-height: 88vh;
+      display: flex; flex-direction: column; box-shadow: 0 30px 70px rgba(0,0,0,.35); overflow: hidden;
+    }
+    #view-finanzas .fin-modal-header {
+      display: flex; justify-content: space-between; align-items: center; padding: 16px 20px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; flex-shrink: 0;
+    }
+    #view-finanzas .fin-modal-header b { font-family: "Manrope", sans-serif; font-size: 15px; }
+    #view-finanzas .fin-modal-header button { background: rgba(255,255,255,.18); border: none; color: #fff; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 12px; }
+    #view-finanzas .fin-modal-body { padding: 16px 20px; overflow-y: auto; }
+    #view-finanzas .fin-modal-body label { display: block; font-size: 12px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 12px; margin-bottom: 4px; }
+    #view-finanzas .fin-modal-body label:first-child { margin-top: 0; }
+    #view-finanzas .fin-modal-body input, #view-finanzas .fin-modal-body select, #view-finanzas .fin-modal-body textarea {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 11px; border: 1.5px solid var(--gpw-borde);
+      background: var(--gpw-fondo-campo); font-size: 14px; font-family: inherit; color: var(--gpw-texto);
+    }
+    #view-finanzas .fin-modal-body input:focus, #view-finanzas .fin-modal-body select:focus { outline: none; border-color: var(--gpw-indigo); background: #fff; }
+    #view-finanzas .fin-fila2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    #view-finanzas .fin-modal-footer { display: flex; gap: 10px; padding: 14px 20px; border-top: 1px solid #EEEEF4; flex-shrink: 0; }
+    #view-finanzas .fin-modal-footer button { flex: 1; padding: 12px; border-radius: 100px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
+    #view-finanzas .fin-btn-cancelar { background: var(--gpw-fondo-campo); color: #4B4D63; }
+    #view-finanzas .fin-btn-guardar { background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); color: #fff; }
+
+    /* ---- Agenda de Pagos ---- */
+    #view-finanzas .fp-dia-grupo { margin-bottom: 14px; }
+    #view-finanzas .fp-dia-titulo {
+      display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--gpw-texto-sua);
+      text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px; padding-left: 2px;
+    }
+    #view-finanzas .fp-dia-titulo.hoy { color: var(--gpw-indigo); }
+    #view-finanzas .fp-dia-num {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--gpw-fondo-campo); color: var(--gpw-texto);
+      display: inline-flex; align-items: center; justify-content: center; font-size: 11px;
+    }
+    #view-finanzas .fp-dia-titulo.hoy .fp-dia-num { background: var(--gpw-indigo); color: #fff; }
+    #view-finanzas .fp-item {
+      display: flex; align-items: center; gap: 12px; background: #fff; border: 1.5px solid var(--gpw-borde);
+      border-radius: 14px; padding: 11px 14px; margin-bottom: 7px;
+    }
+    #view-finanzas .fp-item.pagado { background: var(--gpw-verde-cl); border-color: transparent; }
+    #view-finanzas .fp-item.vencido { border-color: var(--gpw-rojo); }
+    #view-finanzas .fp-check {
+      width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--gpw-borde); background: #fff;
+      cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: transparent;
+    }
+    #view-finanzas .fp-item.pagado .fp-check { background: var(--gpw-verde); border-color: var(--gpw-verde); color: #fff; }
+    #view-finanzas .fp-item-info { flex: 1; min-width: 0; }
+    #view-finanzas .fp-item-concepto { font-weight: 700; font-size: 13.5px; color: var(--gpw-texto); }
+    #view-finanzas .fp-item-sub { font-size: 11.5px; color: var(--gpw-texto-sua); margin-top: 1px; }
+    #view-finanzas .fp-item-monto { font-weight: 800; font-size: 14px; color: var(--gpw-texto); white-space: nowrap; }
+    #view-finanzas .fp-item.pagado .fp-item-monto { color: var(--gpw-verde); }
+    #view-finanzas .fp-item-btns { display: flex; gap: 4px; flex-shrink: 0; }
+    #view-finanzas .fp-vacio { text-align: center; color: var(--gpw-texto-sua); padding: 30px 10px; font-size: 13px; }
+
+    /* ---- Calendario de Pagos ---- */
+    #view-finanzas .fp-vista-switch { display: flex; gap: 4px; background: var(--gpw-fondo-campo); border-radius: 100px; padding: 3px; }
+    #view-finanzas .fp-vista-btn { border: none; background: transparent; color: var(--gpw-texto-sua); border-radius: 100px; padding: 6px 13px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    #view-finanzas .fp-vista-btn.activo { background: #fff; color: var(--gpw-indigo); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    #view-finanzas .fp-cal-nav { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 12px; }
+    #view-finanzas .fp-cal-nav button { background: var(--gpw-fondo-campo); border: none; color: var(--gpw-texto); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; }
+    #view-finanzas .fp-cal-nav button:hover { background: #E3E5F0; }
+    #view-finanzas .fp-cal-nav b { font-family: "Manrope", sans-serif; font-weight: 800; font-size: 15.5px; min-width: 150px; text-align: center; }
+    #view-finanzas .fp-cal-nav .fp-cal-hoy-btn { width: auto; border-radius: 100px; padding: 0 12px; font-size: 11px; font-weight: 700; }
+    #view-finanzas .fp-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    #view-finanzas .fp-cal-lbl { text-align: center; font-size: 10.5px; font-weight: 700; color: var(--gpw-texto-sua); padding-bottom: 4px; }
+    #view-finanzas .fp-cal-dia {
+      position: relative; min-height: 92px; background: var(--gpw-fondo-campo); border-radius: 12px;
+      display: flex; flex-direction: column; padding: 6px 6px; border: 1.5px solid transparent; cursor: default;
+    }
+    #view-finanzas .fp-cal-dia.fp-cal-vacio { background: transparent; visibility: hidden; }
+    #view-finanzas .fp-cal-dia.fp-cal-finde { background: #EFF0F6; }
+    #view-finanzas .fp-cal-dia.fp-cal-hoy { border-color: var(--gpw-indigo); }
+    #view-finanzas .fp-cal-dia.fp-cal-con { cursor: pointer; }
+    #view-finanzas .fp-cal-dia.fp-cal-con:hover { background: #E3E5F0; }
+    #view-finanzas .fp-cal-dia.fp-cal-venc { box-shadow: inset 0 0 0 1.5px var(--gpw-rojo); }
+    #view-finanzas .fp-cal-num { font-size: 11.5px; font-weight: 700; color: var(--gpw-texto); }
+    #view-finanzas .fp-cal-dia.fp-cal-hoy .fp-cal-num { background: var(--gpw-indigo); color: #fff; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    #view-finanzas .fp-cal-badges { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+    #view-finanzas .fp-cal-totales { margin-top: auto; padding-top: 3px; display: flex; flex-direction: column; gap: 1px; }
+    #view-finanzas .fp-cal-total-pago { font-size: 9.5px; font-weight: 800; color: var(--gpw-rojo); }
+    #view-finanzas .fp-cal-total-pago.pagado { color: var(--gpw-verde); }
+    #view-finanzas .fp-cal-total-pre { font-size: 9.5px; font-weight: 800; color: var(--gpw-ambar); }
+    #view-finanzas .fp-cal-badge { font-size: 9px; font-weight: 700; border-radius: 6px; padding: 1.5px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #view-finanzas .fp-cal-badge-pago { background: var(--gpw-rojo-cl); color: var(--gpw-rojo); }
+    #view-finanzas .fp-cal-badge-pago.pagado { background: var(--gpw-verde-cl); color: var(--gpw-verde); }
+    #view-finanzas .fp-cal-badge-pre { background: var(--gpw-ambar-cl); color: var(--gpw-ambar); }
+    #view-finanzas .fp-cal-leyenda { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 14px; font-size: 11px; color: var(--gpw-texto-sua); }
+    #view-finanzas .fp-cal-leyenda span { display: inline-flex; align-items: center; gap: 5px; }
+    #view-finanzas .fp-cal-leyenda i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+    #view-finanzas .fp-dia-modal-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--gpw-borde); font-size: 13px; }
+    #view-finanzas .fp-dia-modal-item:last-child { border-bottom: none; }
+    #view-finanzas .fp-dia-modal-tipo { font-size: 9.5px; font-weight: 800; padding: 2px 8px; border-radius: 100px; margin-right: 6px; }
+  </style>
+
+  <div class="fin-panel" id="fin-panel-agenda">
+    <div class="fin-panel-head">
+      <b>📅 Agenda de Pagos — <span id="fp_titulo_mes">…</span></b>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="fp-vista-switch">
+          <button type="button" class="fp-vista-btn activo" data-v="lista" onclick="fpSetVista('lista')">📋 Lista</button>
+          <button type="button" class="fp-vista-btn" data-v="calendario" onclick="fpSetVista('calendario')">🗓️ Calendario</button>
+        </div>
+        <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(-1)">◀</button>
+        <button type="button" class="fin-fila-btn" onclick="fpIrHoy()">Hoy</button>
+        <button type="button" class="fin-fila-btn" onclick="fpCambiarMes(1)">▶</button>
+        <button type="button" class="fin-btn-agregar" onclick="fpAbrirModal()">➕ Agregar pago</button>
+      </div>
+    </div>
+    <div class="hint" style="margin-bottom:12px">Todo lo que hay que pagar este mes, ordenado por día. Se puede agregar, editar, pausar o eliminar cualquier pago con total libertad. En "Calendario" también se ven las preventas a entregar cada día (con su saldo), para tener a la vista todo el movimiento de plata del día — lo que se paga y lo que se cobra.</div>
+
+    <div class="fin-kpis" id="fp_kpis" style="margin-bottom:16px">
+      <div class="fin-kpi" style="background:var(--gpw-fondo-campo)"><div class="lbl" style="color:var(--gpw-texto-sua)">Cargando…</div></div>
+    </div>
+
+    <div id="fp_lista"></div>
+
+    <div id="fp_calendario" style="display:none">
+      <div class="fp-cal-nav">
+        <button type="button" onclick="fpCambiarMes(-1)">‹</button>
+        <b id="fp_cal_titulo">…</b>
+        <button type="button" onclick="fpCambiarMes(1)">›</button>
+        <button type="button" class="fp-cal-hoy-btn" onclick="fpIrHoy()">Hoy</button>
+      </div>
+      <div class="fp-cal-grid" id="fp_cal_grid"></div>
+      <div class="fp-cal-leyenda">
+        <span><i style="background:var(--gpw-rojo-cl)"></i>Pago pendiente</span>
+        <span><i style="background:var(--gpw-verde-cl)"></i>Pago ya realizado</span>
+        <span><i style="background:var(--gpw-ambar-cl)"></i>Preventa a entregar (saldo a cobrar)</span>
+        <span><i style="background:transparent;border:1.5px solid var(--gpw-indigo)"></i>Hoy</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: detalle de un día del calendario ============ -->
+  <div id="fin-modal-dia" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fp_dia_modal_titulo">Día</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body" id="fp_dia_modal_body"></div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>🏢 Costos Fijos Mensuales</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoFijo()">➕ Agregar</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">Servicios, administrativos e inversión en bienes de capital.</div>
+    <table class="fin-tabla">
+      <thead><tr><th>Categoría</th><th>Concepto</th><th class="num">Monto</th><th></th></tr></thead>
+      <tbody id="fin_tbody_costos_fijos"></tbody>
+    </table>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>📦 Costo Variable por Equipo</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalCostoVariable()">➕ Agregar</button>
+    </div>
+    <div class="hint" style="margin-bottom:10px">Lo que se suma por unidad vendida: accesorios de regalo, logística, etc.</div>
+    <table class="fin-tabla">
+      <thead><tr><th>Concepto</th><th>Descripción</th><th class="num">Costo unitario</th><th></th></tr></thead>
+      <tbody id="fin_tbody_costo_variable"></tbody>
+    </table>
+  </div>
+
+  <div class="fin-panel">
+    <div class="fin-panel-head">
+      <b>👥 Mano de Obra</b>
+      <button type="button" class="fin-btn-agregar" onclick="finAbrirModalManoDeObra()">➕ Agregar</button>
+    </div>
+    <table class="fin-tabla">
+      <thead><tr><th>Rol / Persona</th><th class="num">Cant. × Turnos</th><th class="num">Salario</th><th class="num">Costo total</th><th></th></tr></thead>
+      <tbody id="fin_tbody_mano_obra"></tbody>
+    </table>
+  </div>
+
+  <!-- ============ Modal: Pago (Agenda) ============ -->
+  <div id="fin-modal-pago" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fp_titulo">Nuevo pago</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Concepto</label>
+        <input type="text" id="fp_concepto" placeholder="Ej: Alquiler, Internet, Cuota proveedor..."/>
+        <label>Categoría</label>
+        <select id="fp_categoria">
+          <option value="Alquiler">Alquiler</option>
+          <option value="Servicios">Servicios</option>
+          <option value="Impuestos">Impuestos</option>
+          <option value="Proveedores">Proveedores</option>
+          <option value="Sueldos">Sueldos</option>
+          <option value="Préstamo / Cuota">Préstamo / Cuota</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <div class="fin-fila2">
+          <div><label>Monto</label><input type="text" inputmode="numeric" id="fp_monto" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fp_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Frecuencia</label>
+        <select id="fp_frecuencia" onchange="fpToggleFrecuencia()">
+          <option value="Mensual">Mensual (se repite todos los meses)</option>
+          <option value="Único">Único (una sola vez)</option>
+        </select>
+        <div id="fp_bloque_mensual">
+          <label>Día de pago (1 a 31)</label>
+          <input type="number" id="fp_dia_pago" min="1" max="31" value="10"/>
+        </div>
+        <div id="fp_bloque_unico" style="display:none">
+          <label>Fecha de pago</label>
+          <input type="date" id="fp_fecha_unico"/>
+        </div>
+        <label>Notas (opcional)</label>
+        <input type="text" id="fp_notas" placeholder="Datos de la cuenta, referencia, etc."/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="fpGuardarPago()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Costo Fijo ============ -->
+  <div id="fin-modal-costo-fijo" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b id="fin_cf_titulo">Nuevo costo fijo</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Categoría</label>
+        <select id="fcf_categoria" onchange="finToggleCamposInversion()">
+          <option value="Servicios">Servicios</option>
+          <option value="Administrativos">Administrativos</option>
+          <option value="Inversión">Inversión (bien de capital amortizable)</option>
+        </select>
+        <label>Concepto</label>
+        <input type="text" id="fcf_concepto" placeholder="Ej: Alquiler, Luz, Contador..."/>
+        <label>Descripción (opcional)</label>
+        <input type="text" id="fcf_descripcion"/>
+        <div class="fin-fila2">
+          <div><label>Monto</label><input type="text" inputmode="numeric" id="fcf_monto" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fcf_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <div id="fcf_bloque_inversion" style="display:none">
+          <div class="fin-fila2">
+            <div><label>Cantidad</label><input type="number" id="fcf_cantidad" min="1" value="1"/></div>
+            <div><label>Vida útil (años)</label><input type="number" id="fcf_vida_util" min="1" value="5"/></div>
+          </div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fcf_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarCostoFijo()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Costo Variable ============ -->
+  <div id="fin-modal-costo-variable" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>Costo variable por unidad</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Concepto</label>
+        <input type="text" id="fcv_concepto" placeholder="Ej: Funda de regalo, Cable, Viáticos..."/>
+        <label>Descripción (opcional)</label>
+        <input type="text" id="fcv_descripcion"/>
+        <div class="fin-fila2">
+          <div><label>Costo unitario</label><input type="text" inputmode="numeric" id="fcv_costo" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fcv_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fcv_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarCostoVariable()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Modal: Mano de Obra ============ -->
+  <div id="fin-modal-mano-obra" class="fin-modal-overlay" onclick="if(event.target===this) finCerrarModales()">
+    <div class="fin-modal">
+      <div class="fin-modal-header"><b>Mano de obra</b><button type="button" onclick="finCerrarModales()">✕</button></div>
+      <div class="fin-modal-body">
+        <label>Rol / Persona</label>
+        <input type="text" id="fmo_rol" placeholder="Ej: Vendedor 1, Técnico, Martin..."/>
+        <div class="fin-fila2">
+          <div><label>Cantidad</label><input type="number" id="fmo_cantidad" min="1" value="1"/></div>
+          <div><label>Turnos</label><input type="number" id="fmo_turnos" min="1" value="1"/></div>
+        </div>
+        <div class="fin-fila2">
+          <div><label>Salario</label><input type="text" inputmode="numeric" id="fmo_salario" placeholder="$0" oninput="formatearInputMoneda(this)"/></div>
+          <div><label>Moneda</label><select id="fmo_moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        </div>
+        <label>Vigente desde</label>
+        <input type="date" id="fmo_vigente_desde"/>
+      </div>
+      <div class="fin-modal-footer">
+        <button type="button" class="fin-btn-cancelar" onclick="finCerrarModales()">Cancelar</button>
+        <button type="button" class="fin-btn-guardar" onclick="finGuardarManoDeObra()">✅ Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  FINANZAS — Costos, Deudas y Cosas a Pagar. No hay nada de
+  //  ventas/rentabilidad acá — es puramente para organizar lo que el
+  //  local tiene que pagar: la Agenda de Pagos día a día, y los 3
+  //  paneles de costos (Fijos, Variable por equipo, Mano de Obra),
+  //  todo editable/agregable/eliminable con total libertad.
+  // ============================================================
+
+  var _finIdEnEdicionCF = null; // id del costo fijo en edición (null = alta nueva)
+  var _finIdEnEdicionCV = null;
+  var _finIdEnEdicionMO = null;
+  var _finCostosFijosCache = [];
+  var _finCostoVariableCache = [];
+  var _finManoObraCache = [];
+
+  const FIN_MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  function finInit(){
+    finCargarCostosFijos();
+    finCargarCostoVariable();
+    finCargarManoDeObra();
+    fpInit();
+  }
+
+  function _finEsc(s){ return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  // ------------------------------------------------------------
+  //  COSTOS FIJOS
+  // ------------------------------------------------------------
+  function finCargarCostosFijos(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finCostosFijosCache = (datos || []).filter(function(c){ return !c["Vigente Hasta"]; });
+        finRenderCostosFijos();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCostosFijos();
+  }
+
+  function finRenderCostosFijos(){
+    var tbody = document.getElementById("fin_tbody_costos_fijos");
+    if (_finCostosFijosCache.length === 0) { tbody.innerHTML = "<tr><td colspan='4' class='fin-vacio'>Todavía no cargaste ningún costo fijo.</td></tr>"; return; }
+    tbody.innerHTML = _finCostosFijosCache.map(function(c){
+      var claseCat = "fin-cat-" + c["Categoría"].toLowerCase().replace(/ó/g,"o");
+      var detalleInversion = c["Categoría"] === "Inversión" ? " <span class='hint'>(x" + c["Cantidad"] + ", " + c["Vida Útil (años)"] + " años)</span>" : "";
+      return "<tr>" +
+        "<td><span class='fin-cat-pill " + claseCat + "'>" + c["Categoría"] + "</span></td>" +
+        "<td>" + _finEsc(c["Concepto"]) + detalleInversion + (c["Descripción"] ? "<div class='hint'>" + _finEsc(c["Descripción"]) + "</div>" : "") + "</td>" +
+        "<td class='num'>" + (c["Moneda"] === "USD" ? "u$s " : "$") + Number(c["Monto"]).toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarCostoFijo(" + c["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaCostoFijo(" + c["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function finToggleCamposInversion(){
+    document.getElementById("fcf_bloque_inversion").style.display = (document.getElementById("fcf_categoria").value === "Inversión") ? "block" : "none";
+  }
+
+  function finAbrirModalCostoFijo(){
+    _finIdEnEdicionCF = null;
+    document.getElementById("fin_cf_titulo").textContent = "Nuevo costo fijo";
+    document.getElementById("fcf_categoria").value = "Servicios";
+    document.getElementById("fcf_concepto").value = "";
+    document.getElementById("fcf_descripcion").value = "";
+    document.getElementById("fcf_monto").value = "";
+    document.getElementById("fcf_moneda").value = "ARS";
+    document.getElementById("fcf_cantidad").value = 1;
+    document.getElementById("fcf_vida_util").value = 5;
+    document.getElementById("fcf_vigente_desde").value = new Date().toISOString().split("T")[0];
+    finToggleCamposInversion();
+    document.getElementById("fin-modal-costo-fijo").style.display = "flex";
+  }
+
+  function finEditarCostoFijo(id){
+    var c = _finCostosFijosCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!c) return;
+    _finIdEnEdicionCF = id;
+    document.getElementById("fin_cf_titulo").textContent = "Editar costo fijo";
+    document.getElementById("fcf_categoria").value = c["Categoría"];
+    document.getElementById("fcf_concepto").value = c["Concepto"];
+    document.getElementById("fcf_descripcion").value = c["Descripción"] || "";
+    setInputMoneda(document.getElementById("fcf_monto"), c["Monto"]);
+    document.getElementById("fcf_moneda").value = c["Moneda"] || "ARS";
+    document.getElementById("fcf_cantidad").value = c["Cantidad"] || 1;
+    document.getElementById("fcf_vida_util").value = c["Vida Útil (años)"] || 5;
+    document.getElementById("fcf_vigente_desde").value = new Date().toISOString().split("T")[0];
+    finToggleCamposInversion();
+    document.getElementById("fin-modal-costo-fijo").style.display = "flex";
+  }
+
+  function finGuardarCostoFijo(){
+    var d = {
+      idAnterior: _finIdEnEdicionCF,
+      categoria: document.getElementById("fcf_categoria").value,
+      concepto: document.getElementById("fcf_concepto").value.trim(),
+      descripcion: document.getElementById("fcf_descripcion").value.trim(),
+      monto: valorNumerico(document.getElementById("fcf_monto")),
+      moneda: document.getElementById("fcf_moneda").value,
+      cantidad: document.getElementById("fcf_cantidad").value,
+      vidaUtil: document.getElementById("fcf_vida_util").value,
+      vigenteDesde: document.getElementById("fcf_vigente_desde").value
+    };
+    llamarBackend("guardarCostoFijo", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarCostosFijos();
+    });
+  }
+
+  function finBajaCostoFijo(id){
+    confirmarAccion("¿Dar de baja este costo fijo? (queda en el histórico, no se borra)").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaCostoFijo", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarCostosFijos();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  COSTO VARIABLE
+  // ------------------------------------------------------------
+  function finCargarCostoVariable(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finCostoVariableCache = (datos || []).filter(function(c){ return !c["Vigente Hasta"]; });
+        finRenderCostoVariable();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerCostoVariableConfig();
+  }
+
+  function finRenderCostoVariable(){
+    var tbody = document.getElementById("fin_tbody_costo_variable");
+    if (_finCostoVariableCache.length === 0) { tbody.innerHTML = "<tr><td colspan='4' class='fin-vacio'>Sin costos variables adicionales cargados (funda, cable, transporte...).</td></tr>"; return; }
+    tbody.innerHTML = _finCostoVariableCache.map(function(c){
+      return "<tr>" +
+        "<td>" + _finEsc(c["Concepto"]) + "</td>" +
+        "<td class='hint'>" + _finEsc(c["Descripción"] || "") + "</td>" +
+        "<td class='num'>" + (c["Moneda"] === "USD" ? "u$s " : "$") + Number(c["Costo Unitario"]).toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarCostoVariable(" + c["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaCostoVariable(" + c["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function finAbrirModalCostoVariable(){
+    _finIdEnEdicionCV = null;
+    document.getElementById("fcv_concepto").value = "";
+    document.getElementById("fcv_descripcion").value = "";
+    document.getElementById("fcv_costo").value = "";
+    document.getElementById("fcv_moneda").value = "ARS";
+    document.getElementById("fcv_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-costo-variable").style.display = "flex";
+  }
+
+  function finEditarCostoVariable(id){
+    var c = _finCostoVariableCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!c) return;
+    _finIdEnEdicionCV = id;
+    document.getElementById("fcv_concepto").value = c["Concepto"];
+    document.getElementById("fcv_descripcion").value = c["Descripción"] || "";
+    setInputMoneda(document.getElementById("fcv_costo"), c["Costo Unitario"]);
+    document.getElementById("fcv_moneda").value = c["Moneda"] || "ARS";
+    document.getElementById("fcv_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-costo-variable").style.display = "flex";
+  }
+
+  function finGuardarCostoVariable(){
+    var d = {
+      idAnterior: _finIdEnEdicionCV,
+      concepto: document.getElementById("fcv_concepto").value.trim(),
+      descripcion: document.getElementById("fcv_descripcion").value.trim(),
+      costoUnitario: valorNumerico(document.getElementById("fcv_costo")),
+      moneda: document.getElementById("fcv_moneda").value,
+      vigenteDesde: document.getElementById("fcv_vigente_desde").value
+    };
+    llamarBackend("guardarCostoVariable", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarCostoVariable();
+    });
+  }
+
+  function finBajaCostoVariable(id){
+    confirmarAccion("¿Dar de baja este costo variable?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaCostoVariable", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarCostoVariable();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  MANO DE OBRA
+  // ------------------------------------------------------------
+  function finCargarManoDeObra(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _finManoObraCache = (datos || []).filter(function(m){ return !m["Vigente Hasta"]; });
+        finRenderManoDeObra();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerManoDeObra();
+  }
+
+  function finRenderManoDeObra(){
+    var tbody = document.getElementById("fin_tbody_mano_obra");
+    if (_finManoObraCache.length === 0) { tbody.innerHTML = "<tr><td colspan='5' class='fin-vacio'>Sin personal cargado todavía.</td></tr>"; return; }
+    tbody.innerHTML = _finManoObraCache.map(function(m){
+      var cant = Number(m["Cantidad"]) || 1, turnos = Number(m["Turnos"]) || 1, salario = Number(m["Salario"]) || 0;
+      var total = cant * turnos * salario;
+      return "<tr>" +
+        "<td>" + _finEsc(m["Rol / Persona"]) + "</td>" +
+        "<td class='num'>" + cant + " × " + turnos + "</td>" +
+        "<td class='num'>" + (m["Moneda"] === "USD" ? "u$s " : "$") + salario.toLocaleString("es-AR") + "</td>" +
+        "<td class='num'>" + (m["Moneda"] === "USD" ? "u$s " : "$") + total.toLocaleString("es-AR") + "</td>" +
+        "<td><div class='fin-fila-btns'>" +
+          "<button type='button' class='fin-fila-btn' onclick='finEditarManoDeObra(" + m["ID"] + ")'>✏️</button>" +
+          "<button type='button' class='fin-fila-btn baja' onclick='finBajaManoDeObra(" + m["ID"] + ")'>🗑️</button>" +
+        "</div></td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function finAbrirModalManoDeObra(){
+    _finIdEnEdicionMO = null;
+    document.getElementById("fmo_rol").value = "";
+    document.getElementById("fmo_cantidad").value = 1;
+    document.getElementById("fmo_turnos").value = 1;
+    document.getElementById("fmo_salario").value = "";
+    document.getElementById("fmo_moneda").value = "ARS";
+    document.getElementById("fmo_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-mano-obra").style.display = "flex";
+  }
+
+  function finEditarManoDeObra(id){
+    var m = _finManoObraCache.filter(function(x){ return Number(x["ID"]) === Number(id); })[0];
+    if (!m) return;
+    _finIdEnEdicionMO = id;
+    document.getElementById("fmo_rol").value = m["Rol / Persona"];
+    document.getElementById("fmo_cantidad").value = m["Cantidad"] || 1;
+    document.getElementById("fmo_turnos").value = m["Turnos"] || 1;
+    setInputMoneda(document.getElementById("fmo_salario"), m["Salario"]);
+    document.getElementById("fmo_moneda").value = m["Moneda"] || "ARS";
+    document.getElementById("fmo_vigente_desde").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fin-modal-mano-obra").style.display = "flex";
+  }
+
+  function finGuardarManoDeObra(){
+    var d = {
+      idAnterior: _finIdEnEdicionMO,
+      rol: document.getElementById("fmo_rol").value.trim(),
+      cantidad: document.getElementById("fmo_cantidad").value,
+      turnos: document.getElementById("fmo_turnos").value,
+      salario: valorNumerico(document.getElementById("fmo_salario")),
+      moneda: document.getElementById("fmo_moneda").value,
+      vigenteDesde: document.getElementById("fmo_vigente_desde").value
+    };
+    llamarBackend("guardarManoDeObra", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      finCargarManoDeObra();
+    });
+  }
+
+  function finBajaManoDeObra(id){
+    confirmarAccion("¿Dar de baja a esta persona/rol del cálculo de costos?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("darDeBajaManoDeObra", id, function(msg){
+        mostrarToast(msg, "exito");
+        finCargarManoDeObra();
+      });
+    });
+  }
+
+  function finCerrarModales(){
+    document.getElementById("fin-modal-costo-fijo").style.display = "none";
+    document.getElementById("fin-modal-costo-variable").style.display = "none";
+    document.getElementById("fin-modal-mano-obra").style.display = "none";
+    document.getElementById("fin-modal-pago").style.display = "none";
+    var mDia = document.getElementById("fin-modal-dia");
+    if (mDia) mDia.style.display = "none";
+  }
+
+  // ============================================================
+  //  AGENDA DE PAGOS — libertad total para agregar/editar/pausar/
+  //  eliminar. Es una agenda, no un histórico contable: se edita
+  //  y se borra directo, como un Excel.
+  // ============================================================
+
+  var _fpAnio, _fpMes; // mes que se está mirando en la agenda
+  var _fpIdEnEdicion = null;
+  var _fpCacheAgenda = null;
+  var _fpVista = "lista"; // "lista" | "calendario"
+  var _fpPreventasCache = [];
+
+  function fpInit(){
+    var hoy = new Date();
+    _fpAnio = hoy.getFullYear();
+    _fpMes = hoy.getMonth() + 1;
+    fpCargarAgenda();
+    fpCargarPreventas();
+  }
+
+  /** Preventas pendientes de entrega (misma fuente que usa el Dashboard) — se muestran en el calendario junto con los pagos para ver todo el movimiento de plata del día. */
+  function fpCargarPreventas(){
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _fpPreventasCache = (datos || []).filter(function(p){ return p.fechaHasta; });
+        if (_fpVista === "calendario") fpCalRender();
+      })
+      .withFailureHandler(function(){})
+      .obtenerPreventasEntregables();
+  }
+
+  function fpSetVista(v){
+    _fpVista = v;
+    document.querySelectorAll("#view-finanzas .fp-vista-btn").forEach(function(b){ b.classList.toggle("activo", b.dataset.v === v); });
+    document.getElementById("fp_lista").style.display = (v === "lista") ? "block" : "none";
+    document.getElementById("fp_calendario").style.display = (v === "calendario") ? "block" : "none";
+    if (v === "calendario") fpCalRender();
+  }
+
+  function fpCambiarMes(delta){
+    _fpMes += delta;
+    if (_fpMes > 12) { _fpMes = 1; _fpAnio++; }
+    if (_fpMes < 1) { _fpMes = 12; _fpAnio--; }
+    fpCargarAgenda();
+  }
+
+  function fpIrHoy(){
+    var hoy = new Date();
+    _fpAnio = hoy.getFullYear();
+    _fpMes = hoy.getMonth() + 1;
+    fpCargarAgenda();
+  }
+
+  function fpCargarAgenda(){
+    document.getElementById("fp_titulo_mes").textContent = FIN_MESES[_fpMes-1] + " " + _fpAnio;
+    document.getElementById("fp_lista").innerHTML = "<div class='fp-vacio'>Cargando…</div>";
+    google.script.run
+      .withSuccessHandler(function(r){ _fpCacheAgenda = r; fpRenderAgenda(r); if (_fpVista === "calendario") fpCalRender(); })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerAgendaMes(_fpAnio, _fpMes);
+  }
+
+  function fpRenderAgenda(r){
+    document.getElementById("fp_kpis").innerHTML =
+      "<div class='fin-kpi' style='background:var(--gpw-fondo-campo)'><div class='lbl' style='color:var(--gpw-texto-sua)'>Total del mes</div><div class='val' style='color:var(--gpw-texto)'>" + fmtP(r.totalMes) + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-verde-cl)'><div class='lbl' style='color:var(--gpw-verde)'>Ya pagado</div><div class='val' style='color:var(--gpw-verde)'>" + fmtP(r.totalPagado) + "</div></div>" +
+      "<div class='fin-kpi' style='background:var(--gpw-rojo-cl)'><div class='lbl' style='color:var(--gpw-rojo)'>Falta pagar</div><div class='val' style='color:var(--gpw-rojo)'>" + fmtP(r.totalPendiente) + "</div></div>";
+
+    var cont = document.getElementById("fp_lista");
+    if (!r.items || r.items.length === 0) {
+      cont.innerHTML = "<div class='fp-vacio'>No hay pagos cargados para este mes. Tocá \"➕ Agregar pago\" para empezar la agenda.</div>";
+      return;
+    }
+
+    var porDia = {};
+    r.items.forEach(function(it){ (porDia[it.dia] = porDia[it.dia] || []).push(it); });
+    var dias = Object.keys(porDia).map(Number).sort(function(a,b){ return a-b; });
+
+    cont.innerHTML = dias.map(function(dia){
+      var esHoy = (r.diaHoy === dia);
+      var vencido = (r.diaHoy != null && dia < r.diaHoy);
+      var itemsHtml = porDia[dia].map(function(it){
+        var vencidoNoPagado = vencido && !it.pagado;
+        return "<div class='fp-item " + (it.pagado ? "pagado" : "") + (vencidoNoPagado ? " vencido" : "") + "'>" +
+          "<button type='button' class='fp-check' onclick='fpToggle(" + it.idPago + "," + (it.idRealizado || "null") + "," + it.monto + ",\"" + it.moneda + "\")' title='" + (it.pagado ? "Marcado como pagado — tocá para desmarcar" : "Marcar como pagado") + "'>✓</button>" +
+          "<div class='fp-item-info'>" +
+            "<div class='fp-item-concepto'>" + _finEsc(it.concepto) + "</div>" +
+            "<div class='fp-item-sub'>" + _finEsc(it.categoria) + " · " + (it.frecuencia === "Mensual" ? "se repite todos los meses" : "pago único") + (vencidoNoPagado ? " · <b style='color:var(--gpw-rojo)'>vencido</b>" : "") + (it.notas ? " · " + _finEsc(it.notas) : "") + "</div>" +
+          "</div>" +
+          "<div class='fp-item-monto'>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + "</div>" +
+          "<div class='fp-item-btns'>" +
+            "<button type='button' class='fin-fila-btn' onclick='fpEditar(" + it.idPago + ")'>✏️</button>" +
+            "<button type='button' class='fin-fila-btn' onclick='fpPausar(" + it.idPago + ")' title='Pausar (dejar de mostrar en la agenda)'>⏸️</button>" +
+            "<button type='button' class='fin-fila-btn baja' onclick='fpEliminar(" + it.idPago + ")'>🗑️</button>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+      return "<div class='fp-dia-grupo'>" +
+        "<div class='fp-dia-titulo" + (esHoy ? " hoy" : "") + "'><span class='fp-dia-num'>" + dia + "</span>" + (esHoy ? "HOY" : "DÍA " + dia) + "</div>" +
+        itemsHtml +
+      "</div>";
+    }).join("");
+  }
+
+  function fpToggle(idPago, idRealizado, monto, moneda){
+    if (idRealizado) {
+      llamarBackend("desmarcarPagoRealizado", idRealizado, function(){ fpCargarAgenda(); });
+    } else {
+      llamarBackend("marcarPagoRealizado", { idPago: idPago, anio: _fpAnio, mes: _fpMes, montoPagado: monto, moneda: moneda }, function(){ fpCargarAgenda(); });
+    }
+  }
+
+  function fpToggleFrecuencia(){
+    var mensual = document.getElementById("fp_frecuencia").value === "Mensual";
+    document.getElementById("fp_bloque_mensual").style.display = mensual ? "block" : "none";
+    document.getElementById("fp_bloque_unico").style.display = mensual ? "none" : "block";
+  }
+
+  function fpAbrirModal(){
+    _fpIdEnEdicion = null;
+    document.getElementById("fp_titulo").textContent = "Nuevo pago";
+    document.getElementById("fp_concepto").value = "";
+    document.getElementById("fp_categoria").value = "Otro";
+    document.getElementById("fp_monto").value = "";
+    document.getElementById("fp_moneda").value = "ARS";
+    document.getElementById("fp_frecuencia").value = "Mensual";
+    document.getElementById("fp_dia_pago").value = 10;
+    document.getElementById("fp_fecha_unico").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fp_notas").value = "";
+    fpToggleFrecuencia();
+    document.getElementById("fin-modal-pago").style.display = "flex";
+  }
+
+  function fpEditar(idPago){
+    google.script.run
+      .withSuccessHandler(function(lista){
+        var p = lista.filter(function(x){ return Number(x["ID"]) === Number(idPago); })[0];
+        if (!p) return;
+        _fpIdEnEdicion = idPago;
+        document.getElementById("fp_titulo").textContent = "Editar pago";
+        document.getElementById("fp_concepto").value = p["Concepto"];
+        document.getElementById("fp_categoria").value = p["Categoría"] || "Otro";
+        setInputMoneda(document.getElementById("fp_monto"), p["Monto"]);
+        document.getElementById("fp_moneda").value = p["Moneda"] || "ARS";
+        document.getElementById("fp_frecuencia").value = p["Frecuencia"];
+        document.getElementById("fp_dia_pago").value = p["Día de Pago"] || 10;
+        document.getElementById("fp_fecha_unico").value = p["Fecha Único"] ? new Date(p["Fecha Único"]).toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+        document.getElementById("fp_notas").value = p["Notas"] || "";
+        fpToggleFrecuencia();
+        document.getElementById("fin-modal-pago").style.display = "flex";
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerPagos();
+  }
+
+  function fpGuardarPago(){
+    var d = {
+      id: _fpIdEnEdicion,
+      concepto: document.getElementById("fp_concepto").value.trim(),
+      categoria: document.getElementById("fp_categoria").value,
+      monto: valorNumerico(document.getElementById("fp_monto")),
+      moneda: document.getElementById("fp_moneda").value,
+      frecuencia: document.getElementById("fp_frecuencia").value,
+      diaPago: document.getElementById("fp_dia_pago").value,
+      fechaUnico: document.getElementById("fp_fecha_unico").value,
+      notas: document.getElementById("fp_notas").value.trim()
+    };
+    llamarBackend("guardarPago", d, function(msg){
+      mostrarToast(msg, "exito");
+      finCerrarModales();
+      fpCargarAgenda();
+    });
+  }
+
+  function fpPausar(idPago){
+    confirmarAccion("¿Pausar este pago? Vas a poder reactivarlo cuando quieras desde la hoja FINANZAS_PAGOS.").then(function(ok){
+      if (!ok) return;
+      llamarBackend("pausarPago", idPago, function(msg){
+        mostrarToast(msg, "exito");
+        fpCargarAgenda();
+      });
+    });
+  }
+
+  function fpEliminar(idPago){
+    confirmarAccion("¿Eliminar este pago de la agenda para siempre?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("eliminarPago", idPago, function(msg){
+        mostrarToast(msg, "exito");
+        fpCargarAgenda();
+      });
+    });
+  }
+
+  // ------------------------------------------------------------
+  //  CALENDARIO DE PAGOS + PREVENTAS — para ver todo el movimiento
+  //  de plata del día: lo que hay que pagar (Agenda de Pagos) y lo
+  //  que hay que entregar/cobrar (preventas pendientes).
+  // ------------------------------------------------------------
+
+  /** "$1,2M" / "$850K" en vez del número completo — para que el monto entre en el espacio chico de una celda del calendario. */
+  function fpFmtCompacto(n){
+    n = Number(n) || 0;
+    if (n >= 1000000) return "$" + (n / 1000000).toFixed(1).replace(".0", "").replace(".", ",") + "M";
+    if (n >= 1000) return "$" + Math.round(n / 1000) + "K";
+    return fmtP(n);
+  }
+
+  function _fpNombreCorto(cliente){
+    var partes = String(cliente || "").trim().split(/\s+/);
+    if (partes.length <= 1) return partes[0] || "";
+    return partes[0] + " " + partes[1].charAt(0).toUpperCase() + ".";
+  }
+
+  function fpCalRender(){
+    if (!_fpCacheAgenda) return;
+    var anio = _fpAnio, mes = _fpMes - 1; // 0-based para Date
+    document.getElementById("fp_cal_titulo").textContent = FIN_MESES[mes] + " " + anio;
+
+    var porDiaPagos = {};
+    (_fpCacheAgenda.items || []).forEach(function(it){ (porDiaPagos[it.dia] = porDiaPagos[it.dia] || []).push(it); });
+
+    var porDiaPre = {};
+    _fpPreventasCache.forEach(function(p){
+      var partes = String(p.fechaHasta).split("-");
+      if (Number(partes[0]) === anio && Number(partes[1]) === mes + 1) {
+        var dia = Number(partes[2]);
+        (porDiaPre[dia] = porDiaPre[dia] || []).push(p);
+      }
+    });
+
+    var hoy = new Date();
+    var esMesActual = hoy.getFullYear() === anio && hoy.getMonth() === mes;
+    var primerDiaSemana = new Date(anio, mes, 1).getDay();
+    var diasEnMes = new Date(anio, mes + 1, 0).getDate();
+    var DIAS_FINDE = [0, 6];
+
+    var celdas = ["D","L","M","M","J","V","S"].map(function(l){ return "<div class='fp-cal-lbl'>" + l + "</div>"; });
+    for (var i = 0; i < primerDiaSemana; i++) celdas.push("<div class='fp-cal-dia fp-cal-vacio'></div>");
+
+    for (var d = 1; d <= diasEnMes; d++) {
+      var fechaDia = new Date(anio, mes, d);
+      var pagosDia = porDiaPagos[d] || [];
+      var preDia = porDiaPre[d] || [];
+      var esHoy = esMesActual && hoy.getDate() === d;
+      var esFinde = DIAS_FINDE.indexOf(fechaDia.getDay()) >= 0;
+      var hayAlgo = pagosDia.length > 0 || preDia.length > 0;
+      var vencido = esMesActual && d < hoy.getDate() && pagosDia.some(function(p){ return !p.pagado; });
+
+      var badges = "";
+      pagosDia.slice(0, 2).forEach(function(p){
+        badges += "<div class='fp-cal-badge fp-cal-badge-pago" + (p.pagado ? " pagado" : "") + "'>💳 " + _finEsc(p.concepto) + "</div>";
+      });
+      preDia.slice(0, 2).forEach(function(p){
+        badges += "<div class='fp-cal-badge fp-cal-badge-pre'>📦 " + _finEsc(_fpNombreCorto(p.cliente)) + "</div>";
+      });
+      var restantes = (pagosDia.length + preDia.length) - Math.min(pagosDia.length, 2) - Math.min(preDia.length, 2);
+      if (restantes > 0) badges += "<div class='fp-cal-badge' style='background:transparent;color:var(--gpw-texto-sua)'>+" + restantes + " más</div>";
+
+      var totalPagos = pagosDia.reduce(function(s, p){ return s + (Number(p.monto) || 0); }, 0);
+      var totalPagosPendientes = pagosDia.filter(function(p){ return !p.pagado; }).reduce(function(s, p){ return s + (Number(p.monto) || 0); }, 0);
+      var totalPre = preDia.reduce(function(s, p){ return s + (Number(p.saldo) || 0); }, 0);
+      var totales = "";
+      if (totalPagos > 0) totales += "<div class='fp-cal-total-pago" + (totalPagosPendientes === 0 ? " pagado" : "") + "'>💳 " + fpFmtCompacto(totalPagosPendientes > 0 ? totalPagosPendientes : totalPagos) + "</div>";
+      if (totalPre > 0) totales += "<div class='fp-cal-total-pre'>📦 " + fpFmtCompacto(totalPre) + "</div>";
+
+      var clase = "fp-cal-dia" + (esHoy ? " fp-cal-hoy" : "") + (esFinde ? " fp-cal-finde" : "") + (hayAlgo ? " fp-cal-con" : "") + (vencido ? " fp-cal-venc" : "");
+      var onclick = hayAlgo ? " onclick=\"fpAbrirDia(" + d + ")\"" : "";
+
+      celdas.push("<div class='" + clase + "'" + onclick + ">" +
+        "<span class='fp-cal-num'>" + d + "</span>" +
+        (hayAlgo ? "<div class='fp-cal-badges'>" + badges + "</div>" : "") +
+        (totales ? "<div class='fp-cal-totales'>" + totales + "</div>" : "") +
+      "</div>");
+    }
+
+    document.getElementById("fp_cal_grid").innerHTML = celdas.join("");
+  }
+
+  function fpAbrirDia(dia){
+    var pagosDia = (_fpCacheAgenda.items || []).filter(function(it){ return it.dia === dia; });
+    var mesStr = String(_fpMes).padStart(2, "0"), diaStr = String(dia).padStart(2, "0");
+    var preDia = _fpPreventasCache.filter(function(p){ return p.fechaHasta === (_fpAnio + "-" + mesStr + "-" + diaStr); });
+
+    document.getElementById("fp_dia_modal_titulo").textContent = dia + " de " + FIN_MESES[_fpMes-1];
+    var html = "";
+    pagosDia.forEach(function(it){
+      html += "<div class='fp-dia-modal-item'>" +
+        "<span><span class='fp-dia-modal-tipo' style='background:" + (it.pagado ? "var(--gpw-verde-cl);color:var(--gpw-verde)" : "var(--gpw-rojo-cl);color:var(--gpw-rojo)") + "'>PAGO</span>" + _finEsc(it.concepto) + "</span>" +
+        "<b>" + (it.moneda === "USD" ? "u$s " : "$") + Number(it.monto).toLocaleString("es-AR") + (it.pagado ? " ✅" : "") + "</b>" +
+      "</div>";
+    });
+    preDia.forEach(function(p){
+      html += "<div class='fp-dia-modal-item'>" +
+        "<span><span class='fp-dia-modal-tipo' style='background:var(--gpw-ambar-cl);color:var(--gpw-ambar)'>PREVENTA</span>" + _finEsc(p.cliente) + " — " + _finEsc(p.modelo) + "</span>" +
+        "<b>" + (p.saldo > 0 ? fmtP(p.saldo) : "Saldado") + "</b>" +
+      "</div>";
+    });
+    if (!html) html = "<div class='fin-vacio'>Nada para este día.</div>";
+    document.getElementById("fp_dia_modal_body").innerHTML = html;
+    document.getElementById("fin-modal-dia").style.display = "flex";
+  }
+</script>

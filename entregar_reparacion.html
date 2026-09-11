@@ -1,0 +1,379 @@
+<div id="view-entregar_reparacion" class="view">
+  <style>
+    /* Mismo lenguaje visual del asistente de Compras (compras.html) —
+       escapado al primer panel (formulario de entrega); el panel de
+       "Estado de Reparaciones" de abajo no lo usa. */
+    #view-entregar_reparacion > .panel:first-of-type {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 640px; margin: 0 auto; padding: 4px 48px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-entregar_reparacion > .panel:first-of-type::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-entregar_reparacion > .panel:first-of-type > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+    #view-entregar_reparacion > .panel:first-of-type .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-entregar_reparacion > .panel:first-of-type .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .paso-num { display: none; }
+    #view-entregar_reparacion > .panel:first-of-type .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+    #view-entregar_reparacion > .panel:first-of-type label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-entregar_reparacion > .panel:first-of-type .paso > label:first-child,
+    #view-entregar_reparacion > .panel:first-of-type .paso > .fila2:first-child label { margin-top: 0; }
+    #view-entregar_reparacion > .panel:first-of-type input,
+    #view-entregar_reparacion > .panel:first-of-type select {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-entregar_reparacion > .panel:first-of-type input::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-entregar_reparacion > .panel:first-of-type input:focus,
+    #view-entregar_reparacion > .panel:first-of-type select:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .req { color: #E11D48; }
+    #view-entregar_reparacion > .panel:first-of-type .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-entregar_reparacion > .panel:first-of-type .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-entregar_reparacion > .panel:first-of-type .box-info { background: #EEECFD; }
+    #view-entregar_reparacion > .panel:first-of-type .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+    #view-entregar_reparacion > .panel:first-of-type .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-entregar_reparacion > .panel:first-of-type .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-paso-final > .btn {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-entregar_reparacion > .panel:first-of-type .gp-wizard-paso-final > .btn:hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="panel">
+    <h3>✅ Registrar Entrega</h3>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién entrega y qué reparación?</p>
+      <label>Operador: <span class="req">*</span></label>
+      <select id="er_operador" required>
+        <option value="" disabled selected>Seleccionar...</option>
+        <option>Martin</option><option>Maca</option><option>Sam</option><option>Eva</option><option>Buda</option>
+      </select>
+
+      <label>Reparación lista para entregar: <span class="req">*</span></label>
+      <select id="er_nRep" onchange="entregaRepActualizarInfo()"><option value="">Cargando reparaciones listas...</option></select>
+
+      <div class="box box-info" id="er_infoDiv" style="margin-top:10px;display:none"></div>
+    </div>
+
+    <div class="paso">
+      <p class="paso-titulo"><span class="paso-num">2</span> Cobro final (solo si queda saldo pendiente)</p>
+      <div class="fila2">
+        <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="er_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); entregaRepCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="er_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); entregaRepCalcTotal()"/></div>
+      </div>
+      <div class="total" id="er_totalDiv">Cobro en esta entrega: $0</div>
+      <div class="hint">Dejalo en $0 si ya estaba todo cobrado al ingresar el equipo.</div>
+
+      <label>Observaciones de la entrega (opcional):</label>
+      <input type="text" id="er_obs" placeholder="Opcional"/>
+
+      <button type="button" class="btn" onclick="entregaRepEnviar()">✅ Confirmar entrega</button>
+    </div>
+  </div>
+
+  <div class="panel" style="max-width:100%;margin-top:18px">
+    <h3>🔧 Estado de Reparaciones</h3>
+    <div class="hint">Todas las reparaciones abiertas (no retiradas), agrupadas por estado. Filtrá para ver solo un grupo, cambiá el estado o mirá el detalle completo sin salir de este módulo.</div>
+
+    <div class="cards" style="margin-top:14px">
+      <div class="card c-rep" onclick="entregaRepSetFiltro('paraReparar')">
+        <div class="ico">🔴</div>
+        <div class="valor" id="er_cant_paraReparar">…</div>
+        <div class="label">Para reparar</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('enProceso')">
+        <div class="ico">🟡</div>
+        <div class="valor" id="er_cant_enProceso">…</div>
+        <div class="label">Reparándose</div>
+      </div>
+      <div class="card c-rep" onclick="entregaRepSetFiltro('listas')">
+        <div class="ico">🟢</div>
+        <div class="valor" id="er_cant_listas">…</div>
+        <div class="label">Reparadas — para entregar</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 14px" id="er_filtros"></div>
+
+    <div style="overflow:auto;max-height:440px;border:1px solid var(--borde);border-radius:var(--radio-sm)">
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+        <thead>
+          <tr style="text-align:left">
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">N° Rep</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Ingreso</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Cliente</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Equipo</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Falla</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Estado</th>
+            <th style="position:sticky;top:0;background:#F4F5FA;padding:9px 10px;box-shadow:0 1px 0 var(--borde)">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="er_tbody">
+          <tr><td colspan="7" style="padding:16px;text-align:center;color:#889">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  //  Entregar Reparación — ver también entrega_reparaciones.gs
+  //  (obtenerReparacionesParaEntrega/entregarReparacion). El listado de
+  //  arriba es informativo (para reparar/reparándose/listas); el
+  //  desplegable de "Reparación lista para entregar" solo muestra las que
+  //  están "🟢 Listo" — es lo único que entregarReparacion() acepta.
+  // ============================================================
+
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardEntregaReparacion = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#view-entregar_reparacion > .panel:first-of-type .paso")),
+    { validar: function(i){
+        if (i === 0) {
+          if (!document.getElementById("er_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+          if (!document.getElementById("er_nRep").value) return { ok:false, msg:"Elegí qué reparación vas a entregar." };
+        }
+        return { ok:true };
+      }
+    }
+  );
+
+  var _erData = { paraReparar: [], enProceso: [], listas: [] };
+  var _erFiltroActivo = "todas";
+  var ER_FILTROS = [
+    { key: "todas",       label: "Todas" },
+    { key: "paraReparar", label: "🔴 Para reparar" },
+    { key: "enProceso",   label: "🟡 Reparándose" },
+    { key: "listas",      label: "🟢 Reparadas" }
+  ];
+  var ER_BADGE = {
+    "🟡 En Proceso": "background:#FEF3E2;color:#D97706",
+    "🟢 Listo":      "background:#E7F8EF;color:#0F9D58",
+    "PARA REPARAR":       "background:#FDEAEA;color:#DC2626",
+    "PARA DIAGNOSTICAR":  "background:#F1E9FE;color:#7C3AED"
+  };
+
+  function entregaRepInit(){
+    document.getElementById("er_filtros").innerHTML = ER_FILTROS.map(function(f){
+      return "<button class='btn' style='margin:0;width:auto;padding:6px 12px;font-size:12px;" + (f.key === _erFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='entregaRepSetFiltro(" + JSON.stringify(f.key) + ")'>" + f.label + "</button>";
+    }).join("");
+
+    google.script.run
+      .withSuccessHandler(function(datos){
+        _erData = datos || { paraReparar: [], enProceso: [], listas: [] };
+        document.getElementById("er_cant_paraReparar").textContent = _erData.paraReparar.length;
+        document.getElementById("er_cant_enProceso").textContent   = _erData.enProceso.length;
+        document.getElementById("er_cant_listas").textContent      = _erData.listas.length;
+        entregaRepRenderizarTabla();
+        entregaRepPoblarSelect();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
+      .obtenerReparacionesParaEntrega();
+  }
+
+  function entregaRepSetFiltro(key){
+    _erFiltroActivo = key;
+    document.querySelectorAll("#er_filtros button").forEach(function(b, i){
+      b.style.background = (ER_FILTROS[i].key === key) ? "" : "#B8C4CE";
+    });
+    entregaRepRenderizarTabla();
+  }
+
+  function entregaRepTodasLasFilas(){
+    return _erData.paraReparar.concat(_erData.enProceso).concat(_erData.listas);
+  }
+
+  // Transiciones de estado disponibles desde este módulo — coincide con
+  // ESTADOS_REPARACION_WEB_VALIDOS (operadores.gs) menos "✅ Retirado" (esa
+  // sí requiere cobro final y pasa por entregarReparacion(), no por acá) y
+  // "🔄 Garantía" (es un reingreso, no un avance normal del flujo).
+  var ER_ESTADOS_DISPONIBLES = ["🟡 En Proceso", "🟢 Listo"];
+
+  function entregaRepRenderizarTabla(){
+    var filas = (_erFiltroActivo === "todas") ? entregaRepTodasLasFilas() : (_erData[_erFiltroActivo] || []);
+    var tbody = document.getElementById("er_tbody");
+    if (filas.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='7' style='padding:16px;text-align:center;color:#889'>Sin reparaciones para este filtro.</td></tr>";
+      return;
+    }
+    tbody.innerHTML = filas.map(function(r, i){
+      var estilo = ER_BADGE[r.estado] || "background:#F0F1F6;color:#556";
+      var selId = "er_estsel_" + i;
+      var opciones = ER_ESTADOS_DISPONIBLES.map(function(e){
+        return "<option value='" + e + "'" + (e === r.estado ? " selected" : "") + ">" + e + "</option>";
+      }).join("");
+      return "<tr style='border-top:1px solid var(--borde)'>" +
+        "<td style='padding:8px 10px;font-weight:600;color:var(--azul)'>" + r.numero + "</td>" +
+        "<td style='padding:8px 10px;white-space:nowrap;color:#667'>" + r.fecha + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.cliente || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.equipo || "—") + "</td>" +
+        "<td style='padding:8px 10px'>" + (r.falla || "—") + "</td>" +
+        "<td style='padding:8px 10px'><span style='display:inline-block;padding:3px 9px;border-radius:100px;font-size:11px;font-weight:700;" + estilo + "'>" + r.estado + "</span></td>" +
+        "<td style='padding:8px 10px;white-space:nowrap'>" +
+          "<button class='btn' style='margin:0 4px 4px 0;width:auto;padding:4px 8px;font-size:11px;background:#5D6D7E' onclick=\"misOperacionesVer(" + JSON.stringify(r.numero) + ")\">👁 Detalle</button>" +
+          "<select id='" + selId + "' style='width:auto;padding:4px 6px;font-size:11px;margin:0 4px 4px 0'>" + opciones + "</select>" +
+          "<button class='btn' style='margin:0;width:auto;padding:4px 8px;font-size:11px;background:#117864' onclick=\"entregaRepCambiarEstado(" + JSON.stringify(r.numero) + ", '" + selId + "')\">Guardar</button>" +
+        "</td>" +
+      "</tr>";
+    }).join("");
+  }
+
+  function entregaRepCambiarEstado(numero, selectId){
+    var nuevo = document.getElementById(selectId).value;
+    pedirOperador("¿Quién está actualizando el estado de " + numero + "?").then(function(operador){
+      if (!operador) return;
+      llamarBackend("actualizarEstadoReparacionWeb", { numero: numero, estado: nuevo, operador: operador }, function(msg){
+        mostrarToast(msg, "exito");
+        entregaRepInit();
+      });
+    });
+  }
+
+  function entregaRepPoblarSelect(){
+    var sel = document.getElementById("er_nRep");
+    if (_erData.listas.length === 0) {
+      sel.innerHTML = "<option value=''>— No hay reparaciones listas para entregar —</option>";
+      return;
+    }
+    sel.innerHTML = "<option value=''>Seleccionar...</option>" + _erData.listas.map(function(r){
+      return "<option value='" + r.numero + "'>" + r.numero + " — " + r.equipo + " (" + r.cliente + ")</option>";
+    }).join("");
+  }
+
+  function entregaRepActualizarInfo(){
+    var numero = document.getElementById("er_nRep").value;
+    var info = document.getElementById("er_infoDiv");
+    var r = _erData.listas.find(function(x){ return x.numero === numero; });
+    if (!r) { info.style.display = "none"; return; }
+    info.style.display = "block";
+    info.innerHTML =
+      "<b>Cliente:</b> " + (r.cliente || "—") + " — " + (r.tel || "sin teléfono") + "<br>" +
+      "<b>Equipo:</b> " + (r.equipo || "—") + "<br>" +
+      "<b>Falla:</b> " + (r.falla || "—") + "<br>" +
+      "<b>Cobrado hasta ahora:</b> " + fmtP(r.precioCobrado);
+  }
+
+  function entregaRepCalcTotal(){
+    var ef = valorNumerico(document.getElementById("er_efec"));
+    var tr = valorNumerico(document.getElementById("er_transf"));
+    document.getElementById("er_totalDiv").textContent = "Cobro en esta entrega: " + fmtP(ef + tr);
+  }
+
+  function entregaRepEnviar(){
+    var numero = document.getElementById("er_nRep").value;
+    var operador = document.getElementById("er_operador").value;
+    if (!operador) { mostrarToast("Seleccioná el operador.", "error"); return; }
+    if (!numero) { mostrarToast("Seleccioná qué reparación vas a entregar.", "error"); return; }
+
+    var d = {
+      numero: numero,
+      operador: operador,
+      efec: valorNumerico(document.getElementById("er_efec")),
+      transf: valorNumerico(document.getElementById("er_transf")),
+      obs: document.getElementById("er_obs").value.trim()
+    };
+
+    var rEntregada = _erData.listas.find(function(x){ return x.numero === numero; });
+    var telCliente = rEntregada ? rEntregada.tel : "";
+
+    confirmarAccion("¿Confirmás la entrega de " + numero + "?").then(function(ok){
+      if (!ok) return;
+      llamarBackend("entregarReparacion", d, function(msg){
+        mostrarToast(msg, "exito", {
+          persistente: true,
+          botones: [
+            { texto: "🖨 Recibo de Entrega", fn: function(){ imprimirReciboEntregaReparacion(numero); } },
+            { texto: "📲 WhatsApp", fn: function(){ firmarYEnviarPorWhatsapp("ENTREGA_REPARACION", numero, telCliente); } }
+          ]
+        });
+        cargarDashboard();
+        entregaRepLimpiarForm();
+        entregaRepInit();
+      });
+    });
+  }
+
+  function entregaRepLimpiarForm(){
+    setInputMoneda(document.getElementById("er_efec"), 0);
+    setInputMoneda(document.getElementById("er_transf"), 0);
+    document.getElementById("er_obs").value = "";
+    document.getElementById("er_infoDiv").style.display = "none";
+    entregaRepCalcTotal();
+    if (_wizardEntregaReparacion) _wizardEntregaReparacion.ir(0);
+  }
+
+  /** Reutilizable desde acá y desde Mis Operaciones (reimpresión). Mismo patrón que los demás imprimirRecibo*: el click del operador abre la ventana en el momento, sin ningún hueco antes de pedirle el HTML al backend. */
+  function imprimirReciboEntregaReparacion(numero){
+    if (!numero) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboEntregaReparacion(numero);
+  }
+</script>

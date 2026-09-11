@@ -845,7 +845,8 @@ function obtenerMapaTiposAnulacion_() {
     CAC: { tipo: "COMPRA_ACCESORIO", hoja: "Compras Accesorios",                    colId: "N° Compra Accesorio", multilinea: true },
     CAM: { tipo: "CAMBIO_MONEDA",    hoja: "CAMBIO_MONEDA",                         colId: "N° Cambio" },
     AJC: { tipo: "AJUSTE_CAJA",      hoja: "AJUSTES_CAJA",                          colId: "N° Ajuste" },
-    INV: { tipo: "INVERSOR",         hoja: cfg.HOJA_INVERSORES   || "Inversores",   colId: "N° Movimiento" }
+    INV: { tipo: "INVERSOR",         hoja: cfg.HOJA_INVERSORES   || "Inversores",   colId: "N° Movimiento" },
+    DEV: { tipo: "DEVOLUCION",       hoja: "Devoluciones",                          colId: "N° Devolución" }
   };
 }
 
@@ -854,7 +855,7 @@ function detectarTipoOperacion_(numero) {
   const mapa = obtenerMapaTiposAnulacion_();
   const info = mapa[prefijo];
   if (!info) {
-    throw new Error(`❌ No reconozco el prefijo "${prefijo}". Usá CMP-xxx, VTA-xxx, PRE-xxx, REP-xxx, GST-xxx, ACC-xxx, CAC-xxx, CAM-xxx, AJC-xxx o INV-xxx.`);
+    throw new Error(`❌ No reconozco el prefijo "${prefijo}". Usá CMP-xxx, VTA-xxx, PRE-xxx, REP-xxx, GST-xxx, ACC-xxx, CAC-xxx, CAM-xxx, AJC-xxx, INV-xxx o DEV-xxx.`);
   }
   return Object.assign({ prefijo: prefijo }, info);
 }
@@ -1536,6 +1537,26 @@ function _anularAjusteCaja_(numero, motivo) {
   return `✅ Ajuste de caja "${numero}" anulado.\n📒 ${asientos} asiento/s de Libro Diario anulado/s.`;
 }
 
+/** Sin dependencias cruzadas, mismo patrón simple que GASTO/AJUSTE_CAJA/CAMBIO_MONEDA — no toca stock (la Devolución nunca lo tocó). */
+function _anularDevolucion_(numero, motivo) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Devoluciones");
+  if (!sheet) throw new Error("❌ Hoja 'Devoluciones' no encontrada.");
+
+  const fE = 2;
+  const colEst = asegurarColumnaEstadoRegistro_(sheet, fE);
+  const fila = _buscarFilaPorId_(sheet, fE, "N° Devolución", numero);
+  if (fila === -1) throw new Error(`❌ Devolución "${numero}" no encontrada.`);
+  if (String(sheet.getRange(fila, colEst).getValue() || "").trim() === ANUL_ANULADO) {
+    throw new Error(`⚠️ La devolución "${numero}" ya está anulada.`);
+  }
+
+  const asientos = marcarLibroDiarioPorOperacion_(numero, ANUL_ANULADO);
+  sheet.getRange(fila, colEst).setValue(ANUL_ANULADO);
+  registrarAuditoria_("DEVOLUCION", numero, "ANULACION", motivo || "");
+
+  return `✅ Devolución "${numero}" anulada.\n📒 ${asientos} asiento/s de Libro Diario anulado/s.`;
+}
+
 function _anularAccesorio_(numero, motivo) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Venta Accesorios");
@@ -1995,6 +2016,26 @@ function _restaurarAjusteCaja_(numero, motivo) {
   return `✅ Ajuste de caja "${numero}" restaurado.\n📒 ${asientos} asiento/s de Libro Diario reactivado/s.`;
 }
 
+/** Inverso de _anularDevolucion_() — sin dependencias cruzadas, mismo patrón simple que GASTO/AJUSTE_CAJA. */
+function _restaurarDevolucion_(numero, motivo) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Devoluciones");
+  if (!sheet) throw new Error("❌ Hoja 'Devoluciones' no encontrada.");
+
+  const fE = 2;
+  const colEst = asegurarColumnaEstadoRegistro_(sheet, fE);
+  const fila = _buscarFilaPorId_(sheet, fE, "N° Devolución", numero);
+  if (fila === -1) throw new Error(`❌ Devolución "${numero}" no encontrada.`);
+  if (String(sheet.getRange(fila, colEst).getValue() || "").trim() !== ANUL_ANULADO) {
+    throw new Error(`⚠️ La devolución "${numero}" no está anulada.`);
+  }
+
+  const asientos = marcarLibroDiarioPorOperacion_(numero, ANUL_ACTIVO);
+  sheet.getRange(fila, colEst).setValue(ANUL_ACTIVO);
+  registrarAuditoria_("DEVOLUCION", numero, "RESTAURACION", motivo || "");
+
+  return `✅ Devolución "${numero}" restaurada.\n📒 ${asientos} asiento/s de Libro Diario reactivado/s.`;
+}
+
 function _restaurarAccesorio_(numero, motivo) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName("Venta Accesorios");
@@ -2113,6 +2154,12 @@ function _restaurarInversor_(numero, motivo) {
  * queda como evidencia — buscarTransaccionesIncompletas_() la detecta.
  */
 function procesarAnularOperacion(numero, motivo) {
+  // mis_operaciones.html ya exige un motivo no vacío antes de enviar —
+  // revalidado acá para que el backend no dependa exclusivamente de esa
+  // pantalla (_ejecutarCorreccion_(), operadores.gs, siempre manda
+  // "Corrección: <motivo>", así que nunca queda vacío en ese camino).
+  if (!String(motivo || "").trim()) throw new Error("❌ Ingresá un motivo para la anulación.");
+
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(30000);
@@ -2138,6 +2185,7 @@ function procesarAnularOperacion(numero, motivo) {
       case "CAM": resultado = _anularCambioMoneda_(numero, motivo); break;
       case "AJC": resultado = _anularAjusteCaja_(numero, motivo); break;
       case "INV": resultado = _anularInversor_(numero, motivo); break;
+      case "DEV": resultado = _anularDevolucion_(numero, motivo); break;
     }
 
     cerrarTransaccion_(tx, "OK");
@@ -2176,6 +2224,7 @@ function procesarRestaurarOperacion(numero, motivo) {
       case "CAM": resultado = _restaurarCambioMoneda_(numero, motivo); break;
       case "AJC": resultado = _restaurarAjusteCaja_(numero, motivo); break;
       case "INV": resultado = _restaurarInversor_(numero, motivo); break;
+      case "DEV": resultado = _restaurarDevolucion_(numero, motivo); break;
     }
 
     cerrarTransaccion_(tx, "OK");

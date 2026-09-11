@@ -17,7 +17,7 @@
     <input type="date" id="i_fecha"/>
 
     <label>Monto ($):</label>
-    <input type="number" id="i_monto" placeholder="Ingresá el monto" min="1"/>
+    <input type="text" inputmode="numeric" id="i_monto" placeholder="$0" oninput="formatearInputMoneda(this)"/>
 
     <label>Detalle:</label>
     <input type="text" id="i_detalle" placeholder="Descripción del movimiento"/>
@@ -51,7 +51,7 @@
       inv: document.getElementById("i_inv").value,
       tipo: document.getElementById("i_tipo").value,
       fecha: document.getElementById("i_fecha").value,
-      monto: parseFloat(document.getElementById("i_monto").value) || 0,
+      monto: valorNumerico(document.getElementById("i_monto")),
       detalle: document.getElementById("i_detalle").value.trim()
     };
     if (d.monto <= 0) { mostrarToast("El monto debe ser > 0.", "error"); return; }
@@ -62,7 +62,7 @@
       // Queda listo para cargar el próximo movimiento: se preserva el
       // inversor/tipo seleccionados (suele repetirse en cargas consecutivas)
       // y se limpian monto/detalle, con la fecha repuesta a hoy.
-      document.getElementById("i_monto").value = "";
+      setInputMoneda(document.getElementById("i_monto"), 0);
       document.getElementById("i_detalle").value = "";
       document.getElementById("i_fecha").value = new Date().toISOString().split("T")[0];
     });

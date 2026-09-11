@@ -1,12 +1,117 @@
 <div id="view-ventas" class="view">
-  <div class="panel" style="max-width:760px">
-    <h3>💰 Registrar Venta</h3>
+  <style>
+    /* Mismo lenguaje visual del asistente de Compras (compras.html) —
+       escapado a #view-ventas, no toca el resto del ERP. */
+    #view-ventas {
+      --gpw-texto: #191B2E; --gpw-texto-sua: #767A94; --gpw-borde: rgba(24,27,55,.08);
+      --gpw-fondo-campo: #F4F5FA; --gpw-indigo: #4F46E5; --gpw-violeta: #7C6FF0; --gpw-indigo-osc: #3730A3;
+      --gpw-verde: #0F9D58; --gpw-radio: 20px;
+      font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    /* Los dos cuestionarios (equipo/accesorios) uno al lado del otro,
+       independientes — sin selector que alterne entre ellos. Se apilan
+       en pantallas angostas. Mismo patrón que Compras (compras.html). */
+    #view-ventas .gp-compras-layout {
+      display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; justify-content: center;
+    }
+    #view-ventas .gp-compras-layout > .panel {
+      flex: 1 1 480px; max-width: 560px; margin: 0; padding: 4px 40px 40px; position: relative; overflow: hidden;
+      border: none; border-radius: 26px;
+      box-shadow: 0 1px 2px rgba(24,27,55,.05), 0 2px 8px rgba(24,27,55,.06), 0 28px 60px rgba(24,27,55,.14);
+    }
+    #view-ventas .gp-compras-layout > .panel::before {
+      content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta), #A78BFA);
+    }
+    #view-ventas .gp-compras-layout > .panel > h3 {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 21px; font-weight: 800; letter-spacing: -.4px;
+      color: var(--gpw-texto); text-align: center; margin: 40px 0 22px;
+    }
 
-    <label>¿Qué querés registrar?</label>
-    <select id="v_modo" onchange="ventasToggleModo()">
-      <option value="EQUIPO">Venta equipo</option>
-      <option value="ACCESORIOS">Venta accesorios</option>
-    </select>
+    #view-ventas .gp-wizard-eyebrow {
+      font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-align: center; margin: 26px 0 9px;
+    }
+    #view-ventas .gp-wizard-progreso {
+      height: 5px; border-radius: 100px; background: var(--gpw-fondo-campo); overflow: hidden; margin-bottom: 16px;
+      box-shadow: inset 0 1px 2px rgba(24,27,55,.06);
+    }
+    #view-ventas .gp-wizard-progreso-fill {
+      height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+      box-shadow: 0 0 10px rgba(79,70,229,.5);
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    #view-ventas .gp-wizard-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 8px; }
+    #view-ventas .gp-wizard-dot {
+      width: 7px; height: 7px; border-radius: 100px; background: var(--gpw-borde); cursor: pointer;
+      transition: all .25s cubic-bezier(.4,0,.2,1);
+    }
+    #view-ventas .gp-wizard-dot:hover { background: #C2C4DB; }
+    #view-ventas .gp-wizard-dot.hecho { background: var(--gpw-verde); }
+    #view-ventas .gp-wizard-dot.activo { width: 22px; background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta)); }
+
+    #view-ventas .paso {
+      background: transparent; border: none; padding: 0; margin-top: 26px; box-shadow: none;
+      animation: gp-wizard-fade .3s cubic-bezier(.4,0,.2,1);
+    }
+    @keyframes gp-wizard-fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    #view-ventas .paso-titulo {
+      font-family: "Manrope", "Inter", sans-serif; font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+      color: var(--gpw-texto); justify-content: center; text-align: center; margin-bottom: 6px;
+    }
+    #view-ventas .paso-num { display: none; }
+    #view-ventas .paso-titulo::after {
+      content: ""; display: block; width: 40px; height: 3px; margin: 12px auto 0; border-radius: 100px;
+      background: linear-gradient(90deg, var(--gpw-indigo), var(--gpw-violeta));
+    }
+
+    #view-ventas label { font-size: 12.5px; font-weight: 700; color: var(--gpw-texto-sua); margin-top: 16px; letter-spacing: .1px; }
+    #view-ventas .paso > label:first-child,
+    #view-ventas .paso > .fila2:first-child label,
+    #view-ventas .paso > .fila4:first-child label { margin-top: 0; }
+    #view-ventas input, #view-ventas select, #view-ventas textarea {
+      font-size: 15px; padding: 12px 14px; border: 1.5px solid transparent; border-radius: 13px;
+      background: var(--gpw-fondo-campo); color: var(--gpw-texto); font-family: inherit; font-weight: 500;
+      transition: background .15s, box-shadow .15s, border-color .15s;
+    }
+    #view-ventas input::placeholder, #view-ventas textarea::placeholder { color: #A6A9C2; font-weight: 400; }
+    #view-ventas input:focus, #view-ventas select:focus, #view-ventas textarea:focus {
+      background: #fff; border-color: var(--gpw-indigo); box-shadow: 0 0 0 4px rgba(79,70,229,.13); outline: none;
+    }
+    #view-ventas .req { color: #E11D48; }
+    #view-ventas .hint { color: var(--gpw-texto-sua); font-size: 12px; line-height: 1.55; margin-top: 6px; }
+    #view-ventas .box { background: var(--gpw-fondo-campo); border: none; border-radius: 15px; padding: 16px 18px; }
+    #view-ventas .box-info { background: #EEECFD; }
+    #view-ventas .total { background: #E7F8EF; border: none; border-radius: 15px; color: #0D7A3B; font-weight: 700; }
+
+    #view-ventas .btn {
+      font-size: 15px; font-weight: 700; padding: 13px 20px; border-radius: 100px;
+      background: linear-gradient(135deg, var(--gpw-indigo), var(--gpw-violeta)); letter-spacing: -.1px;
+      box-shadow: 0 4px 14px rgba(79,70,229,.32);
+      transition: transform .12s ease, box-shadow .15s ease, opacity .15s ease;
+    }
+    #view-ventas .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(79,70,229,.4); }
+    #view-ventas .btn:active { transform: scale(.97) translateY(0); box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+
+    #view-ventas .gp-wizard-nav { display: flex; align-items: center; gap: 14px; margin-top: 32px; }
+    #view-ventas .gp-wizard-nav .btn { width: auto; flex: 0 0 auto; padding: 13px 28px; }
+    #view-ventas .gp-wizard-nav .gp-wizard-atras {
+      background: transparent; color: var(--gpw-indigo); padding: 13px 10px; box-shadow: none; font-weight: 700;
+    }
+    #view-ventas .gp-wizard-nav .gp-wizard-atras:hover { background: var(--gpw-fondo-campo); transform: none; box-shadow: none; }
+    #view-ventas .gp-wizard-nav .gp-wizard-siguiente { margin-left: auto; }
+
+    #view-ventas .gp-wizard-paso-final > .btn:not(.gp-wizard-secundario) {
+      width: 100%; margin-top: 18px; padding: 16px; font-size: 16px;
+      background: linear-gradient(135deg, var(--gpw-verde), #17B26A); box-shadow: 0 6px 18px rgba(15,157,88,.32);
+    }
+    #view-ventas .gp-wizard-paso-final > .btn:not(.gp-wizard-secundario):hover { box-shadow: 0 8px 22px rgba(15,157,88,.4); }
+  </style>
+  <div class="gp-compras-layout">
+  <div class="panel">
+    <h3>💰 Venta de equipo</h3>
 
     <form id="ventas_form" onsubmit="return false;">
     <div id="v_bloqueEquipo">
@@ -35,33 +140,41 @@
       <div class="fila2">
         <div>
           <label>CUIL cliente (opcional):</label>
-          <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9"/>
+          <input type="text" id="v_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
+          <div class="hint">El DNI del recibo se calcula solo a partir de este dato — no hace falta cargarlo aparte.</div>
         </div>
         <div>
           <label>Teléfono cliente:</label>
           <input type="text" id="v_tel" placeholder="Ej: 2914123456"/>
         </div>
       </div>
+      <div class="fila2">
+        <div>
+          <label>Domicilio cliente (opcional):</label>
+          <input type="text" id="v_domicilio" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+        <div>
+          <label>Email cliente (opcional):</label>
+          <input type="text" id="v_email" placeholder="Para el recibo — no es obligatorio"/>
+        </div>
+      </div>
     </div>
 
     <div class="paso paso-opcional">
-      <div class="plegable-cabecera" onclick="ventasToggleAccesoriosBox()">
-        <p class="paso-titulo" style="margin:0"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con el equipo? (opcional)</p>
-        <span class="plegable-flecha" id="v_accFlecha">▾</span>
-      </div>
-      <div id="v_accesoriosBody" style="display:none;margin-top:10px">
-        <div class="hint">Completá solo los que apliquen. Se registran por separado, prorrateando el pago según su participación en el total.</div>
+      <p class="paso-titulo"><span class="paso-num">3</span> 📦 ¿Vendés accesorios junto con el equipo? (opcional)</p>
+      <div id="v_accesoriosBody" style="margin-top:10px">
+        <div class="hint">Elegí el producto real del stock — así se descuenta solo, igual que una venta de accesorios sueltos. "Otro (no descuenta stock)" queda para algo que no está cargado en el catálogo.</div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 1</label><input type="text" id="v_acc1" placeholder="Ej: Cargador 20W"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc1p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Accesorio 1</label><select id="v_acc1" onchange="ventasAccInlineToggleOtro(1)"></select><input type="text" id="v_acc1_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc1p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 2</label><input type="text" id="v_acc2" placeholder="Ej: Auriculares"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc2p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Accesorio 2</label><select id="v_acc2" onchange="ventasAccInlineToggleOtro(2)"></select><input type="text" id="v_acc2_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc2p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
         <div class="fila2" style="grid-template-columns:2fr 1fr">
-          <div><label style="font-size:11px">Accesorio 3</label><input type="text" id="v_acc3" placeholder="Ej: Vidrio templado"/></div>
-          <div><label style="font-size:11px">Precio ($)</label><input type="number" id="v_acc3p" value="0" min="0" oninput="ventasCalcTotalOperacion()"/></div>
+          <div><label style="font-size:11px">Accesorio 3</label><select id="v_acc3" onchange="ventasAccInlineToggleOtro(3)"></select><input type="text" id="v_acc3_otro" placeholder="Nombre del accesorio" style="display:none;margin-top:4px"/></div>
+          <div><label style="font-size:11px">Precio ($)</label><input type="text" inputmode="numeric" id="v_acc3p" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/></div>
         </div>
       </div>
     </div>
@@ -70,16 +183,16 @@
       <p class="paso-titulo"><span class="paso-num">4</span> Precio y cobro</p>
 
       <label>Precio del Celular ($): <span class="req">*</span></label>
-      <input type="number" id="v_precioVenta" value="0" min="0" oninput="ventasCalcTotalOperacion()"/>
+      <input type="text" inputmode="numeric" id="v_precioVenta" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotalOperacion()"/>
 
       <div class="total" id="v_totalOperacionDiv" style="background:#FEF9E7;color:#7D6608">TOTAL OPERACIÓN: $0</div>
 
       <label>Cobrado en (por el TOTAL de la operación: celular + accesorios) ($):</label>
       <div class="fila4">
-        <div><label style="font-size:11px">Efectivo</label><input type="number" id="v_efec" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Transferencia</label><input type="number" id="v_transf" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">Cuotas</label><input type="number" id="v_cuotas" value="0" min="0" oninput="ventasCalcTotal()"/></div>
-        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="v_usd" value="0" min="0" oninput="ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="v_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="v_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="v_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasCalcTotal()"/></div>
+        <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="v_usd" value="" placeholder="0" min="0" oninput="ventasCalcTotal()"/></div>
       </div>
       <div class="total" id="v_totalDiv">Total cobrado: $0</div>
 
@@ -99,12 +212,18 @@
 
       <label>Observaciones:</label>
       <input type="text" id="v_obs" placeholder="Opcional"/>
-    </div>
 
-    <button type="button" class="btn" onclick="ventasEnviar()">✅ Confirmar venta</button>
+      <button type="button" class="btn" onclick="ventasEnviar()">✅ Confirmar venta</button>
     </div>
+    </div>
+    </form>
+  </div>
 
-    <div id="v_bloqueAccesorios" style="display:none">
+  <div class="panel">
+    <h3>🎧 Venta de accesorios</h3>
+
+    <form id="ventas_acc_form" onsubmit="return false;">
+    <div id="v_bloqueAccesorios">
 
       <div class="paso">
         <p class="paso-titulo"><span class="paso-num">1</span> ¿Quién vende y cuándo?</p>
@@ -126,7 +245,7 @@
           <div><label>Teléfono:</label><input type="text" id="va_tel" placeholder="Ej: 2914123456"/></div>
         </div>
         <label>CUIL cliente (opcional):</label>
-        <input type="text" id="va_cuil" placeholder="Ej: 20-12345678-9"/>
+        <input type="text" id="va_cuil" placeholder="Ej: 20-12345678-9" oninput="formatearInputCUIL(this)"/>
       </div>
 
       <div class="paso">
@@ -140,20 +259,21 @@
         <p class="paso-titulo"><span class="paso-num">4</span> Cobro</p>
         <label style="margin-top:0">Cobrado en ($):</label>
         <div class="fila4">
-          <div><label style="font-size:11px">Efectivo</label><input type="number" id="va_efec" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Transferencia</label><input type="number" id="va_transf" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">Cuotas</label><input type="number" id="va_cuotas" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
-          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Efectivo</label><input type="text" inputmode="numeric" id="va_efec" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Transferencia</label><input type="text" inputmode="numeric" id="va_transf" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">Cuotas</label><input type="text" inputmode="numeric" id="va_cuotas" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>
+          <div><label style="font-size:11px">USD (dólares)</label><input type="number" id="va_usd" value="" placeholder="0" min="0" oninput="ventasAccCalcTotal()"/></div>
         </div>
         <div class="total" id="va_totalCobradoDiv">Total cobrado: $0</div>
+
+        <label>Observaciones:</label>
+        <input type="text" id="va_obs" placeholder="Opcional"/>
+
+        <button type="button" class="btn" onclick="ventasAccEnviar()">✅ Confirmar venta de accesorios</button>
       </div>
-
-      <label>Observaciones:</label>
-      <input type="text" id="va_obs" placeholder="Opcional"/>
-
-      <button type="button" class="btn" onclick="ventasAccEnviar()">✅ Confirmar venta de accesorios</button>
     </div>
     </form>
+  </div>
   </div>
 
   <div id="vp-overlay" style="position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;z-index:9997" onclick="ventasPreciosCerrar()">
@@ -181,6 +301,7 @@
       </div>
 
       <input type="text" id="vp_buscar" placeholder="🔎 Buscar modelo..." oninput="ventasPreciosRenderizar()"/>
+      <button type="button" class="btn" style="width:auto;margin:8px 0 0;padding:6px 10px;font-size:11px;background:#5D6D7E" title="Copiar explicación de la modalidad 'A pedido' para pegar en WhatsApp" onclick="preciosAccionExplicarAPedido()">❓ Qué es "A pedido"</button>
       <div id="vp_filtros" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0"></div>
 
       <div id="vp_grid" style="display:flex;flex-direction:column;gap:10px"></div>
@@ -210,15 +331,59 @@
 <script>
   document.getElementById("v_fecha").value = new Date().toISOString().split("T")[0];
   document.getElementById("va_fecha").value = new Date().toISOString().split("T")[0];
-  ventasAccLineaAgregar();
 
-  /** Sección "Accesorios vendidos junto con el equipo": colapsada por defecto (es opcional y la mayoría de las ventas no la usa) — se abre con un clic en el título. Los valores no se pierden al colapsar/expandir. */
-  var _ventasAccesoriosAbierto = false;
-  function ventasToggleAccesoriosBox(){
-    _ventasAccesoriosAbierto = !_ventasAccesoriosAbierto;
-    document.getElementById("v_accesoriosBody").style.display = _ventasAccesoriosAbierto ? "block" : "none";
-    document.getElementById("v_accFlecha").classList.toggle("abierto", _ventasAccesoriosAbierto);
-  }
+  // _vaStockCache tiene que existir ANTES de este ventasAccLineaAgregar():
+  // esa función arma una línea nueva y llama a ventasAccPoblarSelect(), que
+  // lee _vaStockCache.map(...) — si la declaración con su valor inicial
+  // (más abajo, junto al resto de "VENTA DE ACCESORIOS") todavía no corrió,
+  // acá seguía siendo undefined por el hoisting de "var" (solo se adelanta
+  // la declaración, no la asignación), tiraba
+  // "Cannot read properties of undefined (reading 'map')" sin capturar, y
+  // eso cortaba el resto de este <script> — ni el wizard
+  // (_wizardVentaEquipo/_wizardVentaAccesorios) ni _precioAutoVenta
+  // llegaban a crearse. Mismo patrón de bug que el de Compras, encontrado
+  // con Playwright: un error sin capturar en código de nivel superior
+  // frena todo lo que viene después en ese mismo archivo.
+  var _vaStockCache = [];
+  // Mismo motivo: ventasAccLineaAgregar() usa _vaContador (declarado más
+  // abajo, junto a su función) para armar el id de cada línea — sin esto
+  // acá arriba, la primera línea de accesorios se creaba con
+  // id="va_linea-NaN" (undefined++ da NaN, no tira error, así que no
+  // cortaba el script como el bug de _vaStockCache, pero dejaba una línea
+  // rota que ningún botón de esa sección conseguía manipular bien).
+  var _vaContador = 0;
+  // Además ventasAccLineaAgregar() termina llamando a ventasAccCalcTotal(),
+  // que usa valorNumerico() — definida en el <script> de index.html, que en
+  // la página final puede terminar de ejecutarse DESPUÉS que este archivo
+  // (mismo mecanismo que _comprasCuandoListo ya documenta en compras.html).
+  // Llamarlo ya mismo tira "valorNumerico is not defined" sin capturar, que
+  // corta el resto de este script — ni el wizard ni _precioAutoVenta
+  // llegan a crearse. Se difiere a "load" para evitarlo.
+  _comprasCuandoListo(ventasAccLineaAgregar);
+
+  // Asistente paso a paso, mismo patrón que Compras (compras.html define
+  // crearWizard() — se incluye antes que esta vista, ver index.html).
+  var _wizardVentaEquipo = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#v_bloqueEquipo .paso")),
+    { validar: function(i){
+        if (i === 0) {
+          if (!document.getElementById("v_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+          if (!document.getElementById("v_nOp").value) return { ok:false, msg:"Elegí el equipo a vender." };
+        }
+        if (i === 1 && !document.getElementById("v_cliente").value.trim()) return { ok:false, msg:"Ingresá el nombre del cliente." };
+        if (i === 3 && valorNumerico(document.getElementById("v_precioVenta")) <= 0) return { ok:false, msg:"Ingresá el precio del celular." };
+        return { ok:true };
+      }
+    }
+  );
+  var _wizardVentaAccesorios = crearWizard(
+    Array.prototype.slice.call(document.querySelectorAll("#v_bloqueAccesorios .paso")),
+    { validar: function(i){
+        if (i === 0 && !document.getElementById("va_operador").value) return { ok:false, msg:"Seleccioná el operador." };
+        return { ok:true };
+      }
+    }
+  );
 
   // Precio Inteligente (precio_automatico.html, mismo helper que Preventas):
   // autocompleta Precio del Celular al cambiar de equipo SOLO si el vendedor
@@ -294,30 +459,30 @@
     document.getElementById("v_cliente").value      = datos["Cliente"] || "";
     document.getElementById("v_cuil").value          = datos["CUIL Cliente"] || "";
     document.getElementById("v_tel").value          = datos["Teléfono Cliente"] || "";
-    document.getElementById("v_efec").value         = datos["Cobrado Efectivo"] || 0;
-    document.getElementById("v_transf").value       = datos["Cobrado Transferencia"] || 0;
-    document.getElementById("v_cuotas").value       = datos["Cobrado Cuotas"] || 0;
-    document.getElementById("v_usd").value          = datos["Cobrado USD"] || 0;
+    document.getElementById("v_domicilio").value    = datos["Domicilio Cliente"] || "";
+    document.getElementById("v_email").value        = datos["Email Cliente"] || "";
+    setInputMoneda(document.getElementById("v_efec"), datos["Cobrado Efectivo"] || 0);
+    setInputMoneda(document.getElementById("v_transf"), datos["Cobrado Transferencia"] || 0);
+    setInputMoneda(document.getElementById("v_cuotas"), datos["Cobrado Cuotas"] || 0);
+    document.getElementById("v_usd").value          = datos["Cobrado USD"] || "";
     document.getElementById("v_obs").value          = datos["Observaciones"] || "";
 
     var accs = datos._accesoriosAsociados || [];
-    document.getElementById("v_acc1").value  = accs[0] ? accs[0].producto : "";
-    document.getElementById("v_acc1p").value = accs[0] ? accs[0].precio   : 0;
-    document.getElementById("v_acc2").value  = accs[1] ? accs[1].producto : "";
-    document.getElementById("v_acc2p").value = accs[1] ? accs[1].precio   : 0;
-    document.getElementById("v_acc3").value  = accs[2] ? accs[2].producto : "";
-    document.getElementById("v_acc3p").value = accs[2] ? accs[2].precio   : 0;
-    if (accs.length > 0 && !_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
-
+    [1,2,3].forEach(function(n){
+      var acc = accs[n - 1];
+      if (acc) ventasAccInlineSetOtro(n, acc.producto);
+      setInputMoneda(document.getElementById("v_acc" + n + "p"), acc ? acc.precio : 0);
+    });
     ventasCalcTotalOperacion();
     ventasCalcTotal();
+    if (_wizardVentaEquipo) _wizardVentaEquipo.ir(0);
   }
 
   function ventasTotalOperacion(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
-    var a1 = parseFloat(document.getElementById("v_acc1p").value) || 0;
-    var a2 = parseFloat(document.getElementById("v_acc2p").value) || 0;
-    var a3 = parseFloat(document.getElementById("v_acc3p").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
+    var a1 = valorNumerico(document.getElementById("v_acc1p"));
+    var a2 = valorNumerico(document.getElementById("v_acc2p"));
+    var a3 = valorNumerico(document.getElementById("v_acc3p"));
     return pv + a1 + a2 + a3;
   }
   function ventasCalcTotalOperacion(){
@@ -325,9 +490,9 @@
       "TOTAL OPERACIÓN: " + fmtP(ventasTotalOperacion());
   }
   function ventasCalcTotal(){
-    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("v_efec"));
+    var tr = valorNumerico(document.getElementById("v_transf"));
+    var cu = valorNumerico(document.getElementById("v_cuotas"));
     var us = parseFloat(document.getElementById("v_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var t = ef + tr + cu + usPesos;
@@ -337,10 +502,10 @@
   }
 
   function ventasEnviar(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
-    var ef = parseFloat(document.getElementById("v_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("v_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("v_cuotas").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
+    var ef = valorNumerico(document.getElementById("v_efec"));
+    var tr = valorNumerico(document.getElementById("v_transf"));
+    var cu = valorNumerico(document.getElementById("v_cuotas"));
     var us = parseFloat(document.getElementById("v_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var nOp = document.getElementById("v_nOp").value;
@@ -364,27 +529,52 @@
       cliente: document.getElementById("v_cliente").value.trim(),
       cuil: document.getElementById("v_cuil").value.trim(),
       tel: document.getElementById("v_tel").value.trim(),
+      domicilio: document.getElementById("v_domicilio").value.trim(),
+      email: document.getElementById("v_email").value.trim(),
       efec: ef, transf: tr, cuotas: cu, usd: us,
       obs: document.getElementById("v_obs").value.trim(),
-      accesorios: [
-        { nombre: document.getElementById("v_acc1").value.trim(), precio: parseFloat(document.getElementById("v_acc1p").value) || 0 },
-        { nombre: document.getElementById("v_acc2").value.trim(), precio: parseFloat(document.getElementById("v_acc2p").value) || 0 },
-        { nombre: document.getElementById("v_acc3").value.trim(), precio: parseFloat(document.getElementById("v_acc3p").value) || 0 }
-      ].filter(function(a){ return a.nombre !== ""; }),
+      accesorios: [1,2,3].map(function(n){
+        var acc = ventasAccInlineLeer(n);
+        if (!acc) return null;
+        return { nombre: acc.nombre, skuId: acc.skuId, precio: valorNumerico(document.getElementById("v_acc" + n + "p")) };
+      }).filter(function(a){ return a !== null; }),
       operador: document.getElementById("v_operador").value,
       entregarRegalos: document.getElementById("v_entregarRegalos").checked
     };
 
     if (_correccion && _correccion.tipo === "VENTA") { enviarCorreccion("corregirVenta", d); return; }
 
-    confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(pv) + "?").then(function(ok){
+    confirmarAccion("¿Confirmás la venta a " + d.cliente + " por " + fmtP(totOp) + "?").then(function(ok){
       if (!ok) return;
       llamarBackend("procesarVentaConOperador", d, function(msg){
-        mostrarToastOperacion(msg);
+        // El recibo ya NO se abre solo: el toast de éxito (mostrarToastOperacion,
+        // index.html) ahora ofrece un botón "🖨 Recibo" — mismo botón e igual
+        // función que ya existe en Mis Operaciones (imprimirReciboVenta). Abrir
+        // la ventana automáticamente apenas se confirmaba la venta resultaba
+        // poco confiable (el hueco entre abrir la ventana y completarla con el
+        // HTML real —procesando la venta de por medio— hacía que a veces se
+        // quedara colgada en "Generando recibo…"); con un botón, el click del
+        // operador ES el gesto que abre la ventana, sin ningún hueco de por medio.
+        mostrarToastOperacion(msg, d.tel);
         cargarDashboard();
         ventasLimpiarForm();
       });
     });
+  }
+
+  /** Reutilizable desde el botón "🖨 Recibo" del toast de éxito (Ventas, ver arriba) y desde Mis Operaciones (reimpresión para garantía) — mismo botón, misma función en los dos lugares. */
+  function imprimirReciboVenta(numeroVenta){
+    if (!numeroVenta) return;
+    var w = window.open("", "_blank");
+    if (!w) { mostrarToast("❌ Habilitá las ventanas emergentes para ver/imprimir el recibo.", "error"); return; }
+    google.script.run
+      .withSuccessHandler(function(html){
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      })
+      .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); w.close(); })
+      .generarReciboVenta(numeroVenta);
   }
 
   /** Deja "Registrar Venta" (equipo) en blanco y listo para la próxima carga. Reutilizada tanto tras una venta normal como tras confirmar una corrección (ver enviarCorreccion() en index.html). */
@@ -397,30 +587,71 @@
       fechasHoy: ["v_fecha"],
       despues: ventasInit
     });
-    if (_ventasAccesoriosAbierto) ventasToggleAccesoriosBox();
+    [1,2,3].forEach(function(n){ document.getElementById("v_acc" + n + "_otro").style.display = "none"; });
+    if (_wizardVentaEquipo) _wizardVentaEquipo.ir(0);
   }
 
   // ============================================================
   //  VENTA DE ACCESORIOS — multilínea, independiente de la venta de equipo.
+  //  (_vaStockCache se declara arriba del todo, antes del primer
+  //  ventasAccLineaAgregar() — ver el comentario ahí.)
   // ============================================================
-
-  var _vaStockCache = [];
-
-  function ventasToggleModo(){
-    var modo = document.getElementById("v_modo").value;
-    document.getElementById("v_bloqueEquipo").style.display     = (modo === "EQUIPO") ? "block" : "none";
-    document.getElementById("v_bloqueAccesorios").style.display = (modo === "ACCESORIOS") ? "block" : "none";
-    if (modo === "ACCESORIOS" && _vaStockCache.length === 0) ventasAccCargarStock();
-  }
 
   function ventasAccCargarStock(){
     google.script.run
       .withSuccessHandler(function(stock){
         _vaStockCache = stock || [];
         document.querySelectorAll("[id^='va_sku-']").forEach(ventasAccPoblarSelect);
+        [1,2,3].forEach(ventasAccPoblarInlineSelect);
       })
       .withFailureHandler(function(e){ mostrarToast("❌ " + e.message, "error"); })
       .obtenerStockAccesorios();
+  }
+
+  // ---- Accesorios incluidos en la venta del equipo (paso 3, EQUIPO) ----
+  // Antes eran <input type="text"> libres: nunca quedaban vinculados a
+  // ningún producto real, así que la venta nunca descontaba stock. Ahora
+  // son selects contra el mismo stock real que usa la venta de accesorios
+  // sueltos (arriba) — "Otro" queda como escape para algo fuera de catálogo,
+  // a costa de no descontar stock (igual que antes).
+  function ventasAccPoblarInlineSelect(n){
+    var select = document.getElementById("v_acc" + n);
+    if (!select) return;
+    var actual = select.value;
+    select.innerHTML = "<option value=''>— Sin accesorio —</option>" +
+      _vaStockCache.map(function(s){
+        return "<option value='" + s.skuId + "'>" + s.producto + (s.marca ? " — " + s.marca : "") + (s.color ? " (" + s.color + ")" : "") + " [stock: " + s.stock + "]</option>";
+      }).join("") +
+      "<option value='OTRO'>Otro (no descuenta stock)…</option>";
+    if (actual) select.value = actual;
+  }
+
+  function ventasAccInlineToggleOtro(n){
+    var select = document.getElementById("v_acc" + n);
+    var otro = document.getElementById("v_acc" + n + "_otro");
+    otro.style.display = (select.value === "OTRO") ? "block" : "none";
+    if (select.value !== "OTRO") otro.value = "";
+  }
+
+  /** Devuelve {nombre, skuId} para el accesorio n, o null si no se eligió nada. */
+  function ventasAccInlineLeer(n){
+    var select = document.getElementById("v_acc" + n);
+    if (!select || !select.value) return null;
+    if (select.value === "OTRO") {
+      var texto = document.getElementById("v_acc" + n + "_otro").value.trim();
+      return texto ? { nombre: texto, skuId: null } : null;
+    }
+    var s = _vaStockCache.find(function(x){ return x.skuId === select.value; });
+    return s ? { nombre: s.producto, skuId: s.skuId } : null;
+  }
+
+  /** Precarga en modo "Otro" (corrección de una venta ya cargada — el nombre viejo no necesariamente matchea un SKU actual). */
+  function ventasAccInlineSetOtro(n, texto){
+    var select = document.getElementById("v_acc" + n);
+    if (!select) return;
+    select.value = "OTRO";
+    document.getElementById("v_acc" + n + "_otro").style.display = "block";
+    document.getElementById("v_acc" + n + "_otro").value = texto || "";
   }
 
   function ventasAccPoblarSelect(select){
@@ -432,7 +663,9 @@
     if (actual) select.value = actual;
   }
 
-  var _vaContador = 0;
+  // (_vaContador se declara arriba del todo, antes del primer
+  //  ventasAccLineaAgregar() — ver el comentario ahí. Sacarlo de acá evita
+  //  que se resetee a 0 y pise el id de la primera línea ya creada.)
   function ventasAccLineaAgregar(){
     _vaContador++;
     var id = _vaContador;
@@ -446,7 +679,7 @@
         '<div><label style="font-size:11px">Cantidad</label><input type="number" id="va_cant-'+id+'" value="1" min="1" oninput="ventasAccCalcTotal()"/></div>' +
       '</div>' +
       '<div class="fila2">' +
-        '<div><label style="font-size:11px">Precio unitario ($)</label><input type="number" id="va_precio-'+id+'" value="0" min="0" oninput="ventasAccCalcTotal()"/></div>' +
+        '<div><label style="font-size:11px">Precio unitario ($)</label><input type="text" inputmode="numeric" id="va_precio-'+id+'" value="" placeholder="$0" oninput="formatearInputMoneda(this); ventasAccCalcTotal()"/></div>' +
         '<div><label style="font-size:11px">Subtotal</label><input type="text" id="va_subtotal-'+id+'" value="$0" disabled/></div>' +
       '</div>' +
       '<button type="button" class="btn" style="background:#C0392B;padding:5px 10px;font-size:11px;width:auto" onclick="ventasAccLineaQuitar('+id+')">🗑 Quitar línea</button>';
@@ -468,7 +701,7 @@
       var skuId = document.getElementById("va_sku-"+id).value;
       var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
       if (!skuId || cantidad <= 0) return;
-      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      var precioUnit = valorNumerico(document.getElementById("va_precio-"+id));
       out.push({ skuId: skuId, cantidad: cantidad, precioUnit: precioUnit });
     });
     return out;
@@ -479,16 +712,16 @@
     document.querySelectorAll("[id^='va_linea-']").forEach(function(div){
       var id = div.id.split("-")[1];
       var cantidad = parseInt(document.getElementById("va_cant-"+id).value) || 0;
-      var precioUnit = parseFloat(document.getElementById("va_precio-"+id).value) || 0;
+      var precioUnit = valorNumerico(document.getElementById("va_precio-"+id));
       var subtotal = cantidad * precioUnit;
       document.getElementById("va_subtotal-"+id).value = fmtP(subtotal);
       total += subtotal;
     });
     document.getElementById("va_totalDiv").textContent = "TOTAL: " + fmtP(total);
 
-    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("va_efec"));
+    var tr = valorNumerico(document.getElementById("va_transf"));
+    var cu = valorNumerico(document.getElementById("va_cuotas"));
     var us = parseFloat(document.getElementById("va_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var cobrado = ef + tr + cu + usPesos;
@@ -505,9 +738,9 @@
     if (lineas.length === 0) { mostrarToast("Agregá al menos una línea con producto y cantidad.", "error"); return; }
 
     var total = ventasAccCalcTotal();
-    var ef = parseFloat(document.getElementById("va_efec").value) || 0;
-    var tr = parseFloat(document.getElementById("va_transf").value) || 0;
-    var cu = parseFloat(document.getElementById("va_cuotas").value) || 0;
+    var ef = valorNumerico(document.getElementById("va_efec"));
+    var tr = valorNumerico(document.getElementById("va_transf"));
+    var cu = valorNumerico(document.getElementById("va_cuotas"));
     var us = parseFloat(document.getElementById("va_usd").value) || 0;
     var usPesos = us * cotizacionActual.venta;
     var cobrado = ef + tr + cu + usPesos;
@@ -542,13 +775,14 @@
         _vaStockCache = [];
         ventasAccLineaAgregar();
         ventasAccCargarStock();
+        if (_wizardVentaAccesorios) _wizardVentaAccesorios.ir(0);
       });
     });
   }
 
   /** Parte 5: calcula cuotas en tiempo real sobre el precio del celular ya cargado — no guarda nada. */
   function ventasAbrirCalculadoraCuotas(){
-    var pv = parseFloat(document.getElementById("v_precioVenta").value) || 0;
+    var pv = valorNumerico(document.getElementById("v_precioVenta"));
     if (pv <= 0) { mostrarToast("Ingresá el precio del celular primero.", "error"); return; }
     renderCalculadoraCuotas(pv, {
       titulo: "💳 Financiación",
@@ -561,7 +795,7 @@
   //  Drawer "💰 Consultar precios" — NO abandona el formulario ni pierde
   //  datos: reutiliza FILTROS_MODELO_PRECIOS, preciosCargarDatos,
   //  preciosFiltrarArray, preciosCrearTarjetaHTML, preciosCrearFilaCompactaHTML,
-  //  preciosTextoPlano, preciosGenerarWhatsapp/preciosTextoWhatsApp,
+  //  preciosTextoPlano, preciosAccionWhatsAppPresupuesto,
   //  preciosCopiarTexto y LP_VISTA_KEY de precios.html (incluido antes que
   //  esta vista en index.html) en vez de duplicar el módulo.
   // ============================================================
@@ -589,6 +823,7 @@
   }
 
   function ventasAbrirConsultaPrecios(){
+    preciosPrecalentarCuotas();
     document.getElementById("vp-overlay").style.display = "block";
     document.getElementById("vp_filtros").innerHTML = FILTROS_MODELO_PRECIOS.map(function(f){
       return "<button class='btn' style='margin:0;width:auto;padding:5px 10px;font-size:11px;" + (f === _ventasPreciosFiltroActivo ? "" : "background:#B8C4CE") + "' onclick='ventasPreciosSetFiltro(" + JSON.stringify(f) + ")'>" + f + "</button>";
@@ -635,7 +870,7 @@
   }
 
   function ventasPreciosAccionCopiar(idx){ preciosCopiarTexto(preciosTextoPlano(_ventasPreciosFiltrada[idx])); }
-  function ventasPreciosAccionWhatsapp(idx){ preciosCopiarTexto(preciosGenerarWhatsapp(_ventasPreciosFiltrada[idx]), "✅ Mensaje de WhatsApp copiado"); }
+  function ventasPreciosAccionWhatsapp(idx){ preciosAccionWhatsAppPresupuesto(_ventasPreciosFiltrada[idx], "📱"); }
   /** Parte 2: reutiliza renderCalculadoraCuotas() ya implementada — mismo modal que Lista de Precios, sin segunda implementación. */
   function ventasPreciosAccionVerCuotas(idx){
     var p = _ventasPreciosFiltrada[idx];
